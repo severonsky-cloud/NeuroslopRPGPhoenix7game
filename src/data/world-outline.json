@@ -1,0 +1,86 @@
+{
+  "build": "Phoenix7 2.0 production world outline",
+  "start": {
+    "location": "port-rachel",
+    "quest": "port-empty-case",
+    "playerOrigin": "lunar-prisoner"
+  },
+  "locations": [
+    {
+      "id": "port-rachel",
+      "name": "Порт Рейчел",
+      "role": "new-game-start",
+      "description": "Мокрый порт на Синем Шельфе. Игрок прибывает после перевозки с Лунной тюрьмы. Бумаги пустые."
+    },
+    {
+      "id": "blue-shelf-road",
+      "name": "Дорога Синего Шельфа",
+      "role": "first-travel-route",
+      "description": "Основная дорога между Портом Рейчел и Фортом Заря. По ней должны ходить караваны и рыцари."
+    },
+    {
+      "id": "fort-zarya",
+      "name": "Форт Заря",
+      "role": "act-one-hub",
+      "description": "Имперский пост и будущий главный хаб первого акта. Здесь Оран Тив, рынок, Герда."
+    },
+    {
+      "id": "green-error-shrine",
+      "name": "Придорожный знак Системных Ошибок",
+      "role": "green-knight-intro",
+      "description": "Первое касание зелёного ордена. Малый знак, терминал, послушник."
+    },
+    {
+      "id": "blue-sound-shrine",
+      "name": "Камертон Синего Ордена",
+      "role": "blue-knight-intro",
+      "description": "Первое касание синего ордена. Камертон, резонанс, послушник."
+    }
+  ],
+  "firstQuest": {
+    "id": "port-empty-case",
+    "title": "Порт Рейчел: пустое дело",
+    "steps": [
+      "Проснуться в Порту Рейчел",
+      "Поговорить с портовыми NPC",
+      "Дойти по дороге до Форта Заря",
+      "Найти писаря Орана Тива",
+      "Получить временную регистрацию",
+      "Получить направление к Герде"
+    ]
+  },
+  "factions": [
+    "Earth Empire",
+    "Green Knights of System Errors",
+    "Blue Knights of Sound",
+    "Wandering Knights",
+    "Caravan people",
+    "Phase mages",
+    "Red elementals"
+  ],
+  "assetContracts": {
+    "characters": [
+      "wandering_knight_v0.glb",
+      "green_knight_v0.glb",
+      "blue_knight_v0.glb",
+      "oran_tiv_v0.glb",
+      "gerda_v0.glb",
+      "port_worker_v0.glb"
+    ],
+    "places": [
+      "port_rachel_kit.glb",
+      "fort_zarya_kit.glb",
+      "green_error_shrine.glb",
+      "blue_sound_shrine.glb"
+    ],
+    "audio": [
+      "ui_button_click.wav",
+      "start_game.wav",
+      "book_open.wav",
+      "page_turn.wav",
+      "quest_update.wav",
+      "quest_complete.wav",
+      "menu_ambience.wav"
+    ]
+  }
+}
