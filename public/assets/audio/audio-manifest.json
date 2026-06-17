@@ -1,0 +1,16 @@
+{
+  "version": "2.0J",
+  "fallback": "procedural-web-audio",
+  "files": {
+    "uiClick": "public/assets/audio/ui_button_click.wav",
+    "startGame": "public/assets/audio/start_game.wav",
+    "menuAmbience": "public/assets/audio/menu_ambience.wav",
+    "bookOpen": "public/assets/audio/book_open.wav",
+    "pageTurn": "public/assets/audio/page_turn.wav",
+    "questUpdate": "public/assets/audio/quest_update.wav",
+    "questComplete": "public/assets/audio/quest_complete.wav",
+    "mapOpen": "public/assets/audio/map_open.wav",
+    "portRachelAmbience": "public/assets/audio/port_rachel_ambience.wav",
+    "fortZaryaAmbience": "public/assets/audio/fort_zarya_ambience.wav"
+  }
+}
