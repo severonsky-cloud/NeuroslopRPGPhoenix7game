@@ -1,4 +1,4 @@
-name: Deploy static Phoenix7 build
+name: Check Phoenix7 static build
 
 on:
   push:
@@ -7,28 +7,21 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+
+      - name: Verify static build files
+        run: |
+          test -f index.html
+          grep -q "Phoenix7" index.html
+          grep -q "2.0" index.html
+          echo "Phoenix7 static build exists and is ready for manual GitHub Pages setup."
+
+      - name: Print project tree
+        run: |
+          find . -maxdepth 3 -type f | sort
