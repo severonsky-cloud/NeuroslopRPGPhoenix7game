@@ -9,16 +9,33 @@ html,body{margin:0;height:100%;overflow:hidden;background:#050403;color:#eadbbd;
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="start" class="screen"><div class="card"><div class="k">Phoenix7 2.5A/B/C — clean 3D boot</div><h1>Феникс 7: первый акт</h1><p class="lead">Новая чистая 3D-сборка: океанский берег, красная глина, Порт Рейчел, дорога к Форту Заря, край Мёртвой Саванны, здания с дверями, NPC, руки и арсенал.</p><div class="row"><button id="newBtn">Новая игра</button><button id="quickBtn">Быстрый старт</button><button id="loadBtn">Продолжить</button></div><div class="note">Запуск всегда один: <b>http://localhost:8000/game.html</b></div></div></div>
+<div id="start" class="screen"><div class="card"><div class="k">Phoenix7 2.5A/B/C — clean 3D boot</div><h1>Феникс 7: первый акт</h1><p class="lead">Новая чистая 3D-сборка: океанский берег, красная глина, Порт Рейчел, дорога к Форту Заря, край Мёртвой Саванны, здания с дверями, NPC, руки и арсенал.</p><div class="row"><button id="newBtn">Новая игра</button><button id="quickBtn">Быстрый старт</button><button id="loadBtn">Продолжить</button></div><div class="note">Запуск всегда один: <b>http://localhost:8000/game.html</b><br>Если кнопки не реагируют — runtime не загрузился, теперь снизу появится точная ошибка.</div></div></div>
 <div id="chargen" class="screen hidden"><div class="card"><div class="k">создание персонажа</div><h1>Кто прибыл на берег?</h1><div class="grid2"><div><label>Имя</label><input id="charName" value="Безымянная ошибка" maxlength="34"><label>Раса</label><select id="race"><option value="human">Человек Империи</option><option value="deimur">Деймуриец</option><option value="red">Красный элементал</option><option value="blue">Синий элементал</option><option value="black">Чёрный элементал</option></select></div><div><label>Предыстория</label><select id="bg"><option value="lunar">Лунный заключённый</option><option value="archive">Архивный беглец</option><option value="caravan">Ребёнок каравана</option><option value="duelist">Дуэлянт</option></select><p class="note">Старт: руки, фазовый удар, бастард, шпага, Кольт 1917, M1 Гаранд, Брен и немного боезапаса.</p></div></div><div class="row"><button id="beginBtn">Начать</button><button id="backBtn">Назад</button></div></div></div>
 <div id="hud" class="hud hidden"><div class="badge">PHOENIX7 / GAME.HTML / 2.5 CLEAN 3D</div><div class="title">Акт 1: Пустое дело</div><div class="bars"><div>HP <span id="hpTxt">100</span></div><div class="bar"><i id="hpBar"></i></div><div>ST <span id="stTxt">100</span></div><div class="bar st"><i id="stBar"></i></div><div>PH <span id="phTxt">100</span></div><div class="bar ph"><i id="phBar"></i></div></div><div class="quest"><div id="questTitle" class="qt">Порт Рейчел</div><div id="questBody" class="qx">Иди к Рине в таможню, потом к Орану и Герде.</div><div id="questProgress" class="qx"></div></div><div id="nav" class="nav">Цель: Рина · дистанция —</div><div class="cross"></div><div id="prompt" class="prompt hidden"></div><div id="toast" class="toast hidden"></div><div id="ammo" class="ammo"></div><div id="weapon" class="weapon">Оружие: кулаки</div><div class="help">WASD · мышь · ЛКМ/Space атака · E говорить/лут · R блок · 1-7 оружие · J журнал · I инвентарь · Q задачи · F1 телепорт</div><div id="debug" class="debug"></div></div>
 <div id="panel" class="panel hidden"><button id="closePanel" class="close">×</button><div id="panelText"></div></div>
-<script type="module">
-window.addEventListener('error', (e) => {
-  const msg = e?.message || 'unknown error';
-  document.body.insertAdjacentHTML('beforeend', '<div class="err">JS ERROR: ' + msg + '<br>Если это ошибка загрузки Three.js, проверь интернет/CDN или пришли скрин.</div>');
+<script>
+window.__PHX_RUNTIME_READY = false;
+window.__PHX_BOOT_ERROR = '';
+function phxBootError(msg){
+  window.__PHX_BOOT_ERROR = String(msg || 'unknown error');
+  if (!document.querySelector('.err')) document.body.insertAdjacentHTML('beforeend', '<div class="err">3D runtime не загрузился:<br>' + window.__PHX_BOOT_ERROR + '<br><br>Запуск должен быть через локальный сервер: py -m http.server 8000 → http://localhost:8000/game.html</div>');
+}
+['newBtn','quickBtn','loadBtn','beginBtn'].forEach(function(id){
+  window.addEventListener('DOMContentLoaded', function(){
+    var b=document.getElementById(id);
+    if(!b) return;
+    b.addEventListener('click', function(){
+      setTimeout(function(){ if(!window.__PHX_RUNTIME_READY) phxBootError('main.js или Three.js ещё не загрузился. Проверь интернет/CDN и что открыт именно http://localhost:8000/game.html, не file://'); }, 250);
+    }, true);
+  });
 });
-import './src/game/main.js';
+</script>
+<script type="module">
+window.addEventListener('error', (e) => phxBootError(e?.message || e));
+window.addEventListener('unhandledrejection', (e) => phxBootError(e?.reason?.message || e?.reason || e));
+import('./src/game/main.js?v=25abc_bootfix_1')
+  .then(() => { window.__PHX_RUNTIME_READY = true; console.log('Phoenix7 runtime ready'); })
+  .catch((err) => phxBootError(err?.message || err));
 </script>
 </body>
 </html>
