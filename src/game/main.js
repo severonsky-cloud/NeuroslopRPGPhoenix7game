@@ -1,10 +1,11 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
 
-const SAVE_KEY = 'phoenix7_25_clean_boot';
-const TAU = Math.PI * 2;
+const SAVE_KEY = 'phoenix7_25_world_v2';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const $ = (id) => document.getElementById(id);
+const distXZ = (a, b) => Math.hypot((a.x ?? a.position?.x ?? 0) - (b.x ?? b.position?.x ?? 0), (a.z ?? a.position?.z ?? 0) - (b.z ?? b.position?.z ?? 0));
+
+window.__PHX_RUNTIME_READY = false;
 
 const WEAPONS = {
   fists: { name: 'Кулаки', kind: 'melee', damage: 9, range: 1.35, stamina: 7, phase: 0, ammo: null },
@@ -17,17 +18,17 @@ const WEAPONS = {
 };
 
 const RACES = {
-  human: { hp: 105, st: 105, ph: 90, hand: 0xc09673, name: 'Человек Империи' },
-  deimur: { hp: 92, st: 96, ph: 125, hand: 0x8c807a, name: 'Деймуриец' },
-  red: { hp: 122, st: 88, ph: 100, hand: 0xb44d33, name: 'Красный элементал' },
-  blue: { hp: 94, st: 112, ph: 130, hand: 0x4d78b8, name: 'Синий элементал' },
-  black: { hp: 96, st: 102, ph: 145, hand: 0x343044, name: 'Чёрный элементал' },
+  human: { hp: 105, st: 105, ph: 90, hand: 0xc09673 },
+  deimur: { hp: 92, st: 96, ph: 125, hand: 0x8c807a },
+  red: { hp: 122, st: 88, ph: 100, hand: 0xb44d33 },
+  blue: { hp: 94, st: 112, ph: 130, hand: 0x4d78b8 },
+  black: { hp: 96, st: 102, ph: 145, hand: 0x343044 },
 };
 
 const state = {
   started: false,
   mode: 'menu',
-  yaw: 0,
+  yaw: Math.PI * 0.5,
   pitch: 0,
   keys: new Set(),
   near: null,
@@ -39,7 +40,8 @@ const state = {
   npcs: [],
   enemies: [],
   doors: [],
-  signs: [],
+  labels: [],
+  mapPoints: [],
   cameraRig: null,
   hands: null,
   last: performance.now(),
@@ -76,7 +78,7 @@ function makePlayer(opts = {}) {
     name: opts.name || 'Безымянная ошибка',
     race: raceKey,
     bg: opts.bg || 'lunar',
-    pos: { x: -42, y: 1.7, z: 7 },
+    pos: { x: -47, y: 1.7, z: 8 },
     hp: r.hp,
     hpMax: r.hp,
     st: r.st,
@@ -88,15 +90,15 @@ function makePlayer(opts = {}) {
     ammo: { colt: 9, m1: 12, bren: 18 },
     credits: 18,
     inv: ['мокрые бумаги', 'тюремный жетон', 'бастард', 'шпага', 'Кольт 1917', 'M1 Гаранд', 'Брен'],
-    log: ['Ты прибыл на океанский берег Порта Рейчел. Красная глина липнет к сапогам.'],
+    log: ['Ты стоишь на влажной красной глине Порта Рейчел. Слева океан, впереди дорога к Форту Заря.'],
     done: { rina: false, road: false, oran: false, market: false, factions: false, contraband: false, gerda: false, sava: false },
-    flags: { green: false, blue: false, rewarded: false },
+    flags: { green: false, blue: false, rewarded: false, debugIndex: 0 },
   };
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8b4a27);
-scene.fog = new THREE.FogExp2(0x9b5a32, 0.012);
+scene.background = new THREE.Color(0x9a5630);
+scene.fog = new THREE.FogExp2(0xb06c3f, 0.0105);
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 900);
 const renderer = new THREE.WebGLRenderer({ canvas: $('game'), antialias: true });
@@ -105,255 +107,290 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const rig = new THREE.Object3D();
-rig.position.set(-42, 0, 7);
+rig.position.set(-47, 0, 8);
 scene.add(rig);
 camera.position.set(0, 1.72, 0);
 rig.add(camera);
 state.cameraRig = rig;
 
-const mats = {
-  clay: mat(0x8a3f23, 0.88, 0.02),
-  wetClay: mat(0x6d3824, 0.82, 0.04),
-  sand: mat(0xa86b3b, 0.9, 0.02),
-  savanna: mat(0x7a5732, 0.95, 0.02),
-  wall: mat(0x6d5535, 0.9, 0.03),
-  darkWall: mat(0x3d2d22, 0.9, 0.02),
-  roof: mat(0x21150e, 0.86, 0.04),
-  water: new THREE.MeshStandardMaterial({ color: 0x14384a, roughness: 0.34, metalness: 0.1, transparent: true, opacity: 0.84 }),
-  road: mat(0x5d4328, 0.98, 0.01),
-  gold: mat(0xd8b56e, 0.62, 0.05),
-  black: mat(0x090706, 0.8, 0.05),
-};
-
-function mat(color, roughness = 0.85, metalness = 0.03, emissive = 0x000000, intensity = 0) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity: intensity });
+function material(color, options = {}) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: options.roughness ?? 0.86,
+    metalness: options.metalness ?? 0.02,
+    emissive: options.emissive ?? 0x000000,
+    emissiveIntensity: options.emissiveIntensity ?? 0,
+    transparent: !!options.opacity,
+    opacity: options.opacity ?? 1,
+    side: options.side ?? THREE.FrontSide,
+  });
 }
 
-function addMesh(geo, material, x, y, z, parent = scene) {
-  const m = new THREE.Mesh(geo, material);
-  m.position.set(x, y, z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  parent.add(m);
-  return m;
+const M = {
+  clay: material(0x8c3f23),
+  wetClay: material(0x673522),
+  beach: material(0xa76537),
+  savanna: material(0x7a5732),
+  road: material(0x5d4328),
+  wood: material(0x3f2718),
+  dark: material(0x120c08),
+  roof: material(0x20140d),
+  water: new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.25, metalness: 0.08, transparent: true, opacity: 0.86 }),
+  sign: material(0xd8b56e, { emissive: 0x241405, emissiveIntensity: 0.18 }),
+};
+
+function addMesh(geo, mat, x, y, z, parent = scene) {
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
 }
 
 function addCollider(x, z, w, d, tag = 'wall') {
   state.colliders.push({ x, z, w, d, tag });
 }
 
-function rectCollides(x, z, radius = 0.42) {
-  return state.colliders.some((c) => Math.abs(x - c.x) < c.w / 2 + radius && Math.abs(z - c.z) < c.d / 2 + radius);
+function collides(x, z, r = 0.45) {
+  return state.colliders.some((c) => Math.abs(x - c.x) < c.w / 2 + r && Math.abs(z - c.z) < c.d / 2 + r);
 }
 
-function addBox(x, y, z, w, h, d, material, solid = true, tag = '') {
-  const m = addMesh(new THREE.BoxGeometry(w, h, d), material, x, y + h / 2, z);
+function box(x, z, w, d, h, mat, tag = '', solid = true) {
+  const mesh = addMesh(new THREE.BoxGeometry(w, h, d), mat, x, h / 2, z);
   if (solid) addCollider(x, z, w, d, tag);
-  state.objects.push(m);
-  return m;
+  return mesh;
 }
 
-function addLabel(text, x, y, z, scale = 1) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 128;
-  const c = canvas.getContext('2d');
-  c.fillStyle = 'rgba(8,7,5,.74)';
-  c.fillRect(0, 0, canvas.width, canvas.height);
-  c.strokeStyle = 'rgba(216,181,110,.85)';
-  c.lineWidth = 4;
-  c.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-  c.fillStyle = '#f1d99b';
-  c.font = '700 32px system-ui';
+function label(text, x, y, z, scale = 1) {
+  const cnv = document.createElement('canvas');
+  cnv.width = 640;
+  cnv.height = 140;
+  const c = cnv.getContext('2d');
+  c.fillStyle = 'rgba(8,7,5,.75)';
+  c.fillRect(0, 0, cnv.width, cnv.height);
+  c.strokeStyle = 'rgba(216,181,110,.9)';
+  c.lineWidth = 5;
+  c.strokeRect(5, 5, cnv.width - 10, cnv.height - 10);
+  c.fillStyle = '#f4dca4';
+  c.font = '700 34px system-ui';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.fillText(text, canvas.width / 2, canvas.height / 2);
-  const tex = new THREE.CanvasTexture(canvas);
-  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  spr.position.set(x, y, z);
-  spr.scale.set(5.4 * scale, 1.35 * scale, 1);
-  spr.renderOrder = 10;
-  scene.add(spr);
-  state.signs.push(spr);
-  return spr;
+  c.fillText(text, cnv.width / 2, cnv.height / 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.position.set(x, y, z);
+  sp.scale.set(6.2 * scale, 1.35 * scale, 1);
+  sp.renderOrder = 10;
+  scene.add(sp);
+  state.labels.push(sp);
+  return sp;
 }
 
-function addDoorMarker(name, x, z) {
-  const marker = addMesh(new THREE.BoxGeometry(1.8, 2.2, 0.08), new THREE.MeshStandardMaterial({ color: 0x050403, emissive: 0xd8a44a, emissiveIntensity: 0.18 }), x, 1.1, z);
-  marker.castShadow = false;
-  state.doors.push({ name, x, z });
-  addLabel('ВХОД', x, 2.55, z, 0.45);
+function mapPoint(name, x, z, type = 'place') {
+  state.mapPoints.push({ name, x, z, type });
 }
 
-function addBuilding({ name, sign, x, z, w, d, h = 3.6, color = 0x6d5535, door = 'south' }) {
-  const wallMat = mat(color, 0.92, 0.02);
-  const floorMat = mat(0x2f2319, 0.9, 0.02);
-  addBox(x, -0.02, z, w, 0.08, d, floorMat, false);
-  const t = 0.34;
-  const gap = 2.25;
-  addBox(x - w / 2 + t / 2, 0, z, t, h, d, wallMat, true, name);
-  addBox(x + w / 2 - t / 2, 0, z, t, h, d, wallMat, true, name);
-  if (door === 'south') {
-    addBox(x, 0, z - d / 2 + t / 2, w, h, t, wallMat, true, name);
-    addBox(x - (w + gap) / 4, 0, z + d / 2 - t / 2, (w - gap) / 2, h, t, wallMat, true, name);
-    addBox(x + (w + gap) / 4, 0, z + d / 2 - t / 2, (w - gap) / 2, h, t, wallMat, true, name);
-    addDoorMarker(name, x, z + d / 2 + 0.08);
-  } else {
-    addBox(x, 0, z + d / 2 - t / 2, w, h, t, wallMat, true, name);
-    addBox(x - (w + gap) / 4, 0, z - d / 2 + t / 2, (w - gap) / 2, h, t, wallMat, true, name);
-    addBox(x + (w + gap) / 4, 0, z - d / 2 + t / 2, (w - gap) / 2, h, t, wallMat, true, name);
-    addDoorMarker(name, x, z - d / 2 - 0.08);
-  }
-  const roof = addMesh(new THREE.ConeGeometry(Math.max(w, d) * 0.72, h * 0.35, 4), mats.roof, x, h + h * 0.18, z);
-  roof.rotation.y = Math.PI / 4;
-  addLabel(sign || name, x, h + 1.45, z, 0.78);
-}
-
-function addRoad(points, width = 4.2) {
+function road(points, width = 4.2) {
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i];
     const b = points[i + 1];
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const len = Math.hypot(dx, dz);
-    const road = addMesh(new THREE.BoxGeometry(width, 0.055, len), mats.road, (a.x + b.x) / 2, 0.03, (a.z + b.z) / 2);
-    road.rotation.y = Math.atan2(dx, dz);
-    road.castShadow = false;
+    const m = addMesh(new THREE.BoxGeometry(width, 0.06, len), M.road, (a.x + b.x) / 2, 0.035, (a.z + b.z) / 2);
+    m.rotation.y = Math.atan2(dx, dz);
+    m.castShadow = false;
   }
 }
 
-function addNPC(id, name, x, z, color, text) {
+function doorMarker(name, x, z, rot = 0) {
+  const m = addMesh(new THREE.BoxGeometry(2.1, 2.25, 0.09), material(0x050403, { emissive: 0xe0a247, emissiveIntensity: 0.22 }), x, 1.12, z);
+  m.rotation.y = rot;
+  m.castShadow = false;
+  state.doors.push({ name, x, z });
+  label('ВХОД', x, 2.65, z, 0.45);
+}
+
+function building({ name, sign, x, z, w, d, h = 3.5, color = 0x6d5535, door = 'south' }) {
+  const wall = material(color);
+  const floor = material(0x302319);
+  box(x, z, w, d, 0.08, floor, '', false);
+  const t = 0.32;
+  const gap = 2.3;
+  box(x - w / 2 + t / 2, z, t, d, h, wall, name);
+  box(x + w / 2 - t / 2, z, t, d, h, wall, name);
+  if (door === 'south') {
+    box(x, z - d / 2 + t / 2, w, t, h, wall, name);
+    box(x - (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name);
+    box(x + (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name);
+    doorMarker(name, x, z + d / 2 + 0.08, 0);
+  } else {
+    box(x, z + d / 2 - t / 2, w, t, h, wall, name);
+    box(x - (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name);
+    box(x + (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name);
+    doorMarker(name, x, z - d / 2 - 0.08, Math.PI);
+  }
+  const roof = addMesh(new THREE.ConeGeometry(Math.max(w, d) * 0.72, h * 0.36, 4), M.roof, x, h + 0.68, z);
+  roof.rotation.y = Math.PI / 4;
+  label(sign || name, x, h + 1.55, z, 0.75);
+}
+
+function npc(id, name, x, z, color, text) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.15, 4, 8), mat(color));
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 1.15, 4, 8), material(color));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), material(0xd3ad78));
   body.position.y = 1.05;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 8), mat(0xd4ad78));
-  head.position.y = 1.85;
+  head.position.y = 1.88;
   g.add(body, head);
   g.position.set(x, 0, z);
-  g.userData = { type: 'npc', id, name, text, x, z };
+  g.userData = { type: 'npc', id, name, x, z, text };
   scene.add(g);
-  addLabel(name, x, 2.55, z, 0.55);
+  label(name, x, 2.65, z, 0.55);
   state.npcs.push(g);
   return g;
 }
 
-function addEnemy(id, name, x, z, hp, color, table) {
+function enemy(id, name, x, z, hp, color, table) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.62, 0), mat(color));
-  body.position.y = 0.75;
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.5), mat(0x1f140e));
-  head.position.y = 1.25;
+  const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), material(color));
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.38, 0.52), material(0x21140e));
+  body.position.y = 0.82;
+  head.position.y = 1.35;
   g.add(body, head);
   g.position.set(x, 0, z);
   g.userData = { type: 'enemy', id, name, x, z, hp, hpMax: hp, alive: true, looted: false, table };
   scene.add(g);
-  addLabel(name, x, 2.05, z, 0.46);
+  label(name, x, 2.2, z, 0.47);
   state.enemies.push(g);
+  return g;
 }
 
-function addPortMasts() {
-  for (let i = 0; i < 14; i++) {
-    const x = -55 + i * 2.8;
-    const z = -15 - (i % 3) * 1.5;
-    addBox(x, 0, z, 0.14, 4.5 + Math.sin(i) * 0.8, 0.14, mats.darkWall, false);
-    const sail = addMesh(new THREE.PlaneGeometry(1.2, 3.1), new THREE.MeshStandardMaterial({ color: 0x18100a, side: THREE.DoubleSide, roughness: 0.9 }), x + 0.7, 2.8, z);
-    sail.rotation.y = -0.35;
+function propMast(x, z, h = 6) {
+  box(x, z, 0.14, 0.14, h, M.dark, '', false);
+  const sail = addMesh(new THREE.PlaneGeometry(1.25, 3), material(0x17100a, { side: THREE.DoubleSide }), x + 0.7, h * 0.55, z);
+  sail.rotation.y = -0.35;
+}
+
+function propPalm(x, z, h = 4) {
+  box(x, z, 0.18, 0.18, h, material(0x4c2f1b), '', false);
+  for (let i = 0; i < 6; i++) {
+    const leaf = addMesh(new THREE.PlaneGeometry(0.6, 2.0), material(0x284220, { side: THREE.DoubleSide }), x, h + 0.2, z);
+    leaf.rotation.y = i * Math.PI / 3;
+    leaf.rotation.x = 1.0;
   }
 }
 
-function addFortSkyline() {
-  for (let i = 0; i < 7; i++) {
-    addBox(8 + i * 2.3, 0, 28 + Math.sin(i) * 0.7, 1.1, 3.5 + (i % 3), 1.1, mat(0x25232b), false);
-  }
-}
-
-function addLandscape() {
-  addMesh(new THREE.PlaneGeometry(160, 120, 8, 8), mats.clay, 0, -0.02, 8).rotation.x = -Math.PI / 2;
-  const ocean = addMesh(new THREE.PlaneGeometry(95, 100, 16, 16), mats.water, -65, 0.02, -3);
+function buildLandscape() {
+  const clay = addMesh(new THREE.PlaneGeometry(170, 130, 8, 8), M.clay, 0, -0.03, 12);
+  clay.rotation.x = -Math.PI / 2;
+  const ocean = addMesh(new THREE.PlaneGeometry(105, 125, 16, 16), M.water, -72, 0.015, 0);
   ocean.rotation.x = -Math.PI / 2;
-  const sav = addMesh(new THREE.PlaneGeometry(80, 80, 8, 8), mats.savanna, 45, -0.01, 24);
+  const beach = addMesh(new THREE.PlaneGeometry(16, 120), M.beach, -38, -0.02, 0);
+  beach.rotation.x = -Math.PI / 2;
+  const sav = addMesh(new THREE.PlaneGeometry(92, 80, 8, 8), M.savanna, 52, -0.015, 32);
   sav.rotation.x = -Math.PI / 2;
-  for (let i = 0; i < 120; i++) {
-    const x = -30 + Math.random() * 90;
-    const z = -28 + Math.random() * 65;
-    const s = 0.12 + Math.random() * 0.55;
-    addMesh(new THREE.DodecahedronGeometry(s, 0), mat(0x4b3522), x, s * 0.45, z).castShadow = false;
+  for (let i = 0; i < 36; i++) propMast(-58 + i * 1.7, -20 - (i % 5) * 0.8, 4.5 + Math.random() * 3.5);
+  for (let i = 0; i < 36; i++) propPalm(-34 + Math.random() * 24, -18 + Math.random() * 50, 3 + Math.random() * 2.5);
+  for (let i = 0; i < 160; i++) {
+    const x = -30 + Math.random() * 105;
+    const z = -26 + Math.random() * 75;
+    const s = 0.1 + Math.random() * 0.55;
+    addMesh(new THREE.DodecahedronGeometry(s, 0), material(0x4b3522), x, s * 0.5, z).castShadow = false;
   }
-  for (let i = 0; i < 26; i++) {
-    const x = 34 + Math.random() * 42;
-    const z = -4 + Math.random() * 38;
-    addBox(x, 0, z, 0.18, 1.2 + Math.random() * 1.6, 0.18, mat(0x21140b), false);
+  for (let i = 0; i < 40; i++) {
+    const x = 33 + Math.random() * 55;
+    const z = 2 + Math.random() * 46;
+    box(x, z, 0.18, 0.18, 1.1 + Math.random() * 2, material(0x21140b), '', false);
   }
-  addPortMasts();
-  addFortSkyline();
+  for (let i = 0; i < 9; i++) {
+    box(9 + i * 2.3, 31 + Math.sin(i) * 0.8, 1.0, 1.0, 3.5 + (i % 3), material(0x24212a), '', false);
+  }
 }
 
 function buildWorld() {
   state.colliders = [];
-  state.objects = [];
+  state.labels = [];
   state.npcs = [];
   state.enemies = [];
   state.doors = [];
-  state.signs = [];
-  while (scene.children.length > 0) scene.remove(scene.children[0]);
+  state.mapPoints = [];
+  state.projectiles = [];
+  while (scene.children.length) scene.remove(scene.children[0]);
   scene.add(rig);
-  const hemi = new THREE.HemisphereLight(0xffd8a0, 0x25302d, 1.2);
-  scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xffb36e, 1.8);
-  sun.position.set(-35, 60, 25);
+
+  scene.add(new THREE.HemisphereLight(0xffd8a0, 0x24332c, 1.18));
+  const sun = new THREE.DirectionalLight(0xffb36e, 1.85);
+  sun.position.set(-34, 62, 24);
   sun.castShadow = true;
   sun.shadow.mapSize.width = 1024;
   sun.shadow.mapSize.height = 1024;
   scene.add(sun);
-  const lowSun = new THREE.PointLight(0xff7d38, 1.25, 90);
-  lowSun.position.set(-55, 8, -30);
-  scene.add(lowSun);
-  addLandscape();
-  const road = [{ x: -42, z: 7 }, { x: -26, z: 6 }, { x: -12, z: 5 }, { x: 0, z: 4 }, { x: 11, z: 1 }, { x: 20, z: 7 }, { x: 30, z: 13 }];
-  addRoad(road, 4.4);
-  addRoad([{ x: -26, z: 6 }, { x: -22, z: 17 }], 3.7);
-  addRoad([{ x: 0, z: 4 }, { x: 2, z: -15 }], 3.6);
-  addRoad([{ x: 11, z: 1 }, { x: 22, z: -5 }], 3.8);
-  addRoad([{ x: 20, z: 7 }, { x: 30, z: 22 }], 3.8);
-  addBuilding({ name: 'Таможня', sign: 'CUSTOMS / РИНА', x: -32, z: 4, w: 8, d: 6, color: 0x6b5534, door: 'south' });
-  addBuilding({ name: 'Грязный рынок', sign: 'MARKET', x: -18, z: 14, w: 9, d: 6, color: 0x5e4630, door: 'south' });
-  addBuilding({ name: 'Дорожный навес', sign: 'SHELTER', x: -22, z: 20, w: 7, d: 5, color: 0x584429, door: 'south' });
-  addBuilding({ name: 'Канцелярия Орана', sign: 'REGISTRY', x: 12, z: -2, w: 8, d: 6, color: 0x76603e, door: 'north' });
-  addBuilding({ name: 'Дом Герды', sign: 'GERDA', x: 20, z: 8, w: 7, d: 6, color: 0x49382b, door: 'north' });
-  addBuilding({ name: 'Красный Узел', sign: 'RED NODE', x: 25, z: -8, w: 7, d: 5, color: 0x6d3528, door: 'south' });
-  addBuilding({ name: 'Лагерь проводников', sign: 'GUIDES', x: 32, z: 22, w: 7, d: 5, color: 0x4d3c55, door: 'south' });
-  addBox(-4, 0, 4, 1.2, 6.2, 1.2, mat(0x2f3e38), true, 'Старый маяк');
-  addLabel('СТАРЫЙ МАЯК', -4, 7.3, 4, 0.7);
-  addLabel('PORT RACHEL / ОКЕАН', -45, 5.2, -12, 0.8);
-  addLabel('FORT ZARYA', 13, 6.8, 29, 0.78);
-  addLabel('КРАЙ МЁРТВОЙ САВАННЫ', 48, 4.2, 30, 0.72);
-  addNPC('rina', 'Рина', -32, 7.1, 0x8ca3bf, 'Ты в Порту Рейчел. Проверь Дорожный навес, потом иди к Орану в Форт Заря.');
-  addNPC('merchant', 'Торговец красной глиной', -18, 16.8, 0xa45545, 'Рынок живёт красной глиной и слухами. Возьми слухи о Красном Узле.');
-  addNPC('wanderer', 'Бродячий рыцарь', -4, 7.8, 0x858078, 'Дорога в саванну начинается не с выстрела, а с долгого пути.');
-  addNPC('oran', 'Оран Тив', 12, -4.8, 0xd8b56e, 'Регистрация временная. Но теперь ты не пустое место в пустом деле.');
-  addNPC('gerda', 'Герда Гайгерманика', 20, 5.2, 0x795c43, 'Собери четыре подготовки: дорога, рынок, фракции, контрабанда. Потом я подпишу путь к Саве.');
-  addNPC('smuggler', 'Контрабандист', 25, -5.1, 0x9a4939, 'Канальная бирка? Забирай. Только не спрашивай, из какого корабля она снята.');
-  addNPC('guide', 'Сава', 32, 24.8, 0x9b7bd8, 'Когда Герда даст добро, я поведу тебя к краю Мёртвой Саванны.');
-  addEnemy('road', 'Дорожный мутант', -12, 8, 48, 0xb84634, 'road');
-  addEnemy('sand', 'Песчаная падаль', 6, 12, 42, 0x9b6b3a, 'sand');
-  addEnemy('red', 'Красная падаль', 31, -3, 45, 0xb55d35, 'red');
-  addEnemy('phase', 'Фазовое эхо', 36, 18, 55, 0x8a78ff, 'phase');
+  const orangeSun = new THREE.PointLight(0xff7d38, 1.25, 90);
+  orangeSun.position.set(-56, 8, -36);
+  scene.add(orangeSun);
+
+  buildLandscape();
+
+  road([{ x: -47, z: 8 }, { x: -34, z: 7 }, { x: -24, z: 8 }, { x: -12, z: 7 }, { x: -2, z: 6 }, { x: 10, z: 2 }, { x: 20, z: 8 }, { x: 33, z: 22 }], 4.5);
+  road([{ x: -24, z: 8 }, { x: -22, z: 21 }], 3.7);
+  road([{ x: -12, z: 7 }, { x: -8, z: -16 }], 3.4);
+  road([{ x: 10, z: 2 }, { x: 25, z: -7 }], 3.6);
+  road([{ x: 20, z: 8 }, { x: 44, z: 34 }], 3.6);
+
+  building({ name: 'Таможня', sign: 'CUSTOMS / РИНА', x: -32, z: 4, w: 9, d: 6.5, color: 0x6b5534, door: 'south' });
+  building({ name: 'Грязный рынок', sign: 'MARKET', x: -18, z: 15, w: 10, d: 6, color: 0x5e4630, door: 'south' });
+  building({ name: 'Дорожный навес', sign: 'SHELTER', x: -22, z: 22, w: 8, d: 5, color: 0x584429, door: 'south' });
+  building({ name: 'Канцелярия Орана', sign: 'REGISTRY / ОРАН', x: 12, z: -2, w: 8, d: 6, color: 0x76603e, door: 'north' });
+  building({ name: 'Дом Герды', sign: 'GERDA', x: 20, z: 8, w: 7.5, d: 6, color: 0x49382b, door: 'north' });
+  building({ name: 'Красный Узел', sign: 'RED NODE', x: 25, z: -8, w: 7, d: 5, color: 0x6d3528, door: 'south' });
+  building({ name: 'Лагерь проводников', sign: 'GUIDES', x: 33, z: 23, w: 7.5, d: 5.5, color: 0x4d3c55, door: 'south' });
+
+  box(-4, 4, 1.1, 1.1, 6.2, material(0x2f3e38), 'Старый маяк');
+  label('СТАРЫЙ МАЯК', -4, 7.2, 4, 0.7);
+  label('PORT RACHEL / ОКЕАН', -47, 5.2, -13, 0.8);
+  label('FORT ZARYA', 13, 6.8, 31, 0.78);
+  label('КРАЙ МЁРТВОЙ САВАННЫ', 51, 4.2, 35, 0.72);
+
+  mapPoint('Океан', -60, -5, 'biome');
+  mapPoint('Порт Рейчел', -38, 6, 'town');
+  mapPoint('Таможня', -32, 4, 'building');
+  mapPoint('Грязный рынок', -18, 15, 'building');
+  mapPoint('Дорожный навес', -22, 22, 'building');
+  mapPoint('Форт Заря', 13, 31, 'fort');
+  mapPoint('Дом Герды', 20, 8, 'building');
+  mapPoint('Красный Узел', 25, -8, 'building');
+  mapPoint('Край Мёртвой Саванны', 51, 35, 'biome');
+
+  npc('rina', 'Рина', -32, 7.25, 0x8ca3bf, 'Ты в Порту Рейчел. Проверь Дорожный навес, потом иди к Орану в Форт Заря.');
+  npc('merchant', 'Торговец красной глиной', -18, 17.9, 0xa45545, 'Рынок живёт красной глиной и слухами. Возьми слухи о Красном Узле.');
+  npc('wanderer', 'Бродячий рыцарь', -4, 7.8, 0x858078, 'Дорога в саванну начинается не с выстрела, а с долгого пути.');
+  npc('oran', 'Оран Тив', 12, -4.95, 0xd8b56e, 'Регистрация временная. Но теперь ты не пустое место в пустом деле.');
+  npc('gerda', 'Герда Гайгерманика', 20, 5.15, 0x795c43, 'Собери четыре подготовки: дорога, рынок, фракции, контрабанда. Потом я подпишу путь к Саве.');
+  npc('smuggler', 'Контрабандист', 25, -5.0, 0x9a4939, 'Канальная бирка? Забирай. Только не спрашивай, из какого корабля она снята.');
+  npc('guide', 'Сава', 33, 25.85, 0x9b7bd8, 'Когда Герда даст добро, я поведу тебя к краю Мёртвой Саванны.');
+
+  enemy('road', 'Дорожный мутант', -12, 8, 48, 0xb84634, 'road');
+  enemy('sand', 'Песчаная падаль', 6, 12, 42, 0x9b6b3a, 'sand');
+  enemy('red', 'Красная падаль', 31, -3, 45, 0xb55d35, 'red');
+  enemy('phase', 'Фазовое эхо', 38, 18, 55, 0x8a78ff, 'phase');
+
   buildHands();
 }
 
 function buildHands() {
   if (state.hands) camera.remove(state.hands);
   const g = new THREE.Group();
-  const skin = mat(state.player?.hand || 0xc09673);
+  const skin = material(state.player?.hand || 0xc09673);
   const w = WEAPONS[state.player?.weapon || 'fists'];
-  const handGeo = new THREE.CapsuleGeometry(0.12, 0.55, 6, 10);
-  const fistGeo = new THREE.SphereGeometry(0.17, 12, 10);
+  const arm = new THREE.CapsuleGeometry(0.12, 0.55, 6, 10);
+  const fist = new THREE.SphereGeometry(0.17, 12, 10);
   const left = new THREE.Group();
   const right = new THREE.Group();
-  const la = new THREE.Mesh(handGeo, skin);
-  const ra = new THREE.Mesh(handGeo, skin);
-  const lf = new THREE.Mesh(fistGeo, skin);
-  const rf = new THREE.Mesh(fistGeo, skin);
+  const la = new THREE.Mesh(arm, skin);
+  const ra = new THREE.Mesh(arm, skin);
+  const lf = new THREE.Mesh(fist, skin);
+  const rf = new THREE.Mesh(fist, skin);
   la.rotation.x = 1.05;
   ra.rotation.x = 1.05;
   lf.position.set(0, -0.02, -0.55);
@@ -375,20 +412,20 @@ function buildHands() {
   } else if (w.kind === 'sword') {
     const bladeLen = w.name === 'Бастард' ? 1.2 : 0.92;
     const bladeWidth = w.name === 'Бастард' ? 0.08 : 0.045;
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(bladeWidth, bladeWidth, bladeLen), mat(0xc8c0a8, 0.35, 0.25));
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(bladeWidth, bladeWidth, bladeLen), material(0xc8c0a8, { roughness: 0.35, metalness: 0.25 }));
     blade.position.set(0.45, -0.25, -1.18);
     blade.rotation.x = 0.13;
     g.add(blade);
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(w.name === 'Бастард' ? 0.65 : 0.42, 0.08, 0.08), mat(0x6b5534));
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(w.name === 'Бастард' ? 0.65 : 0.42, 0.08, 0.08), material(0x6b5534));
     guard.position.set(0.42, -0.28, -0.75);
     g.add(guard);
   } else if (w.kind === 'gun') {
     const long = w.name.includes('M1') ? 1.05 : w.name === 'Брен' ? 0.88 : 0.48;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(long, 0.16, 0.22), mat(0x2e2b24, 0.55, 0.14));
+    const body = new THREE.Mesh(new THREE.BoxGeometry(long, 0.16, 0.22), material(0x2e2b24, { roughness: 0.55, metalness: 0.14 }));
     body.position.set(0.44, -0.24, -0.86);
     body.rotation.y = -0.08;
     g.add(body);
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.12), mat(0x5b3b22));
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.12), material(0x5b3b22));
     grip.position.set(0.28, -0.42, -0.65);
     g.add(grip);
   }
@@ -418,7 +455,7 @@ function startGame(fresh = true) {
     localStorage.removeItem(SAVE_KEY);
   }
   rig.position.set(state.player.pos.x, 0, state.player.pos.z);
-  state.yaw = 0;
+  state.yaw = Math.PI * 0.5;
   state.pitch = 0;
   rig.rotation.y = state.yaw;
   camera.rotation.x = state.pitch;
@@ -427,7 +464,7 @@ function startGame(fresh = true) {
   ui.hud.classList.remove('hidden');
   state.mode = 'play';
   setWeapon(state.player.weapon);
-  toast('2.5A/B/C запущен: океан, Порт Рейчел, Форт Заря, двери и NPC.');
+  toast('2.5 карта обновлена: океан, Порт Рейчел, Форт Заря, край Мёртвой Саванны.');
   saveGame();
 }
 
@@ -444,13 +481,9 @@ function loadGame() {
   try {
     const data = JSON.parse(raw);
     state.player = data.player || makePlayer();
-    if (data.enemies) {
-      data.enemies.forEach((saved, i) => {
-        if (state.enemies[i]) Object.assign(state.enemies[i].userData, saved);
-      });
-    }
+    if (data.enemies) data.enemies.forEach((saved, i) => { if (state.enemies[i]) Object.assign(state.enemies[i].userData, saved); });
     startGame(false);
-  } catch (e) {
+  } catch {
     toast('Сейв повреждён');
   }
 }
@@ -468,12 +501,12 @@ function log(text) {
 
 function currentTarget() {
   const p = state.player;
-  if (!p.done.rina) return { name: 'Рина / Таможня', x: -32, z: 7.1 };
-  if (!p.done.road) return { name: 'Дорожный навес', x: -22, z: 20 };
-  if (!p.done.oran) return { name: 'Оран / Канцелярия', x: 12, z: -4.8 };
-  if (!p.done.gerda) return { name: 'Герда / Дом Герды', x: 20, z: 5.2 };
-  if (!p.done.sava) return { name: 'Сава / Проводники', x: 32, z: 24.8 };
-  return { name: 'Край Мёртвой Саванны', x: 48, z: 30 };
+  if (!p.done.rina) return { name: 'Рина / Таможня', x: -32, z: 7.25 };
+  if (!p.done.road) return { name: 'Дорожный навес', x: -22, z: 22 };
+  if (!p.done.oran) return { name: 'Оран / Канцелярия', x: 12, z: -4.95 };
+  if (!p.done.gerda) return { name: 'Герда / Дом Герды', x: 20, z: 5.15 };
+  if (!p.done.sava) return { name: 'Сава / Проводники', x: 33, z: 25.85 };
+  return { name: 'Край Мёртвой Саванны', x: 51, z: 35 };
 }
 
 function move(dt) {
@@ -488,8 +521,8 @@ function move(dt) {
   const v = new THREE.Vector3(mx, 0, mz).normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
   const nx = rig.position.x + v.x * speed * dt;
   const nz = rig.position.z + v.z * speed * dt;
-  if (!rectCollides(nx, rig.position.z)) rig.position.x = nx;
-  if (!rectCollides(rig.position.x, nz)) rig.position.z = nz;
+  if (!collides(nx, rig.position.z)) rig.position.x = nx;
+  if (!collides(rig.position.x, nz)) rig.position.z = nz;
   if (speed > 5) p.st = Math.max(0, p.st - dt * 12);
 }
 
@@ -497,13 +530,13 @@ function updateEnemies(dt) {
   for (const obj of state.enemies) {
     const e = obj.userData;
     if (!e.alive) continue;
-    const d = dist2({ x: rig.position.x, z: rig.position.z }, e);
+    const d = distXZ({ x: rig.position.x, z: rig.position.z }, e);
     if (d < 12 && d > 1.4) {
       const dx = (rig.position.x - e.x) / d;
       const dz = (rig.position.z - e.z) / d;
       const nx = e.x + dx * dt * 1.1;
       const nz = e.z + dz * dt * 1.1;
-      if (!rectCollides(nx, nz, 0.55)) {
+      if (!collides(nx, nz, 0.55)) {
         e.x = nx;
         e.z = nz;
         obj.position.set(e.x, 0, e.z);
@@ -513,7 +546,7 @@ function updateEnemies(dt) {
       state.player.hp = Math.max(0, state.player.hp - (state.keys.has('KeyR') ? 0.5 : 4));
       if (state.player.hp <= 0) {
         state.player.hp = Math.floor(state.player.hpMax * 0.55);
-        rig.position.set(-42, 0, 7);
+        rig.position.set(-47, 0, 8);
         toast('Ты очнулся у берега Порта Рейчел.');
       }
     }
@@ -554,12 +587,8 @@ function attack() {
   if (w.ammo) state.player.ammo[w.ammo]--;
   state.attackT = 1;
   if (w.kind === 'gun') return shoot(w);
-  const target = state.enemies
-    .filter(o => o.userData.alive)
-    .sort((a, b) => angleToTarget(a.userData) - angleToTarget(b.userData))[0];
-  if (!target || angleToTarget(target.userData) > 0.56 || dist2({ x: rig.position.x, z: rig.position.z }, target.userData) > w.range) {
-    return toast(w.name + ' не достаёт');
-  }
+  const target = state.enemies.filter(o => o.userData.alive).sort((a, b) => angleToTarget(a.userData) - angleToTarget(b.userData))[0];
+  if (!target || angleToTarget(target.userData) > 0.56 || distXZ({ x: rig.position.x, z: rig.position.z }, target.userData) > w.range) return toast(w.name + ' не достаёт');
   damageEnemy(target, w.damage + Math.floor(Math.random() * 8), w.name);
 }
 
@@ -598,14 +627,14 @@ function damageEnemy(obj, amount, source) {
 function lootEnemy(obj) {
   const e = obj.userData;
   if (e.looted) return toast('Уже обыскано');
-  const table = {
+  const tables = {
     road: [['colt', 1, 5, .55], ['m1', 1, 4, .35], ['credits', 1, 6, .8], ['сломанный жетон дороги', 1, 1, .25]],
     sand: [['colt', 1, 3, .35], ['bren', 3, 10, .28], ['credits', 1, 4, .65]],
     red: [['m1', 2, 8, .55], ['bren', 2, 12, .45], ['канальная бирка', 1, 1, .4]],
     phase: [['colt', 1, 2, .25], ['m1', 1, 6, .3], ['фазовый осадок', 1, 2, .75]],
-  }[e.table] || [];
+  };
   const out = [];
-  for (const row of table) {
+  for (const row of tables[e.table] || []) {
     if (Math.random() <= row[3]) {
       const n = row[1] + Math.floor(Math.random() * (row[2] - row[1] + 1));
       if (row[0] === 'credits') state.player.credits += n;
@@ -614,7 +643,10 @@ function lootEnemy(obj) {
       out.push(row[0] + ' ×' + n);
     }
   }
-  if (!out.length) { state.player.credits++; out.push('credits ×1'); }
+  if (!out.length) {
+    state.player.credits++;
+    out.push('credits ×1');
+  }
   e.looted = true;
   obj.visible = false;
   toast('Лут: ' + out.join(', '));
@@ -625,16 +657,16 @@ function lootEnemy(obj) {
 
 function discover() {
   const p = state.player;
-  if (!p.done.road && dist2({ x: rig.position.x, z: rig.position.z }, { x: -22, z: 20 }) < 2.6) {
+  if (!p.done.road && distXZ({ x: rig.position.x, z: rig.position.z }, { x: -22, z: 22 }) < 2.6) {
     p.done.road = true;
     toast('Дорожный навес проверен');
     log('Дорожный навес проверен.');
   }
-  if (!p.flags.green && dist2({ x: rig.position.x, z: rig.position.z }, { x: 1, z: -19 }) < 3.0) {
+  if (!p.flags.green && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 1, z: -19 }) < 3.0) {
     p.flags.green = true;
     toast('Зелёный след получен');
   }
-  if (!p.flags.blue && dist2({ x: rig.position.x, z: rig.position.z }, { x: 2, z: 20 }) < 3.0) {
+  if (!p.flags.blue && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 2, z: 20 }) < 3.0) {
     p.flags.blue = true;
     toast('Синий след получен');
   }
@@ -642,7 +674,7 @@ function discover() {
     p.done.factions = true;
     log('Фракционная подготовка выполнена.');
   }
-  if (!p.done.contraband && dist2({ x: rig.position.x, z: rig.position.z }, { x: 25, z: -5.1 }) < 3.0) {
+  if (!p.done.contraband && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 25, z: -5.0 }) < 3.0) {
     p.done.contraband = true;
     toast('Красный Узел найден');
   }
@@ -653,11 +685,11 @@ function findNear() {
   let best = 999;
   const here = { x: rig.position.x, z: rig.position.z };
   for (const n of state.npcs) {
-    const d = dist2(here, n.userData);
+    const d = distXZ(here, n.userData);
     if (d < best && d < 2.25) { best = d; state.near = n; }
   }
   for (const e of state.enemies) {
-    const d = dist2(here, e.userData);
+    const d = distXZ(here, e.userData);
     if (d < best && d < 2.35 && ((!e.userData.alive && !e.userData.looted) || e.userData.alive)) { best = d; state.near = e; }
   }
   if (state.near) {
@@ -752,8 +784,19 @@ function openInv() {
   ui.panelText.innerHTML = '<h2>Инвентарь</h2>' + state.player.inv.map(x => '<div class="log">' + x + '</div>').join('') + '<h3>Боезапас</h3><p>Кольт ' + state.player.ammo.colt + ' · M1 ' + state.player.ammo.m1 + ' · Брен ' + state.player.ammo.bren + '</p>';
 }
 
+function openMap() {
+  state.mode = 'panel';
+  ui.panel.classList.remove('hidden');
+  const t = currentTarget();
+  ui.panelText.innerHTML = '<h2>Карта Феникса 7: Порт Рейчел</h2><p>Океанский берег → Порт Рейчел → Форт Заря → край Мёртвой Саванны.</p>' +
+    '<p><b>Текущая цель:</b> ' + t.name + '</p>' +
+    state.mapPoints.map(p => '<div class="log"><b>' + p.name + '</b> — ' + p.type + '</div>').join('') +
+    '<div class="choices"><button data-a="close">Закрыть</button></div>';
+  ui.panelText.querySelectorAll('button').forEach(b => b.onclick = () => action(b.dataset.a));
+}
+
 function debugTravel() {
-  const pts = [[-42, 7, 'Берег'], [-32, 7.1, 'Рина'], [-22, 20, 'Навес'], [12, -4.8, 'Оран'], [20, 5.2, 'Герда'], [25, -5.1, 'Красный Узел'], [32, 24.8, 'Сава']];
+  const pts = [[-47, 8, 'Берег'], [-32, 7.25, 'Рина'], [-22, 22, 'Навес'], [12, -4.95, 'Оран'], [20, 5.15, 'Герда'], [25, -5.0, 'Красный Узел'], [33, 25.85, 'Сава'], [51, 35, 'Край саванны']];
   const i = state.player.flags.debugIndex || 0;
   const p = pts[i % pts.length];
   rig.position.set(p[0], 0, p[1]);
@@ -773,8 +816,8 @@ function updateHUD(dt) {
   ui.hpTxt.textContent = Math.round(p.hp);
   ui.stTxt.textContent = Math.round(p.st);
   ui.phTxt.textContent = Math.round(p.ph);
-  ui.questTitle.textContent = 'Phoenix7 2.5A/B/C';
-  ui.questBody.textContent = 'Океанский Порт Рейчел → Форт Заря → край Мёртвой Саванны. Это главный 3D-билд.';
+  ui.questTitle.textContent = 'Phoenix7 2.5 world';
+  ui.questBody.textContent = 'Океанский Порт Рейчел → Форт Заря → край Мёртвой Саванны. Нажми M для карты.';
   ui.questProgress.textContent = 'Подготовки: ' + countDone() + '/4 · ' + WEAPONS[p.weapon].name;
   const t = currentTarget();
   ui.nav.textContent = 'Цель: ' + t.name + ' · ' + Math.hypot(t.x - rig.position.x, t.z - rig.position.z).toFixed(1) + ' м';
@@ -792,14 +835,12 @@ function update(dt) {
   findNear();
   updateHUD(dt);
   state.attackT = Math.max(0, state.attackT - dt * 5);
-  if (state.hands) {
-    state.hands.rotation.x = -state.attackT * 0.22 + (state.keys.has('KeyR') ? 0.14 : 0);
-  }
+  if (state.hands) state.hands.rotation.x = -state.attackT * 0.22 + (state.keys.has('KeyR') ? 0.14 : 0);
 }
 
 function render() {
   renderer.render(scene, camera);
-  for (const s of state.signs) s.quaternion.copy(camera.quaternion);
+  for (const s of state.labels) s.quaternion.copy(camera.quaternion);
 }
 
 function loop(now) {
@@ -830,6 +871,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && state.mode === 'play') attack();
   if (e.code === 'KeyJ' && state.mode === 'play') openBook();
   if (e.code === 'KeyI' && state.mode === 'play') openInv();
+  if (e.code === 'KeyM' && state.mode === 'play') openMap();
   if (e.code === 'KeyQ' && state.mode === 'play') showTasks();
   if (e.code === 'F1' && state.mode === 'play') { e.preventDefault(); debugTravel(); }
   if (e.code === 'Escape') {
@@ -859,5 +901,5 @@ $('beginBtn').onclick = () => startGame(true);
 $('backBtn').onclick = () => ui.chargen.classList.add('hidden');
 $('closePanel').onclick = closePanel;
 
-// Give the start screen something to show if WebGL works.
-console.log('Phoenix7 2.5 clean Three.js runtime loaded. Launch: /game.html');
+window.__PHX_RUNTIME_READY = true;
+console.log('Phoenix7 2.5 coastal world runtime ready. Launch: /game.html');
