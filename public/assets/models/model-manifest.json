@@ -1,0 +1,18 @@
+{
+  "version": "2.0J",
+  "fallback": "procedural-pawns",
+  "characters": {
+    "wanderingKnight": "public/assets/models/wandering_knight_v0.glb",
+    "greenKnight": "public/assets/models/green_knight_v0.glb",
+    "blueKnight": "public/assets/models/blue_knight_v0.glb",
+    "oranTiv": "public/assets/models/oran_tiv_v0.glb",
+    "gerda": "public/assets/models/gerda_v0.glb",
+    "portWorker": "public/assets/models/port_worker_v0.glb"
+  },
+  "props": {
+    "portRachelKit": "public/assets/models/port_rachel_props_v0.glb",
+    "fortZaryaKit": "public/assets/models/fort_zarya_props_v0.glb",
+    "greenShrine": "public/assets/models/green_error_shrine_v0.glb",
+    "blueShrine": "public/assets/models/blue_sound_shrine_v0.glb"
+  }
+}
