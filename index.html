@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phoenix7 2.0 — Port Rachel</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud" class="hud hidden">
+      <div class="hud__topline">
+        <div class="badge">PHOENIX7 2.0A / THREE.JS CLEAN REBUILD</div>
+        <div id="clock" class="small">14-й астрономический год Второго цикла</div>
+      </div>
+      <div class="hud__quest">
+        <div id="questTitle" class="hud__quest-title">Порт Рейчел: пустое дело</div>
+        <div id="questText" class="hud__quest-text">Доберись до Форта Заря и найди писаря Орана Тива.</div>
+        <div id="questDistance" class="hud__quest-distance"></div>
+      </div>
+      <div id="prompt" class="prompt hidden"></div>
+      <div class="hud__help">WASD — ходьба · Shift — быстрее · E — говорить · J — Книга дорог · M — карта · Esc — мышь/меню</div>
+      <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <div id="startScreen" class="screen screen--start">
+      <div class="startCard">
+        <div class="kicker">чистая пересборка / без старого старта</div>
+        <h1>Битва за Вселенную:<br/>Восход на Фениксе 7</h1>
+        <p class="lead">Лунная тюрьма. Транспорт. Сон. Порт Рейчел. Пустое дело, которого нет в реестре.</p>
+        <div class="startCard__buttons">
+          <button id="newGameBtn">Новая игра</button>
+          <button id="quickStartBtn">Быстрый старт: Порт Рейчел</button>
+          <button id="continueBtn">Продолжить</button>
+        </div>
+        <div class="note">Это новый Three.js-билд. Старая ветка Гравийного рубежа сюда не перенесена.</div>
+      </div>
+    </div>
+
+    <div id="charScreen" class="screen hidden">
+      <div class="panel panel--character">
+        <button id="closeCharBtn" class="xbtn">×</button>
+        <div class="kicker">создание ссыльного</div>
+        <h2>Кто прибыл в Порт Рейчел?</h2>
+        <label>Имя персонажа</label>
+        <input id="charName" maxlength="32" value="Безымянный ссыльный" />
+        <label>Раса</label>
+        <select id="raceSelect">
+          <option value="human">Человек Империи</option>
+          <option value="red-elemental">Красный элементал</option>
+          <option value="blue-elemental">Синий элементал</option>
+          <option value="phase-touched">Задетый фазой</option>
+        </select>
+        <label>Предыстория</label>
+        <select id="backgroundSelect">
+          <option value="lunar-prisoner">Лунный заключённый</option>
+          <option value="archive-runner">Архивный беглец</option>
+          <option value="failed-scout">Провалившийся разведчик</option>
+          <option value="caravan-kid">Ребёнок каравана</option>
+        </select>
+        <button id="startCreatedBtn" class="wide">Проснуться в Порту Рейчел</button>
+      </div>
+    </div>
+
+    <div id="bookWindow" class="window hidden">
+      <div class="window__bar">
+        <strong>Книга дорог</strong>
+        <button data-close="bookWindow">×</button>
+      </div>
+      <div class="tabs">
+        <button data-tab="events" class="active">События</button>
+        <button data-tab="quests">Квесты</button>
+        <button data-tab="places">Места</button>
+        <button data-tab="factions">Фракции</button>
+      </div>
+      <div id="bookContent" class="window__content"></div>
+    </div>
+
+    <div id="mapWindow" class="window window--map hidden">
+      <div class="window__bar">
+        <strong>Карта Синего Шельфа</strong>
+        <button data-close="mapWindow">×</button>
+      </div>
+      <canvas id="mapCanvas" width="620" height="420"></canvas>
+      <div class="mapHint">Север — Форт Заря. Юг/запад — Порт Рейчел и причал.</div>
+    </div>
+
+    <div id="dialogueWindow" class="window window--dialogue hidden">
+      <div class="window__bar">
+        <strong id="dialogueName">NPC</strong>
+        <button data-close="dialogueWindow">×</button>
+      </div>
+      <div id="dialogueText" class="window__content"></div>
+      <div id="dialogueChoices" class="choices"></div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
