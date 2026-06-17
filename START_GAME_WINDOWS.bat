@@ -12,20 +12,31 @@ echo.
 echo Game URL:
 echo   http://localhost:8000/game.html
 echo.
-echo A new server window will open.
-echo Do not close the server window while playing.
+echo This launcher does NOT require Python.
+echo It uses Windows PowerShell as a local static server.
 echo.
 
-start "Phoenix7 local server" cmd /k "cd /d "%~dp0" && py -3 -m http.server 8000 || python -m http.server 8000"
+if not exist "%~dp0tools\phoenix_server.ps1" (
+  echo ERROR: tools\phoenix_server.ps1 not found.
+  echo Please pull/download the latest repository files.
+  pause
+  exit /b 1
+)
+
+echo Starting Phoenix7 PowerShell server...
+start "Phoenix7 local server" powershell -NoExit -ExecutionPolicy Bypass -File "%~dp0tools\phoenix_server.ps1" -Port 8000
 
 echo Waiting for the local server...
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 
 echo Opening game in browser...
 start "" "http://localhost:8000/game.html"
 
 echo.
-echo If the page says it cannot connect, wait a second and refresh.
-echo If port 8000 is busy, close old server windows and run this again.
+echo If the page says it cannot connect:
+echo   1. Wait 2 seconds and press Ctrl+F5 in browser.
+echo   2. Check the server window for errors.
+echo   3. If port 8000 is busy, close old Phoenix7 server windows.
 echo.
+echo You can close this launcher window. Keep the server window open while playing.
 pause
