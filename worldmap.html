@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Phoenix7 2.0G — Open World Atlas</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#080706;color:#eadbbd;font-family:system-ui,Segoe UI,sans-serif}#map{position:fixed;inset:0;width:100%;height:100%;display:block;background:#15110c}.ui{position:fixed;inset:0;pointer-events:none}.panel,.legend,.top,.hint{pointer-events:auto;position:absolute;border:1px solid #9f7b3d;background:rgba(11,9,7,.82);backdrop-filter:blur(8px);border-radius:14px;box-shadow:0 18px 60px #000}.top{left:14px;top:14px;padding:14px 16px;max-width:720px}.top h1{margin:0;font-size:28px;line-height:1}.top p{margin:8px 0 0;color:#cbb895;font-size:13px}.legend{left:14px;bottom:14px;padding:12px;width:270px}.legend h3{margin:0 0 8px;color:#d8b56e}.row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px;color:#d6c29f}.dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.25)}.panel{right:14px;top:14px;width:min(410px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;padding:14px}.panel h2{margin:0 0 6px;color:#f0d28a}.panel .type{color:#9fb7d7;text-transform:uppercase;letter-spacing:.14em;font-size:11px}.panel p{line-height:1.45;color:#ddcaab}.tag{display:inline-block;border:1px solid #6f552d;border-radius:99px;padding:3px 8px;margin:3px;color:#d8c6a7;font-size:12px}.hint{left:50%;bottom:18px;transform:translateX(-50%);padding:9px 12px;color:#b7a98f;font-size:12px;border-radius:999px}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.buttons button{cursor:pointer;border:1px solid #9f7b3d;background:#3c2b1a;color:#eadbbd;padding:8px 10px;border-radius:9px}button:hover{background:#5a4025}.hidden{display:none}.warn{color:#d9a15e}.small{font-size:12px;color:#aa987a}@media(max-width:900px){.panel{left:14px;right:14px;top:auto;bottom:88px;width:auto;max-height:42vh}.legend{display:none}.hint{width:calc(100vw - 28px);text-align:center;border-radius:12px}.top{right:14px;max-width:none}.top h1{font-size:22px}}
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div class="ui">
+  <div class="top"><h1>Карта Феникса 7 — открытый мир 2.0G</h1><p>Новая структура мира: западный старт в Порту Рейчел, центральный Форт Заря, северные монастыри, восточная Dead Savannah, южные фракционные маршруты. Старые карты использованы только как референс.</p></div>
+  <div class="legend"><h3>Слои карты</h3><div id="legendRows"></div><div class="buttons"><button id="resetBtn">Сброс вида</button><button id="routeBtn">Маршрут старта</button><button id="dangerBtn">Опасности</button></div><p class="small">Колесо мыши — масштаб, перетаскивание — панорама, клик по точке — описание.</p></div>
+  <div id="info" class="panel"><div class="type">WORLD ATLAS</div><h2>Феникс 7</h2><p>Кликни по точке или зоне. Эта карта — производственный план открытого мира для следующих билдов.</p><div class="tag">Port Rachel</div><div class="tag">Fort Zarya</div><div class="tag">Orders</div><div class="tag">Dead Savannah</div></div>
+  <div class="hint">ЛКМ по точке — описание · колесо — масштаб · перетаскивание — движение карты</div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('map'),ctx=canvas.getContext('2d'),info=document.getElementById('info');
+let W=0,H=0,view={x:0,y:0,z:1},drag=null,showDanger=true,showRoute=true;
+const layers={start:'#6eb6e8',empire:'#d8b56e',green:'#65b866',blue:'#658fd8',danger:'#c96355',wild:'#8d7a58',savanna:'#b8874d',phase:'#9b7bd8',road:'#967548',water:'#1d4a56'};
+const zones=[
+ {id:'sea',name:'Синее море',type:'water',poly:[[-560,-220],[-330,-220],[-330,260],[-560,260]],c:'#143543',desc:'Западная вода и мокрые причалы. Здесь начинается путь игрока.'},
+ {id:'blue-shelf',name:'Синий Шельф',type:'start',poly:[[-330,-170],[-110,-170],[-80,80],[-210,170],[-330,170]],c:'#25485b',desc:'Стартовая область. Порт Рейчел, мокрые дороги, первые NPC, безопасное обучение.'},
+ {id:'zarya-plain',name:'Грязные равнины Форта Заря',type:'empire',poly:[[-120,-170],[120,-150],[150,110],[-70,125],[-110,50]],c:'#4e4631',desc:'Центральный имперский хаб. Здесь Оран Тив, Герда, рынок и первый акт.'},
+ {id:'north-orders',name:'Северные монастырские дороги',type:'wild',poly:[[-120,-360],[190,-360],[170,-160],[-120,-170]],c:'#6a5537',desc:'Дороги к монастырям, караваны, странные руины и первые рыцарские события.'},
+ {id:'green-valley',name:'Зелёный разлом Системных Ошибок',type:'green',poly:[[-95,120],[80,120],[95,245],[-120,260]],c:'#386b35',desc:'Южная ветка зелёного ордена. Терминалы, обелиски, системные ритуалы.'},
+ {id:'sound-hills',name:'Синие холмы Звука',type:'blue',poly:[[80,85],[250,70],[265,230],[96,245]],c:'#304a78',desc:'Территория Синего Ордена: камертоны, резонаторы, звуковые маяки.'},
+ {id:'red-dead',name:'Красный Узел и тёплые каналы',type:'danger',poly:[[145,-120],[360,-120],[365,110],[160,90]],c:'#783123',desc:'Опасная зона контрабандистов, глиняных кругов и тёплых каналов.'},
+ {id:'dead-savanna',name:'Мёртвая Саванна',type:'savanna',poly:[[360,-140],[560,-115],[560,250],[340,220],[365,105]],c:'#7b5b2e',desc:'Второй акт. Гравийная чума, караваны чёрных элементалей, лагеря Жужжаров.'},
+ {id:'cycle-gates',name:'Пепельные ворота Цикла',type:'phase',poly:[[165,-360],[560,-360],[560,-120],[190,-145]],c:'#483a68',desc:'Поздняя/мистическая область: циклы, фазовые поля, реликты древних дорог.'}
+];
+const roads=[
+ ['Путь ссыльного',[[-265,20],[-210,18],[-155,14],[-90,8],[-20,5],[45,8],[96,2]]],
+ ['Северная караванная дорога',[[-90,8],[-55,-88],[-40,-195],[25,-255],[120,-275],[210,-245]]],
+ ['Ветка зелёного ордена',[[-20,5],[-42,70],[-58,135],[-40,205]]],
+ ['Ветка синего ордена',[[-20,5],[42,45],[112,78],[185,130]]],
+ ['Красная торговая линия',[[96,2],[160,-12],[235,-20],[322,-5],[420,40]]],
+ ['Дорога в Мёртвую Саванну',[[322,-5],[390,50],[430,120],[460,205]]],
+ ['Фазовая северная тропа',[[120,-275],[205,-250],[300,-225],[410,-190]]]
+];
+const pois=[
+ {id:'port',name:'Порт Рейчел',type:'start',x:-265,y:20,desc:'Старт игры. Игрок прибывает после Лунной тюрьмы. Бумаги пустые, но транспорт ушёл.',tags:['старт','порт','обучение']},
+ {id:'customs',name:'Таможня Порта Рейчел',type:'empire',x:-225,y:18,desc:'Клерк Рина объясняет, что игрок существует как ошибка в форме.',tags:['NPC','документы']},
+ {id:'road-shelter',name:'Дорожный навес',type:'wild',x:-180,y:-5,desc:'Первая задача Герды: проверить навес. Книга дорог сама пишет событие.',tags:['Герда','первый акт']},
+ {id:'old-beacon',name:'Старый маяк',type:'wild',x:-90,y:8,desc:'Ориентир на дороге. Слышен синий звон и зелёный шум ошибки.',tags:['ориентир','дорога']},
+ {id:'fort-gate',name:'Ворота Форта Заря',type:'empire',x:45,y:8,desc:'Первое прибытие в имперский хаб. Квест обновляется на поиск Орана.',tags:['хаб','Империя']},
+ {id:'oran',name:'Канцелярия Орана Тива',type:'empire',x:96,y:2,desc:'Оран выдаёт временную регистрацию. После этого открывается Герда.',tags:['квест','регистрация']},
+ {id:'gerda',name:'Дом Герды Гайгерманики',type:'empire',x:120,y:-22,desc:'Главный актовый узел 2.0C+. Герда ведёт игрока к настоящему конфликту.',tags:['главный квест','акт 1']},
+ {id:'market',name:'Грязный рынок Форта Заря',type:'empire',x:110,y:38,desc:'Торговцы, красная глина, слухи о контрабандистах и Dead Savannah.',tags:['торговля','слухи']},
+ {id:'green-shrine',name:'Знак Системных Ошибок',type:'green',x:-42,y:70,desc:'Первое касание зелёного ордена. Они служат Богине Системных Ошибок.',tags:['зелёные','орден']},
+ {id:'green-monastery',name:'Монастырь Системных Ошибок',type:'green',x:-40,y:205,desc:'Большой будущий dungeon/hub зелёных рыцарей: терминалы, обелиски, обряды.',tags:['монастырь','фракция']},
+ {id:'blue-fork',name:'Камертон Синего Ордена',type:'blue',x:112,y:78,desc:'Резонаторная точка у дороги. Синий орден начинает звучать до появления на экране.',tags:['синие','звук']},
+ {id:'blue-monastery',name:'Монастырь Звука',type:'blue',x:185,y:130,desc:'Фракционный узел синих рыцарей. Ритуалы, музыка, резонансные устройства.',tags:['монастырь','фракция']},
+ {id:'red-node',name:'Красный Узел',type:'danger',x:235,y:-20,desc:'Опасный рынок/логово контрабандистов. Переход к квесту про пленных.',tags:['опасность','контрабанда']},
+ {id:'warm-canal',name:'Деревня Тёплого Канала',type:'danger',x:322,y:-5,desc:'Поселение у тёплых каналов. Связано с красной глиной и скрытыми путями.',tags:['поселение','квест']},
+ {id:'clay-circle',name:'Глиняный Круг Назиры',type:'danger',x:300,y:40,desc:'Ритуальное место. Может стать точкой магического/фракционного квеста.',tags:['магия','глина']},
+ {id:'dead-road',name:'Вход в Мёртвую Саванну',type:'savanna',x:430,y:120,desc:'Граница второго акта: Гравийная чума, чёрные элементали, караван.',tags:['акт 2','саванна']},
+ {id:'black-caravan',name:'Караван чёрных элементалей',type:'savanna',x:460,y:205,desc:'Будущая сцена сопровождения каравана. Лагеря Жужжаров и дипломатия.',tags:['караван','акт 2']},
+ {id:'zhuzhar',name:'Костяной маяк Жужжар',type:'savanna',x:510,y:40,desc:'Опасный маяк Жужжаров. Не стартовая зона, а будущая территория давления.',tags:['жужжары','опасность']},
+ {id:'phase',name:'Пепельные Ворота Цикла',type:'phase',x:410,y:-190,desc:'Поздняя мистическая зона. Фазовые маги, циклы, древняя инфраструктура.',tags:['фаза','цикл']},
+ {id:'north-camp',name:'Лагерь нейтральных проводников',type:'wild',x:25,y:-255,desc:'Северный лагерь проводников. Может помогать с маршрутом к опасным зонам.',tags:['караван','проводники']},
+ {id:'mage',name:'Фазовый полигон',type:'phase',x:210,y:-245,desc:'Точка для будущих фазовых магов и побочной ветки исследования мира.',tags:['фазовые маги']}
+];
+function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);draw()}function sx(x){return innerWidth/2+(x+view.x)*view.z}function sy(y){return innerHeight/2+(y+view.y)*view.z}function wx(x){return (x-innerWidth/2)/view.z-view.x}function wy(y){return (y-innerHeight/2)/view.z-view.y}
+function draw(){ctx.clearRect(0,0,innerWidth,innerHeight);drawGrid();for(const z of zones)drawZone(z);for(const r of roads)drawRoad(r);if(showRoute)drawRoute();for(const p of pois)drawPoi(p);drawCompass()}
+function drawGrid(){ctx.fillStyle='#15110c';ctx.fillRect(0,0,innerWidth,innerHeight);ctx.strokeStyle='rgba(216,181,110,.06)';ctx.lineWidth=1;let step=50*view.z;for(let x=(sx(-1000)%step);x<innerWidth;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,innerHeight);ctx.stroke()}for(let y=(sy(-1000)%step);y<innerHeight;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(innerWidth,y);ctx.stroke()}}
+function drawZone(z){ctx.beginPath();z.poly.forEach((p,i)=>{i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1]))});ctx.closePath();ctx.fillStyle=z.c+'88';ctx.fill();ctx.strokeStyle=z.c;ctx.lineWidth=2;ctx.stroke();let cx=z.poly.reduce((a,p)=>a+p[0],0)/z.poly.length,cy=z.poly.reduce((a,p)=>a+p[1],0)/z.poly.length;ctx.fillStyle='rgba(255,239,205,.7)';ctx.font=`${Math.max(11,16*view.z)}px system-ui`;ctx.textAlign='center';ctx.fillText(z.name,sx(cx),sy(cy))}
+function drawRoad(r){ctx.strokeStyle=layers.road;ctx.lineWidth=Math.max(3,8*view.z);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();r[1].forEach((p,i)=>{i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1]))});ctx.stroke();ctx.strokeStyle='rgba(255,230,170,.35)';ctx.lineWidth=Math.max(1,2*view.z);ctx.stroke()}
+function drawRoute(){let route=roads[0][1];ctx.strokeStyle='#f0d28a';ctx.lineWidth=Math.max(2,4*view.z);ctx.setLineDash([10*view.z,8*view.z]);ctx.beginPath();route.forEach((p,i)=>{i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1]))});ctx.stroke();ctx.setLineDash([])}
+function drawPoi(p){let c=layers[p.type]||'#ddd',x=sx(p.x),y=sy(p.y),r=Math.max(5,8*view.z);ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=2;ctx.stroke();if(showDanger&&p.type==='danger'){ctx.strokeStyle='#ff6b55';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+8*view.z,0,Math.PI*2);ctx.stroke()}if(view.z>.55){ctx.fillStyle='#eadbbd';ctx.font=`${Math.max(10,13*view.z)}px system-ui`;ctx.textAlign='left';ctx.fillText(p.name,x+r+5,y+4)}}
+function drawCompass(){ctx.save();ctx.translate(innerWidth-70,innerHeight-70);ctx.strokeStyle='#d8b56e';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,40,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#d8b56e';ctx.font='13px system-ui';ctx.textAlign='center';ctx.fillText('N',0,-22);ctx.fillText('E',24,4);ctx.fillText('W',-24,4);ctx.fillText('S',0,30);ctx.restore()}
+function pick(x,y){let ww=wx(x),hh=wy(y);let best=null,bd=999;for(const p of pois){let d=Math.hypot(ww-p.x,hh-p.y);if(d<bd&&d<12/view.z){best=p;bd=d}}if(best)return selectPoi(best);for(const z of zones){if(pointInPoly([ww,hh],z.poly))return selectZone(z)}}function pointInPoly(pt,poly){let x=pt[0],y=pt[1],inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){let xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];let inter=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);if(inter)inside=!inside}return inside}
+function selectPoi(p){info.innerHTML='<div class="type">'+p.type+'</div><h2>'+p.name+'</h2><p>'+p.desc+'</p>'+p.tags.map(t=>'<span class="tag">'+t+'</span>').join('')+'<p class="small">Координаты: '+p.x+', '+p.y+'</p>'}
+function selectZone(z){info.innerHTML='<div class="type">zone / '+z.type+'</div><h2>'+z.name+'</h2><p>'+z.desc+'</p><p class="small warn">Эта зона — план открытого мира. В игровые билды переносим постепенно.</p>'}
+function legend(){const rows=[['Старт / Синий Шельф',layers.start],['Империя / Форт Заря',layers.empire],['Зелёный орден',layers.green],['Синий орден',layers.blue],['Опасные зоны',layers.danger],['Dead Savannah',layers.savanna],['Фазовые зоны',layers.phase],['Дороги',layers.road]];legendRows.innerHTML=rows.map(r=>'<div class="row"><span class="dot" style="background:'+r[1]+'"></span>'+r[0]+'</div>').join('')}
+canvas.onmousedown=e=>{drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false}};canvas.onmousemove=e=>{if(!drag)return;let dx=(e.clientX-drag.x)/view.z,dy=(e.clientY-drag.y)/view.z;if(Math.abs(dx)+Math.abs(dy)>2)drag.moved=true;view.x=drag.vx+dx;view.y=drag.vy+dy;draw()};canvas.onmouseup=e=>{if(drag&&!drag.moved)pick(e.clientX,e.clientY);drag=null};canvas.onwheel=e=>{e.preventDefault();let old=view.z;view.z=Math.max(.42,Math.min(2.4,view.z*(e.deltaY<0?1.12:.88)));let mx=wx(e.clientX),my=wy(e.clientY);view.x+=(mx-wx(e.clientX))*.25;view.y+=(my-wy(e.clientY))*.25;draw()},{passive:false};resetBtn.onclick=()=>{view={x:0,y:0,z:1};draw()};routeBtn.onclick=()=>{showRoute=!showRoute;draw()};dangerBtn.onclick=()=>{showDanger=!showDanger;draw()};legend();resize();addEventListener('resize',resize);selectPoi(pois[0]);
+</script>
+</body>
+</html>
