@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Phoenix7 2.0S — Production Launcher</title>
+<title>Phoenix7 2.0T — Production Launcher</title>
 <style>
 :root{--bg:#080706;--panel:rgba(15,12,8,.92);--line:#9f7b3d;--text:#eadbbd;--muted:#b7a98f;--blue:#9fb7d7;--gold:#d8b56e;--green:#7dbb72;--red:#c96355}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 70% 12%,#3a2816,transparent 35%),linear-gradient(#080706,#151009 60%,#070604);color:var(--text);font-family:system-ui,Segoe UI,sans-serif}body{padding:28px}.wrap{max-width:1180px;margin:0 auto}.hero{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:34px;box-shadow:0 26px 90px #000}.k{color:var(--blue);text-transform:uppercase;letter-spacing:.2em;font-size:12px}.hero h1{font-size:clamp(42px,7vw,86px);line-height:.92;margin:14px 0 18px}.lead{font-size:18px;line-height:1.5;color:#ddcaab;max-width:880px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}.card{border:1px solid rgba(159,123,61,.72);background:rgba(10,8,5,.74);border-radius:18px;padding:20px;min-height:220px;display:flex;flex-direction:column}.card h2{margin:0 0 8px;color:var(--gold)}.card p{color:#d9c7a6;line-height:1.45}.tag{display:inline-block;border:1px solid #6f552d;border-radius:999px;padding:3px 8px;margin:3px;color:#d8c6a7;font-size:12px}.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}.btn{display:inline-block;text-decoration:none;border:1px solid var(--line);background:linear-gradient(#4b3722,#251a10);color:var(--text);padding:10px 14px;border-radius:10px}.btn:hover{background:#624628}.btn.main{border-color:#d8b56e;background:linear-gradient(#704421,#3a2515)}.section{margin-top:18px;border:1px solid rgba(159,123,61,.55);background:rgba(12,10,7,.64);border-radius:18px;padding:22px}.section h2{margin:0 0 10px;color:var(--gold)}code,pre{background:#120f0a;border:1px solid #40311b;color:#f2dbad;border-radius:10px}pre{padding:14px;overflow:auto}.status{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ok{color:var(--green)}.warn{color:#dca855}.bad{color:var(--red)}ul{line-height:1.55}.small{color:var(--muted);font-size:13px}@media(max-width:900px){body{padding:14px}.grid,.status{grid-template-columns:1fr}.hero{padding:24px}}
 </style>
@@ -11,18 +11,18 @@
 <body>
 <div class="wrap">
   <div class="hero">
-    <div class="k">Phoenix7 2.0S / production shell</div>
+    <div class="k">Phoenix7 2.0T / production shell</div>
     <h1>Восход на Фениксе 7</h1>
-    <p class="lead">Главный игровой кандидат теперь — <b>act1_hands_world.html</b>: первый акт с введёнными персонажами, видимыми руками игрока, кулаками, клинком и фазовой магией. Asset Director остаётся staging-слоем для будущих GLB/WAV.</p>
+    <p class="lead">Главный игровой кандидат теперь — <b>act1_arsenal_world.html</b>: руки, фазовый удар рукой, два меча, три реликтовых огнестрела, боезапас и разный лут у врагов.</p>
     <div class="grid">
-      <div class="card"><h2>Играть: Hands Combat World</h2><p>Главный игровой кандидат: видимые руки, кулаки, клинок, фазовая магия, враги, Герда, Оран, Рина, рыцарь и первый акт.</p><div><span class="tag">2.0S</span><span class="tag">hands</span><span class="tag">phase combat</span></div><div class="btns"><a class="btn main" href="act1_hands_world.html">Открыть 2.0S</a></div></div>
+      <div class="card"><h2>Играть: Arsenal World</h2><p>Главный игровой кандидат: фазовый удар рукой, бастард, шпага, Кольт 1917, M1 Гаранд, Брен, боезапас и лут с врагов.</p><div><span class="tag">2.0T</span><span class="tag">arsenal</span><span class="tag">loot</span></div><div class="btns"><a class="btn main" href="act1_arsenal_world.html">Открыть 2.0T</a></div></div>
+      <div class="card"><h2>Hands Combat World</h2><p>Предыдущий кандидат: видимые руки, кулаки, клинок, фазовая магия, враги и персонажи первого акта.</p><div><span class="tag">2.0S</span><span class="tag">hands</span></div><div class="btns"><a class="btn" href="act1_hands_world.html">Открыть 2.0S</a></div></div>
       <div class="card"><h2>Asset Director Act 1</h2><p>Редактор персонажа, проверка аудио и моделей, GLB/procedural preview, сейв и запуск Act 1 Loop.</p><div><span class="tag">2.0R</span><span class="tag">assets</span></div><div class="btns"><a class="btn" href="act1_asset_director.html">Открыть 2.0R</a></div></div>
       <div class="card"><h2>Model Lab</h2><p>Тест GLB-слотов и процедурных fallback-моделей для Герды, Орана, рыцарей и пропов.</p><div><span class="tag">2.0Q</span><span class="tag">GLB</span><span class="tag">fallback</span></div><div class="btns"><a class="btn" href="model_lab.html">Открыть модели</a></div></div>
-      <div class="card"><h2>Sound Integrated Act 1</h2><p>Версия 2.0P: персонаж, стартовый звук, Act 1 Loop, клики, книга, карта, квестовые изменения и портовая атмосфера.</p><div><span class="tag">2.0P</span><span class="tag">sound</span></div><div class="btns"><a class="btn" href="act1_sound_integrated.html">Открыть 2.0P</a></div></div>
       <div class="card"><h2>Audio Lab</h2><p>Тест UI-звуков, книги, карты, обновления/завершения квеста и фоновой атмосферы порта.</p><div><span class="tag">2.0O</span><span class="tag">audio</span><span class="tag">fallback</span></div><div class="btns"><a class="btn" href="audio_lab.html">Открыть звук</a></div></div>
       <div class="card"><h2>Act 1 Loop напрямую</h2><p>Сам Act 1 Loop без обёрток: задачи, награды, репутация, доска Герды и подготовка экспедиции.</p><div><span class="tag">2.0M</span><span class="tag">act loop</span></div><div class="btns"><a class="btn" href="act1_loop.html">Открыть 2.0M</a></div></div>
       <div class="card"><h2>Карта открытого мира</h2><p>Новый атлас Феникса 7: Порт Рейчел, Форт Заря, ордена, Красный Узел, Dead Savannah, северные зоны.</p><div><span class="tag">world map</span><span class="tag">план</span></div><div class="btns"><a class="btn" href="worldmap.html">Открыть карту</a></div></div>
-      <div class="card"><h2>Документация 2.0S</h2><p>Описание рук, боевых режимов, фазовой магии, введённых персонажей и следующего этапа.</p><div><span class="tag">docs</span><span class="tag">2.0S</span></div><div class="btns"><a class="btn" href="docs/HANDS_COMBAT_2_0S.md">Открыть документ</a></div></div>
+      <div class="card"><h2>Документация 2.0T</h2><p>Описание оружия, фазового удара рукой, боезапаса, loot tables и следующего этапа.</p><div><span class="tag">docs</span><span class="tag">2.0T</span></div><div class="btns"><a class="btn" href="docs/ARSENAL_2_0T.md">Открыть документ</a></div></div>
       <div class="card"><h2>Fallback</h2><p>Если CDN или модульный Three.js сломался, этот файл всё равно должен запускаться локально.</p><div><span class="tag">one HTML</span><span class="tag">fallback</span></div><div class="btns"><a class="btn" href="index.html">Открыть fallback</a></div></div>
     </div>
   </div>
@@ -36,8 +36,8 @@
   </div>
 
   <div class="section status">
-    <div><h2>Что уже есть</h2><ul><li class="ok">Видимые руки игрока в камере.</li><li class="ok">Кулаки, клинок, фазовая магия.</li><li class="ok">Введены Рина, Оран, Герда, рыцарь, фракции, торговец, контрабандист, проводник.</li><li class="ok">Act 1 loop: задачи, репутация, доска Герды.</li><li class="ok">Model/audio layers готовы как staging.</li><li class="ok">Новая карта открытого мира.</li></ul></div>
-    <div><h2>Что дальше</h2><ul><li class="warn">Смержить руки + Asset Director + Audio в один production build.</li><li class="warn">Добавить оружейные слоты и предметы.</li><li class="warn">Подключить attack/phase sounds.</li><li class="warn">Встроить PhoenixModels прямо в NPC.</li><li class="warn">Разнести data в JSON.</li></ul></div>
+    <div><h2>Что уже есть</h2><ul><li class="ok">Видимые руки игрока в камере.</li><li class="ok">Фазовый удар рукой на короткой дистанции.</li><li class="ok">Бастард, шпага, Кольт 1917, M1 Гаранд, Брен.</li><li class="ok">Боезапас и разные loot tables у врагов.</li><li class="ok">Персонажи первого акта уже стоят в мире.</li><li class="ok">Model/audio layers готовы как staging.</li></ul></div>
+    <div><h2>Что дальше</h2><ul><li class="warn">Смержить арсенал + Asset Director + Audio.</li><li class="warn">Добавить weapon pickup/reward UI.</li><li class="warn">Подключить attack/phase sounds.</li><li class="warn">Встроить PhoenixModels прямо в NPC.</li><li class="warn">Разнести data в JSON.</li></ul></div>
   </div>
 </div>
 </body>
