@@ -3,29 +3,29 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ===============================================
-echo   Phoenix7 — local game launcher
+echo   Phoenix7 — START GAME
 echo ===============================================
 echo.
-echo This window starts a local server for the game.
-echo Do not close it while playing.
+echo Folder:
+echo   %CD%
 echo.
 echo Game URL:
 echo   http://localhost:8000/game.html
 echo.
-echo Opening browser...
+echo A new server window will open.
+echo Do not close the server window while playing.
+echo.
+
+start "Phoenix7 local server" cmd /k "cd /d "%~dp0" && py -3 -m http.server 8000 || python -m http.server 8000"
+
+echo Waiting for the local server...
+timeout /t 2 /nobreak >nul
+
+echo Opening game in browser...
 start "" "http://localhost:8000/game.html"
-echo.
-echo Starting server in this folder:
-echo   %CD%
-echo.
-
-py -3 -m http.server 8000
-if errorlevel 1 (
-  echo.
-  echo py command failed, trying python...
-  python -m http.server 8000
-)
 
 echo.
-echo Server stopped. Press any key to close.
-pause >nul
+echo If the page says it cannot connect, wait a second and refresh.
+echo If port 8000 is busy, close old server windows and run this again.
+echo.
+pause
