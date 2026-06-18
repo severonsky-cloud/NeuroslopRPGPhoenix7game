@@ -11,11 +11,15 @@ export function makeMat(color, options = {}) {
     transparent: options.opacity !== undefined,
     opacity: options.opacity ?? 1,
     side: options.side ?? THREE.FrontSide,
+    polygonOffset: options.polygonOffset ?? false,
+    polygonOffsetFactor: options.polygonOffsetFactor ?? 0,
+    polygonOffsetUnits: options.polygonOffsetUnits ?? 0,
   });
 }
 
 export const Materials = {
-  road: makeMat(0x5b4025),
+  road: makeMat(0x5b4025, { roughness: 0.94, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2, side: THREE.DoubleSide }),
+  roadEdge: makeMat(0x3f2a18, { roughness: 0.98, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, side: THREE.DoubleSide }),
   wood: makeMat(0x3f2718),
   dark: makeMat(0x120c08),
   clayWall: makeMat(0x6b5534),
@@ -38,16 +42,82 @@ export function placeBox(scene, x, z, w, d, h, mat = Materials.clayWall, solid =
   return mesh;
 }
 
+function roadSample(a, b, t) {
+  return {
+    x: a.x + (b.x - a.x) * t,
+    z: a.z + (b.z - a.z) * t,
+  };
+}
+
+function pushRoadQuad(vertices, uvs, indices, left0, right0, left1, right1) {
+  const base = vertices.length / 3;
+  vertices.push(left0.x, left0.y, left0.z, right0.x, right0.y, right0.z, left1.x, left1.y, left1.z, right1.x, right1.y, right1.z);
+  uvs.push(0, 0, 1, 0, 0, 1, 1, 1);
+  indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+}
+
 export function placeRoadSegment(scene, a, b, width = 5.0) {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const len = Math.hypot(dx, dz);
-  const y = Math.max(heightAt(a.x, a.z), heightAt(b.x, b.z)) + 0.075;
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, 0.065, len), Materials.road);
-  mesh.position.set((a.x + b.x) / 2, y, (a.z + b.z) / 2);
-  mesh.rotation.y = Math.atan2(dx, dz);
+  if (len < 0.05) return null;
+
+  const steps = Math.max(3, Math.ceil(len / 3.2));
+  const half = width * 0.5;
+  const edgeInset = Math.min(0.55, width * 0.14);
+  const nx = -dz / len;
+  const nz = dx / len;
+  const vertices = [];
+  const uvs = [];
+  const indices = [];
+  const edgeVertices = [];
+  const edgeUvs = [];
+  const edgeIndices = [];
+
+  let prevLeft = null, prevRight = null, prevEdgeL0 = null, prevEdgeL1 = null, prevEdgeR0 = null, prevEdgeR1 = null;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const p = roadSample(a, b, t);
+    const crown = Math.sin(t * Math.PI) * 0.018;
+    const left = { x: p.x + nx * half, z: p.z + nz * half };
+    const right = { x: p.x - nx * half, z: p.z - nz * half };
+    left.y = heightAt(left.x, left.z) + 0.035 + crown;
+    right.y = heightAt(right.x, right.z) + 0.035 + crown;
+
+    const edgeL0 = { x: p.x + nx * half, z: p.z + nz * half };
+    const edgeL1 = { x: p.x + nx * (half - edgeInset), z: p.z + nz * (half - edgeInset) };
+    const edgeR0 = { x: p.x - nx * half, z: p.z - nz * half };
+    const edgeR1 = { x: p.x - nx * (half - edgeInset), z: p.z - nz * (half - edgeInset) };
+    for (const q of [edgeL0, edgeL1, edgeR0, edgeR1]) q.y = heightAt(q.x, q.z) + 0.045;
+
+    if (prevLeft) {
+      pushRoadQuad(vertices, uvs, indices, prevLeft, prevRight, left, right);
+      pushRoadQuad(edgeVertices, edgeUvs, edgeIndices, prevEdgeL0, prevEdgeL1, edgeL0, edgeL1);
+      pushRoadQuad(edgeVertices, edgeUvs, edgeIndices, prevEdgeR1, prevEdgeR0, edgeR1, edgeR0);
+    }
+    prevLeft = left; prevRight = right;
+    prevEdgeL0 = edgeL0; prevEdgeL1 = edgeL1; prevEdgeR0 = edgeR0; prevEdgeR1 = edgeR1;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, Materials.road);
+  mesh.name = 'terrain_hugging_road_segment';
   mesh.receiveShadow = true;
   scene.add(mesh);
+
+  const edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgeVertices, 3));
+  edgeGeo.setAttribute('uv', new THREE.Float32BufferAttribute(edgeUvs, 2));
+  edgeGeo.setIndex(edgeIndices);
+  edgeGeo.computeVertexNormals();
+  const edgeMesh = new THREE.Mesh(edgeGeo, Materials.roadEdge);
+  edgeMesh.name = 'road_embedded_edges';
+  edgeMesh.receiveShadow = true;
+  scene.add(edgeMesh);
   return mesh;
 }
 
