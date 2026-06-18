@@ -1,5 +1,6 @@
 import { GunFeelSystem } from '../feel/gunFeel.js';
 import { ReloadFeelSystem } from '../feel/reloadFeel.js';
+import { HitFeelSystem } from '../feel/hitFeel.js';
 import { MusicDirector } from '../audio/musicDirector.js';
 import { WEAPONS } from '../combat/weapons.js';
 
@@ -12,8 +13,9 @@ export function installFeelExtensions(PhoenixV3Engine) {
     originalBuildScene.call(this);
     this.gunFeel = new GunFeelSystem(this);
     this.reloadFeel = new ReloadFeelSystem(this);
+    this.hitFeel = new HitFeelSystem(this);
     this.musicDirector = new MusicDirector();
-    this.log.unshift('v3.0K2: gun feel plus visible reload stages, jam warning, weapon reload animation and music director.');
+    this.log.unshift('v3.0K3: visible hit reactions, target flash, stagger feedback, floating damage and player hit edge flash.');
 
     if (this.ballistics && !this.ballistics.__feelWrapped) {
       this.ballistics.__feelWrapped = true;
@@ -22,7 +24,14 @@ export function installFeelExtensions(PhoenixV3Engine) {
         const result = rawFire(args);
         this.gunFeel?.shot?.(args.weaponId, result);
         const hit = result?.results?.find(r => r.hit);
-        if (hit?.target) this.gunFeel?.flashTarget?.(hit.target);
+        if (hit?.target) {
+          this.gunFeel?.flashTarget?.(hit.target);
+          this.hitFeel?.hitActor?.(hit.target, {
+            damage: hit.damage,
+            kind: hit.damage >= 24 ? 'heavy' : 'medium',
+            phase: args.weaponId === 'phase',
+          });
+        }
         return result;
       };
     }
@@ -62,6 +71,7 @@ export function installFeelExtensions(PhoenixV3Engine) {
     if (this.mode !== 'boot') {
       this.gunFeel?.update?.(dt);
       this.reloadFeel?.update?.(dt);
+      this.hitFeel?.update?.(dt);
       const enemiesNear = [...(this.monsters || []), ...(this.livingWorld?.agents || [])]
         .filter(o => o?.userData?.alive !== false && o.position?.distanceTo?.(this.rig.position) < 32).length;
       this.musicDirector?.setCombatIntensity?.(Math.min(1, enemiesNear / 6));
