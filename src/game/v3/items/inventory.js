@@ -80,15 +80,6 @@ export class InventorySystem {
     return w?.ammoType ? this.player.inventoryState.ammo[w.ammoType] || 0 : Infinity;
   }
 
-  spendAmmo(weaponId, amount = 1) {
-    const w = ARSENAL[weaponId];
-    if (!w?.ammoType) return true;
-    const inv = this.player.inventoryState;
-    if ((inv.ammo[w.ammoType] || 0) < amount) return false;
-    inv.ammo[w.ammoType] -= amount;
-    return true;
-  }
-
   addAmmo(type, amount) {
     if (!AMMO_TYPES[type]) return false;
     this.player.inventoryState.ammo[type] = (this.player.inventoryState.ammo[type] || 0) + amount;
@@ -137,6 +128,21 @@ export class InventorySystem {
     return this.player.inventoryState.items.reduce((sum, id) => sum + (ITEM_DEFS[id]?.weight || 0), 0);
   }
 
+  itemRow(id) {
+    const it = ITEM_DEFS[id];
+    const w = it?.weaponId ? ARSENAL[it.weaponId] : null;
+    const icon = itemIconHtml(it?.weaponId || id);
+    let actions = '';
+    if (it?.type === 'weapon') {
+      actions = `<br><button data-equip-left="${id}">В левый набор</button> <button data-equip-right="${id}">В правый набор</button>`;
+    } else if (it?.type === 'armor' || it?.type === 'trinket') {
+      actions = `<br><button data-equip-armor="${id}" data-slot="${it.slot}">Надеть: ${it.slot}</button>`;
+    } else if (it?.slot === 'spellHand') {
+      actions = `<br><button data-equip-armor="${id}" data-slot="spellHand">В фазовую руку</button>`;
+    }
+    return `<div class="line">${icon} <b>${it?.name || id}</b> — ${it?.type || 'item'} · ${it?.slot || '-'}${w?.ammoType ? ` · ammo ${AMMO_TYPES[w.ammoType].name}` : ''}${actions}</div>`;
+  }
+
   html() {
     const inv = this.player.inventoryState;
     const eq = inv.equipment;
@@ -144,17 +150,13 @@ export class InventorySystem {
       .map(slot => `<div class="line"><b>${slot}</b>: ${ITEM_DEFS[eq[slot]] ? itemIconHtml(ITEM_DEFS[eq[slot]].weaponId || eq[slot]) : ''} ${ITEM_DEFS[eq[slot]]?.name || 'пусто'}</div>`)
       .join('');
     const ammo = Object.entries(inv.ammo).map(([type, n]) => `<div class="line">${itemIconHtml(type)} <b>${AMMO_TYPES[type]?.name || type}</b>: ${n}</div>`).join('');
-    const items = inv.items.map(id => {
-      const it = ITEM_DEFS[id];
-      const w = it?.weaponId ? ARSENAL[it.weaponId] : null;
-      return `<div class="line">${itemIconHtml(it?.weaponId || id)} <b>${it?.name || id}</b> — ${it?.type || 'item'} · ${it?.slot || '-'}${w?.ammoType ? ` · ammo ${AMMO_TYPES[w.ammoType].name}` : ''}</div>`;
-    }).join('');
+    const items = inv.items.map(id => this.itemRow(id)).join('');
     return `<h2>Инвентарь</h2>
       <p><b>Активная рука:</b> ${eq.activeHand === 'leftHand' ? 'левая' : 'правая'} · <b>Вес:</b> ${this.totalWeight().toFixed(1)} · <b>Броня:</b> ${this.armorValue()} · <b>Кредиты:</b> ${this.player.credits}</p>
       <h3>Кукла персонажа</h3>${doll}
       <h3>Патроны</h3>${ammo}
       <h3>Предметы</h3>${items}
-      <p><small>Tab — переключить левый/правый набор оружия. V — мушка. B — приклад/штык.</small></p>
+      <p><small>Tab — переключить левый/правый набор оружия. R — перезарядка. B — приклад/штык. Y — зачарование.</small></p>
       <p><button id="closeMapBtn">Закрыть</button></p>`;
   }
 }
