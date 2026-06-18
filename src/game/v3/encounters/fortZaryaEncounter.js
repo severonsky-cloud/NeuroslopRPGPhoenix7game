@@ -7,11 +7,7 @@ const FORT_WALL = new THREE.Vector3(126, 0, 158);
 const ZHUZHER_START = new THREE.Vector3(218, 0, 226);
 const SAFE_SETTLEMENT = new THREE.Vector3(54, 0, 112);
 
-function place(obj, x, z) {
-  obj.position.set(x, heightAt(x, z), z);
-  return obj;
-}
-
+function place(obj, x, z) { obj.position.set(x, heightAt(x, z), z); return obj; }
 function mat(color, opts = {}) { return makeMat(color, opts); }
 function box(w, h, d, color, opts = {}) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, opts)); }
 function cyl(r, h, color, axis = 'x', opts = {}) {
@@ -42,15 +38,10 @@ function makeVehicle(kind) {
     const w2 = cyl(0.26, 0.22, accent, 'x'); w2.position.set(x, 0.38, 1.12); g.add(w2);
   }
   g.userData = {
-    type: 'vehicle',
-    kind,
+    type: 'vehicle', kind,
     name: isSherman ? 'Имперский Шерман' : 'Пума Жужжер',
-    hp: isSherman ? 190 : 135,
-    hpMax: isSherman ? 190 : 135,
-    alive: true,
-    reloadT: isSherman ? 2.4 : 1.8,
-    fireCooldown: isSherman ? 1.0 : 0.6,
-    x: 0, z: 0,
+    hp: isSherman ? 190 : 135, hpMax: isSherman ? 190 : 135,
+    alive: true, reloadT: isSherman ? 2.4 : 1.8, fireCooldown: isSherman ? 1.0 : 0.6, x: 0, z: 0,
   };
   return g;
 }
@@ -73,18 +64,14 @@ function makeSoldier(faction, i) {
     name: faction === 'empire' ? `Защитник Форта ${i + 1}` : `Жужжер-штурмовик ${i + 1}`,
     faction,
     role: faction === 'empire' ? 'fort_defender' : 'fort_raider',
-    hp: faction === 'empire' ? 45 : 38,
-    hpMax: faction === 'empire' ? 45 : 38,
-    alive: true,
-    x: 0, z: 0,
-    windupT: 0,
-    combatCooldown: Math.random(),
+    hp: faction === 'empire' ? 45 : 38, hpMax: faction === 'empire' ? 45 : 38,
+    alive: true, x: 0, z: 0, windupT: 0, combatCooldown: Math.random(),
   };
   return g;
 }
 
 function moveToward(obj, target, dt, speed) {
-  if (!obj.userData.alive) return;
+  if (!obj?.userData?.alive) return;
   const dx = target.x - obj.position.x;
   const dz = target.z - obj.position.z;
   const d = Math.hypot(dx, dz);
@@ -123,19 +110,36 @@ export class FortZaryaEncounter {
   constructor(engine) {
     this.engine = engine;
     this.scene = engine.scene;
-    this.state = 'approach';
+    this.state = 'dormant';
     this.timer = 0;
+    this.rollT = 10 + Math.random() * 16;
     this.occupationTimer = 0;
     this.lines = [];
     this.fx = [];
+    this.labels = [];
     this.wallIntegrity = 100;
     this.keyNpcState = 'normal';
     this.built = false;
+    this.started = false;
+    this.empire = [];
+    this.zhuzher = [];
+    this.sherman = null;
+    this.puma = null;
+    this.forceStart = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fort') === '1';
   }
 
   build() {
     if (this.built) return;
     this.built = true;
+    this.engine.log.unshift('Форт Заря: случайное событие обороны доступно рядом с фортом.');
+  }
+
+  startEncounter(reason = 'random') {
+    if (this.started) return;
+    this.started = true;
+    this.state = 'approach';
+    this.timer = 0;
+    this.wallIntegrity = 100;
     this.sherman = place(makeVehicle('sherman'), 128, 174);
     this.puma = place(makeVehicle('puma'), 218, 226);
     this.scene.add(this.sherman, this.puma);
@@ -154,7 +158,8 @@ export class FortZaryaEncounter {
       this.scene.add(z); this.zhuzher.push(z);
     }
     this.engine.livingWorld?.agents?.push(...this.empire, ...this.zhuzher);
-    this.engine.log.unshift('Форт Заря: Жужжер начали давление на стены. Шерман готовит огонь по Пуме.');
+    this.engine.hud?.setObjective?.(reason === 'forced' ? 'Форт Заря: событие запущено вручную.' : 'Форт Заря: случайное событие началось.');
+    this.engine.log.unshift('Форт Заря: началось случайное событие обороны.');
   }
 
   aliveCount(arr) { return arr.filter(o => o.userData.alive !== false && (o.userData.hp ?? 1) > 0).length; }
@@ -165,7 +170,7 @@ export class FortZaryaEncounter {
     this.timer += dt;
     this.updateFx(dt);
     if (this.state === 'finished') return;
-
+    if (this.state === 'dormant') { this.updateDormant(dt); return; }
     if (this.state === 'approach') this.updateApproach(dt);
     if (this.state === 'assault') this.updateAssault(dt);
     if (this.state === 'retreat') this.updateRetreat(dt);
@@ -173,12 +178,24 @@ export class FortZaryaEncounter {
     this.checkOutcome();
   }
 
+  updateDormant(dt) {
+    if (this.forceStart && this.timer > 3) { this.startEncounter('forced'); return; }
+    const player = this.engine.rig.position;
+    const nearFort = player.distanceTo(FORT_CENTER) < 135;
+    if (!nearFort) return;
+    this.rollT -= dt;
+    if (this.rollT <= 0) {
+      if (Math.random() < 0.28) this.startEncounter('random');
+      else this.rollT = 12 + Math.random() * 22;
+    }
+  }
+
   updateApproach(dt) {
     moveToward(this.puma, FORT_WALL, dt, 3.0);
     for (const z of this.zhuzher) moveToward(z, new THREE.Vector3(126 + Math.random() * 30, 0, 160 + Math.random() * 30), dt, 1.45);
     if (this.puma.position.distanceTo(FORT_WALL) < 18) {
       this.state = 'assault';
-      this.engine.hud.setObjective('Форт Заря: Пума вышла к стенам. Начался штурм.');
+      this.engine.hud.setObjective('Форт Заря: бронемашина вышла к стенам. Начался штурм.');
     }
     this.vehicleDuel(dt);
   }
@@ -195,17 +212,15 @@ export class FortZaryaEncounter {
     }
     this.vehicleDuel(dt);
     this.squadFire(dt);
-    if (this.wallIntegrity <= 0 && this.state === 'assault') {
-      this.engine.hud.setObjective('Форт Заря: внешняя линия сломана, Жужжер рвутся к центру.');
-    }
+    if (this.wallIntegrity <= 0 && this.state === 'assault') this.engine.hud.setObjective('Форт Заря: внешняя линия сломана, штурм идёт к центру.');
   }
 
   updateRetreat(dt) {
     for (const z of this.zhuzher) moveToward(z, ZHUZHER_START, dt, 2.2);
-    if (this.puma.userData.alive) moveToward(this.puma, ZHUZHER_START, dt, 2.4);
+    if (this.puma?.userData.alive) moveToward(this.puma, ZHUZHER_START, dt, 2.4);
     if (this.timer > 8) {
       this.state = 'finished';
-      this.engine.hud.setObjective('Форт Заря: Жужжер отступили.');
+      this.engine.hud.setObjective('Форт Заря: штурмующие отступили.');
       this.restoreKeyNpcs();
     }
   }
@@ -216,11 +231,12 @@ export class FortZaryaEncounter {
     if (this.occupationTimer <= 0) {
       this.state = 'retreat';
       this.timer = 0;
-      this.engine.hud.setObjective('Форт Заря: Жужжер разграбили центр и отходят.');
+      this.engine.hud.setObjective('Форт Заря: центр разграблен, штурмующие отходят.');
     }
   }
 
   vehicleDuel(dt) {
+    if (!this.sherman || !this.puma) return;
     this.sherman.userData.reloadT -= dt;
     this.puma.userData.reloadT -= dt;
     if (this.sherman.userData.alive && this.puma.userData.alive && this.sherman.userData.reloadT <= 0) {
@@ -265,10 +281,7 @@ export class FortZaryaEncounter {
     if (Math.random() < 0.34) {
       target.userData.hp -= 16;
       target.userData.staggerT = 0.25;
-      if (target.userData.hp <= 0) {
-        target.userData.alive = false;
-        target.scale.y = 0.28;
-      }
+      if (target.userData.hp <= 0) { target.userData.alive = false; target.scale.y = 0.28; }
     }
   }
 
@@ -283,18 +296,18 @@ export class FortZaryaEncounter {
   }
 
   checkOutcome() {
-    if (this.state === 'retreat' || this.state === 'occupied' || this.state === 'finished') return;
-    if (!this.puma.userData.alive || this.halfBroken(this.zhuzher)) {
+    if (this.state === 'dormant' || this.state === 'retreat' || this.state === 'occupied' || this.state === 'finished') return;
+    if (!this.puma?.userData.alive || this.halfBroken(this.zhuzher)) {
       this.state = 'retreat';
       this.timer = 0;
-      this.engine.hud.setObjective('Форт Заря: Жужжер потеряли темп и отходят.');
+      this.engine.hud.setObjective('Форт Заря: штурмующие потеряли темп и отходят.');
       return;
     }
-    if (!this.sherman.userData.alive || this.halfBroken(this.empire)) {
+    if (!this.sherman?.userData.alive || this.halfBroken(this.empire)) {
       this.state = 'occupied';
       this.occupationTimer = 300;
       this.hideKeyNpcs();
-      this.engine.hud.setObjective('Форт Заря: Жужжер заняли центр на 5 минут. Ключевые NPC уходят в укрытие.');
+      this.engine.hud.setObjective('Форт Заря: центр занят на 5 минут. Ключевые NPC уходят в укрытие.');
     }
   }
 
@@ -311,12 +324,9 @@ export class FortZaryaEncounter {
       }
     }
     for (const agent of this.engine.livingWorld?.agents || []) {
-      if (keyNames.some(n => agent.userData.name?.includes(n))) {
-        agent.userData.hiddenByFortEvent = true;
-        agent.visible = false;
-      }
+      if (keyNames.some(n => agent.userData.name?.includes(n))) { agent.userData.hiddenByFortEvent = true; agent.visible = false; }
     }
-    this.engine.log.unshift('Ключевые NPC Форта Заря ушли в укрытия и ближайшие невраждебные поселения.');
+    this.engine.log.unshift('Ключевые NPC Форта Заря ушли в укрытия и ближайшие безопасные поселения.');
   }
 
   restoreKeyNpcs() {
@@ -329,7 +339,7 @@ export class FortZaryaEncounter {
         npc.position.set(npc.userData.safeX || 142, heightAt(npc.userData.safeX || 142, npc.userData.safeZ || 176), npc.userData.safeZ || 176);
       }
     }
-    this.engine.log.unshift('Форт Заря в восстановлении. NPC возвращаются после ухода Жужжер.');
+    this.engine.log.unshift('Форт Заря в восстановлении. NPC возвращаются после ухода штурмующих.');
   }
 
   updateFx(dt) {
@@ -341,16 +351,15 @@ export class FortZaryaEncounter {
     this.lines = this.lines.filter(l => !l.dead);
     for (const group of this.fx) {
       group.userData.life -= dt;
-      for (const p of group.children) {
-        p.position.addScaledVector(p.userData.vel, dt);
-        p.scale.multiplyScalar(0.98);
-      }
+      for (const p of group.children) { p.position.addScaledVector(p.userData.vel, dt); p.scale.multiplyScalar(0.98); }
       if (group.userData.life <= 0) { this.scene.remove(group); group.dead = true; }
     }
     this.fx = this.fx.filter(f => !f.dead);
   }
 
   statusText() {
+    if (this.state === 'dormant') return `Fort random event dormant · near Fort Zarya · roll ${Math.max(0, Math.ceil(this.rollT))}s`;
+    if (!this.sherman || !this.puma) return `Fort event ${this.state}`;
     return `Fort ${this.state} · wall ${Math.round(this.wallIntegrity)} · Sherman ${Math.max(0, Math.round(this.sherman.userData.hp))}/${this.sherman.userData.hpMax} · Puma ${Math.max(0, Math.round(this.puma.userData.hp))}/${this.puma.userData.hpMax} · Empire ${this.aliveCount(this.empire)}/${this.empire.length} · Zhuzher ${this.aliveCount(this.zhuzher)}/${this.zhuzher.length}`;
   }
 }
