@@ -14,6 +14,7 @@ import { Materials, makeMat, placeBox, labelSprite } from '../world/props.js';
 import { getQualityPreset, setQualityPreset } from './quality.js';
 import { createAtmosphere, applyBiomeAtmosphere } from '../world/atmosphere.js';
 import { createBiomeLandmarks } from '../world/landmarks.js';
+import { LivingWorldSystem } from '../world/life.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
@@ -44,7 +45,7 @@ export class PhoenixV3Engine {
     this.npcs = [];
     this.monsters = [];
     this.labels = [];
-    this.log = ['v3.0B: art direction pass подключён. 2.5I сохранён как backup.'];
+    this.log = ['v3.0C: living world подключён. Форт Заря перенесён далеко от Порта Рейчел.'];
     this.debugIndex = 0;
     this.currentBiomeId = 'clay';
 
@@ -60,19 +61,17 @@ export class PhoenixV3Engine {
 
   buildScene() {
     this.atmosphere = createAtmosphere(this.scene, this.quality);
-
     if (this.quality.realtimeAccentLights) {
       const violet = new THREE.PointLight(0x5a22ff, 0.75, 115);
-      violet.position.set(226, 20, 72);
+      violet.position.set(288, 20, 112);
       this.scene.add(violet);
     }
-
     this.scene.add(createTerrainMesh({ segmentsX: this.quality.terrainSegmentsX, segmentsZ: this.quality.terrainSegmentsZ }));
     const ocean = new THREE.Mesh(
-      new THREE.PlaneGeometry(220, 310),
+      new THREE.PlaneGeometry(250, 340),
       new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.86 })
     );
-    ocean.position.set(-205, -0.65, 15);
+    ocean.position.set(-235, -0.65, 15);
     ocean.rotation.x = -Math.PI / 2;
     this.scene.add(ocean);
 
@@ -81,8 +80,10 @@ export class PhoenixV3Engine {
     this.buildLocations();
     this.labels.push(...createBiomeLandmarks(this.scene, this.quality));
     this.buildEntities();
+    this.livingWorld = new LivingWorldSystem(this.scene, this.labels);
+    this.livingWorld.build();
     this.buildViewModel();
-    this.hud.setObjective(`v3.0B art pass · quality ${this.quality.name} · Enter through button`);
+    this.hud.setObjective(`v3.0C living world · quality ${this.quality.name} · Fort Zarya is far`);
   }
 
   buildLocations() {
@@ -90,6 +91,7 @@ export class PhoenixV3Engine {
       customs: 0x6b5534, salt: 0x4d3928, market: 0x5e4630, shelter: 0x584429,
       registry: 0x76603e, gerda: 0x49382b, rednode: 0x6d3528, guidecamp: 0x4d3c55,
       mangrovepump: 0x344028, tsarborcamp: 0x2f4c35, glassdemesne: 0x15121f, iceshelfpost: 0x496574,
+      portVillage: 0x6b4f32, redroadcamp: 0x5a3924, fortBarracks: 0x33302d, fortGate: 0x2a2826, blueCaravanYard: 0x314c72,
     };
     for (const loc of LOCATIONS) {
       if (loc.type === 'biome' || loc.type === 'district' || loc.type === 'ruin') {
@@ -181,7 +183,7 @@ export class PhoenixV3Engine {
   start() {
     document.getElementById('boot')?.classList.add('hidden');
     this.mode = 'play';
-    this.hud.setObjective(`v3.0B ready · quality ${this.quality.name} · WASD move · M map · F1 regions`);
+    this.hud.setObjective(`v3.0C ready · Port to Fort is a real journey · quality ${this.quality.name}`);
   }
 
   onAction(code, event) {
@@ -194,20 +196,14 @@ export class PhoenixV3Engine {
     if (code === 'KeyM') this.openMap();
     if (code === 'KeyJ') this.openJournal();
     if (code === 'Escape') this.hud.closePanel();
-    if (code === 'F1') {
-      event?.preventDefault?.();
-      this.teleportNext();
-    }
+    if (code === 'F1') { event?.preventDefault?.(); this.teleportNext(); }
     if (code === 'KeyE') this.interact();
     if (code === 'F9') this.setQuality('low');
     if (code === 'F10') this.setQuality('medium');
     if (code === 'F11') this.setQuality('high');
   }
 
-  setQuality(name) {
-    setQualityPreset(name);
-    this.hud.setObjective(`Quality set to ${name}. Перезагрузи страницу Ctrl+F5.`);
-  }
+  setQuality(name) { setQualityPreset(name); this.hud.setObjective(`Quality set to ${name}. Перезагрузи страницу Ctrl+F5.`); }
 
   attack() {
     const w = WEAPONS[this.player.weapon];
@@ -218,16 +214,19 @@ export class PhoenixV3Engine {
       return;
     }
     const target = findMeleeTarget({ weaponId: this.player.weapon, playerRig: this.rig, camera: this.camera, monsters: this.monsters });
-    if (!target) {
-      this.hud.setObjective(`${w.name}: не достаёт`);
-      return;
-    }
+    if (!target) { this.hud.setObjective(`${w.name}: не достаёт`); return; }
     const m = damageMonster(target, w.damage);
     this.hud.hitMarker(`-${w.damage}`);
     this.hud.setObjective(`${m.name}: удар ${w.name}`);
   }
 
   interact() {
+    const lifeAgent = this.livingWorld?.findNear(this.rig);
+    if (lifeAgent) {
+      this.hud.openPanel(this.livingWorld.describe(lifeAgent));
+      document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
+      return;
+    }
     const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
     if (nearNpc) {
       const n = nearNpc.userData;
@@ -242,14 +241,22 @@ export class PhoenixV3Engine {
   }
 
   openJournal() {
-    this.hud.openPanel(journalHtml(this.log));
+    const lifeEvents = this.livingWorld?.eventLog || [];
+    this.hud.openPanel(journalHtml([...lifeEvents, ...this.log]));
     document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
   }
 
   teleportNext() {
     const points = [
-      { x: -128, z: 18, n: 'Берег' }, { x: -54, z: 11, n: 'Рина' }, { x: 48, z: 16, n: 'Герда' },
-      { x: 226, z: 76, n: 'Вотчина чёрных элементалей' }, { x: 168, z: 190, n: 'Лес царборцев' }, { x: 190, z: -112, n: 'Ледяной шельф' },
+      { x: -142, z: 20, n: 'Берег Порта Рейчел' },
+      { x: -88, z: 22, n: 'Рина / Порт' },
+      { x: -20, z: 66, n: 'Дорожный навес' },
+      { x: 62, z: 110, n: 'Красная дорога' },
+      { x: 142, z: 176, n: 'Форт Заря далеко от порта' },
+      { x: 250, z: 250, n: 'Мёртвая Саванна' },
+      { x: 174, z: 248, n: 'Лес царборцев' },
+      { x: 288, z: 112, n: 'Вотчина чёрных элементалей' },
+      { x: 205, z: -145, n: 'Ледяной шельф' },
     ];
     const p = points[this.debugIndex++ % points.length];
     this.rig.position.set(p.x, heightAt(p.x, p.z), p.z);
@@ -279,40 +286,25 @@ export class PhoenixV3Engine {
     this.player.ph = Math.min(this.player.phMax, this.player.ph + dt * 8);
     this.cooldown = Math.max(0, this.cooldown - dt);
     updateNpcRoutes(this.npcs, dt);
+    this.livingWorld?.update(dt, this.rig);
     updateMonsters(this.monsters, this.rig, dt);
     this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
 
     const biomeId = biomeAt(this.rig.position.x, this.rig.position.z);
-    if (biomeId !== this.currentBiomeId) {
-      this.currentBiomeId = biomeId;
-      applyBiomeAtmosphere(this.scene, this.atmosphere, biomeId, this.quality);
-    }
+    if (biomeId !== this.currentBiomeId) { this.currentBiomeId = biomeId; applyBiomeAtmosphere(this.scene, this.atmosphere, biomeId, this.quality); }
     const biome = BIOMES.find(b => b.id === biomeId);
-    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `quality ${this.quality.name} · F9/F10/F11`);
-    const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
-    if (nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
-    else this.hud.hidePrompt();
-
+    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `living agents ${this.livingWorld?.agents?.length || 0} · F9/F10/F11`);
+    const lifeAgent = this.livingWorld?.findNear(this.rig);
+    if (lifeAgent) this.hud.showPrompt(`E — говорить: ${lifeAgent.userData.name}`);
+    else {
+      const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
+      if (nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
+      else this.hud.hidePrompt();
+    }
     if (this.hands) this.hands.position.x = Math.sin(performance.now() * 0.006) * 0.012;
   }
 
-  render() {
-    this.updateLabelVisibility();
-    this.renderer.render(this.scene, this.camera);
-  }
-
-  loop(now) {
-    const dt = Math.min(0.05, (now - this.last) / 1000 || 0.016);
-    this.last = now;
-    this.update(dt);
-    this.render();
-    requestAnimationFrame(t => this.loop(t));
-  }
-
-  resize() {
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.quality.pixelRatio));
-    this.renderer.setSize(innerWidth, innerHeight);
-    this.camera.aspect = innerWidth / innerHeight;
-    this.camera.updateProjectionMatrix();
-  }
+  render() { this.updateLabelVisibility(); this.renderer.render(this.scene, this.camera); }
+  loop(now) { const dt = Math.min(0.05, (now - this.last) / 1000 || 0.016); this.last = now; this.update(dt); this.render(); requestAnimationFrame(t => this.loop(t)); }
+  resize() { this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.quality.pixelRatio)); this.renderer.setSize(innerWidth, innerHeight); this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); }
 }
