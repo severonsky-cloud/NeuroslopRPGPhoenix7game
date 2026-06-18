@@ -5,7 +5,6 @@ import { EnchantmentSystem } from '../combat/enchantments.js';
 import { FirearmStateSystem } from '../combat/firearmState.js';
 import { ImpactSystem } from '../combat/impact.js';
 import { createWeaponViewModel } from '../items/weaponModels.js';
-import { heightAt } from '../world/terrain.js';
 import { findMeleeTarget, damageMonster } from '../combat/combat.js';
 
 function weaponClass(weaponId) {
@@ -119,6 +118,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     const m = damageMonster(target, dmg);
     this.impact?.hitImpact(target.position.clone().add(new THREE.Vector3(0, 1, 0)), profile.impact || 'blade');
     this.impact?.applyStagger(target, 0.25 + (enchanted.staggerBonus || 0));
+    this.hitFeel?.hitActor?.(target, { damage: dmg, kind: heavy ? 'heavy' : 'medium', phase: skillKey === 'phase' });
     this.rpg.useSkill(skillKey, 1.5);
     this.hud.hitMarker(`-${dmg}`);
     let loot = [];
@@ -160,9 +160,9 @@ export function installArsenalExtensions(PhoenixV3Engine) {
         let loot = [];
         if (!hit.target.userData.alive) loot = this.impact?.grantLootForKill(hit.target) || [];
         this.hud.hitMarker(`-${hit.damage}`);
-        this.hud.setObjective(`${hit.target.userData.name}: тяжёлый выстрел · ${this.firearms.statusText(this.player.weapon)}${loot.length ? ' · лут: ' + loot.join(', ') : ''}`);
+        this.hud.setObjective(`${hit.target.userData.name}: попадание · ${this.firearms.statusText(this.player.weapon)}${loot.length ? ' · лут: ' + loot.join(', ') : ''}`);
       } else {
-        this.hud.setObjective(`${w.name}: трассер ушёл в даль · ${this.firearms.statusText(this.player.weapon)}`);
+        this.hud.setObjective(`${w.name}: промах · ${this.firearms.statusText(this.player.weapon)}`);
       }
       return;
     }
@@ -181,9 +181,8 @@ export function installArsenalExtensions(PhoenixV3Engine) {
       const w = WEAPONS[this.player.weapon];
       if (w?.ammo) {
         const status = this.firearms.statusText(this.player.weapon);
-        // HUD objective is already set by core update; keep status in bottom line for readability.
         const bottom = document.getElementById('bottom');
-        if (bottom) bottom.textContent = `R reload/clear jam · B butt/bayonet · V aim · ${ARSENAL[this.player.weapon]?.name}: ${status} · Y enchant`;
+        if (bottom) bottom.textContent = `R reload/clear jam · B alt · V aim · ${ARSENAL[this.player.weapon]?.name}: ${status} · Y enchant`;
       }
     }
   };
