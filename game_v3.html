@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phoenix7 v3 Architecture Prototype</title>
+  <title>Phoenix7 v3.0B Art Direction Prototype</title>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080604; color: #f3dca8; font-family: system-ui, Segoe UI, Arial, sans-serif; }
     #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -34,8 +34,8 @@
 
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3.0A</h1>
-      <p><b>Новый архитектурный билд.</b> Старый 2.5I остаётся в <code>game.html</code>. Этот билд запускает модульную основу: чанки, биомы, живые NPC, combat shell, quality presets и карту.</p>
+      <h1>Phoenix7 v3.0B</h1>
+      <p><b>Art Direction + Architecture.</b> Старый 2.5I остаётся в <code>game.html</code>. Этот билд запускает модульную основу v3 с биомной атмосферой, landmark-и, quality presets, NPC и combat shell.</p>
       <p>Управление: WASD, Shift, мышь, ЛКМ/Space атака, E говорить, M карта, J журнал, F1 телепорт по регионам.</p>
       <p>Качество: <code>F9 Low</code>, <code>F10 Medium</code>, <code>F11 High</code>. После смены качества нажми Ctrl+F5.</p>
       <button id="startBtn">Начать v3</button>
@@ -61,7 +61,7 @@
   <script type="module">
     window.__PHX_V3_READY = false;
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30a_arch_2')
+    import('./src/game/v3/main.js?v=30b_art_1')
       .then(() => { window.__PHX_V3_READY = true; })
       .catch((err) => {
         error.style.display = 'block';
