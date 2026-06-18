@@ -12,6 +12,8 @@ import { WEAPONS, weaponByDigit } from '../combat/weapons.js';
 import { findMeleeTarget, damageMonster, shootProjectile, updateProjectiles } from '../combat/combat.js';
 import { Materials, makeMat, placeBox, labelSprite } from '../world/props.js';
 import { getQualityPreset, setQualityPreset } from './quality.js';
+import { createAtmosphere, applyBiomeAtmosphere } from '../world/atmosphere.js';
+import { createBiomeLandmarks } from '../world/landmarks.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
@@ -42,8 +44,9 @@ export class PhoenixV3Engine {
     this.npcs = [];
     this.monsters = [];
     this.labels = [];
-    this.log = ['v3.0A: архитектурный билд запущен. 2.5I сохранён как backup.'];
+    this.log = ['v3.0B: art direction pass подключён. 2.5I сохранён как backup.'];
     this.debugIndex = 0;
+    this.currentBiomeId = 'clay';
 
     this.input.onAction = (code, event) => this.onAction(code, event);
     window.addEventListener('resize', () => this.resize());
@@ -56,15 +59,10 @@ export class PhoenixV3Engine {
   }
 
   buildScene() {
-    this.scene.add(new THREE.HemisphereLight(0xffd8a0, 0x182129, 1.05));
-    const sun = new THREE.DirectionalLight(0xffb36e, 1.7);
-    sun.position.set(-70, 90, 42);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(this.quality.shadowMapSize, this.quality.shadowMapSize);
-    this.scene.add(sun);
+    this.atmosphere = createAtmosphere(this.scene, this.quality);
 
     if (this.quality.realtimeAccentLights) {
-      const violet = new THREE.PointLight(0x5a22ff, 0.95, 115);
+      const violet = new THREE.PointLight(0x5a22ff, 0.75, 115);
       violet.position.set(226, 20, 72);
       this.scene.add(violet);
     }
@@ -81,9 +79,10 @@ export class PhoenixV3Engine {
     this.chunks = new WorldChunks(this.scene, this.quality);
     this.chunks.buildStaticWorld();
     this.buildLocations();
+    this.labels.push(...createBiomeLandmarks(this.scene, this.quality));
     this.buildEntities();
     this.buildViewModel();
-    this.hud.setObjective(`v3.0A architecture · quality ${this.quality.name} · Enter through button`);
+    this.hud.setObjective(`v3.0B art pass · quality ${this.quality.name} · Enter through button`);
   }
 
   buildLocations() {
@@ -100,7 +99,6 @@ export class PhoenixV3Engine {
       }
       this.makeBuilding(loc.name, loc.x, loc.z, colorById[loc.id] ?? 0x5e4630);
     }
-    this.labels.push(labelSprite(this.scene, 'ВОТЧИНА ЧЁРНЫХ ЭЛЕМЕНТАЛЕЙ', 226, 72, 4.0, 0.72));
   }
 
   makeBuilding(name, x, z, color) {
@@ -183,7 +181,7 @@ export class PhoenixV3Engine {
   start() {
     document.getElementById('boot')?.classList.add('hidden');
     this.mode = 'play';
-    this.hud.setObjective(`v3 ready · quality ${this.quality.name} · WASD move · M map · F1 regions`);
+    this.hud.setObjective(`v3.0B ready · quality ${this.quality.name} · WASD move · M map · F1 regions`);
   }
 
   onAction(code, event) {
@@ -284,7 +282,12 @@ export class PhoenixV3Engine {
     updateMonsters(this.monsters, this.rig, dt);
     this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
 
-    const biome = BIOMES.find(b => b.id === biomeAt(this.rig.position.x, this.rig.position.z));
+    const biomeId = biomeAt(this.rig.position.x, this.rig.position.z);
+    if (biomeId !== this.currentBiomeId) {
+      this.currentBiomeId = biomeId;
+      applyBiomeAtmosphere(this.scene, this.atmosphere, biomeId, this.quality);
+    }
+    const biome = BIOMES.find(b => b.id === biomeId);
     this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `quality ${this.quality.name} · F9/F10/F11`);
     const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
     if (nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
