@@ -15,6 +15,9 @@ import { getQualityPreset, setQualityPreset } from './quality.js';
 import { createAtmosphere, applyBiomeAtmosphere } from '../world/atmosphere.js';
 import { createBiomeLandmarks } from '../world/landmarks.js';
 import { LivingWorldSystem } from '../world/life.js';
+import { RpgSystem } from '../rpg/rpgSystem.js';
+import { InventorySystem } from '../items/inventory.js';
+import { PhaseMagicSystem, PHASE_SPELLS } from '../magic/phaseMagic.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
@@ -33,10 +36,16 @@ export class PhoenixV3Engine {
     this.rig = rigPack.rig;
     this.camera = rigPack.camera;
     this.player = createPlayer();
+    this.rpg = new RpgSystem(this.player);
+    this.inventory = new InventorySystem(this.player);
+    this.phaseMagic = new PhaseMagicSystem(this.player, this.rpg);
+    this.player.weapon = this.inventory.activeWeaponId();
     this.input = new InputSystem(canvas);
     this.hud = new Hud();
 
     this.mode = 'boot';
+    this.paused = false;
+    this.aimMode = false;
     this.yaw = Math.PI * 0.45;
     this.pitch = 0;
     this.last = performance.now();
@@ -45,7 +54,7 @@ export class PhoenixV3Engine {
     this.npcs = [];
     this.monsters = [];
     this.labels = [];
-    this.log = ['v3.0C: living world подключён. Форт Заря перенесён далеко от Порта Рейчел.'];
+    this.log = ['v3.0D: Action RPG combat, inventory, paper doll, phase magic foundation.'];
     this.debugIndex = 0;
     this.currentBiomeId = 'clay';
 
@@ -83,7 +92,8 @@ export class PhoenixV3Engine {
     this.livingWorld = new LivingWorldSystem(this.scene, this.labels);
     this.livingWorld.build();
     this.buildViewModel();
-    this.hud.setObjective(`v3.0C living world · quality ${this.quality.name} · Fort Zarya is far`);
+    this.updateCrosshair();
+    this.hud.setObjective(`v3.0D Action RPG · inventory I · character K · phase P · aim V`);
   }
 
   buildLocations() {
@@ -154,13 +164,21 @@ export class PhoenixV3Engine {
     if (w.kind === 'gun') {
       const len = w.hold === 'rifle' ? 1.04 : w.hold === 'lmg' ? 0.86 : 0.38;
       const body = new THREE.Mesh(new THREE.BoxGeometry(len, w.hold === 'lmg' ? 0.16 : 0.12, 0.16), Materials.metal);
-      body.position.set(0.32, -0.43, -0.75);
-      body.rotation.y = -0.08;
+      body.position.set(this.aimMode ? 0.02 : 0.32, this.aimMode ? -0.36 : -0.43, this.aimMode ? -0.92 : -0.75);
+      body.rotation.y = this.aimMode ? 0 : -0.08;
       root.add(body);
       const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, len * 0.9, 8), Materials.metal);
       barrel.rotation.x = Math.PI / 2;
-      barrel.position.set(0.32 + len * 0.52, -0.42, -0.75);
+      barrel.position.set((this.aimMode ? 0.02 : 0.32) + len * 0.52, this.aimMode ? -0.35 : -0.42, this.aimMode ? -0.92 : -0.75);
       root.add(barrel);
+      const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.13, 0.035), makeMat(0x0c0b0a));
+      frontSight.position.set(barrel.position.x + len * 0.42, barrel.position.y + 0.1, barrel.position.z);
+      root.add(frontSight);
+      if (w.hold === 'lmg') {
+        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.36, 0.11), Materials.metal);
+        mag.position.set(0.18, -0.25, -0.78);
+        root.add(mag);
+      }
     } else if (w.kind === 'blade') {
       const blade = new THREE.Mesh(
         new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.055 : 0.028, 0.045, w.hold === 'heavyBlade' ? 1.05 : 0.82),
@@ -183,10 +201,20 @@ export class PhoenixV3Engine {
   start() {
     document.getElementById('boot')?.classList.add('hidden');
     this.mode = 'play';
-    this.hud.setObjective(`v3.0C ready · Port to Fort is a real journey · quality ${this.quality.name}`);
+    this.paused = false;
+    this.hud.setObjective(`v3.0D ready · I inventory · K character · P phase · V aim · Tab hand set`);
   }
 
   onAction(code, event) {
+    if (code === 'Escape') { this.closePausePanel(); return; }
+    if (code === 'MouseRight') { this.openContextMenu(); return; }
+    if (code === 'KeyI') { this.openInventory(); return; }
+    if (code === 'KeyK') { this.openCharacter(); return; }
+    if (code === 'KeyP') { this.openPhasePanel(); return; }
+    if (code === 'KeyV') { this.toggleAim(); return; }
+    if (code === 'Tab') { event?.preventDefault?.(); this.switchHandSet(); return; }
+    if (this.paused && code !== 'KeyM' && code !== 'KeyJ') return;
+
     const weapon = weaponByDigit(code);
     if (weapon) {
       this.player.weapon = weapon;
@@ -195,9 +223,12 @@ export class PhoenixV3Engine {
     if (code === 'MouseLeft' || code === 'Space') this.attack();
     if (code === 'KeyM') this.openMap();
     if (code === 'KeyJ') this.openJournal();
-    if (code === 'Escape') this.hud.closePanel();
     if (code === 'F1') { event?.preventDefault?.(); this.teleportNext(); }
     if (code === 'KeyE') this.interact();
+    if (code === 'KeyZ') this.activateAbility(0);
+    if (code === 'KeyX') this.activateAbility(1);
+    if (code === 'KeyC') this.activateAbility(2);
+    if (code === 'KeyF') this.activateAbility(3);
     if (code === 'F9') this.setQuality('low');
     if (code === 'F10') this.setQuality('medium');
     if (code === 'F11') this.setQuality('high');
@@ -205,58 +236,175 @@ export class PhoenixV3Engine {
 
   setQuality(name) { setQualityPreset(name); this.hud.setObjective(`Quality set to ${name}. Перезагрузи страницу Ctrl+F5.`); }
 
-  attack() {
+  toggleAim() {
     const w = WEAPONS[this.player.weapon];
-    if (this.cooldown > 0) return;
-    this.cooldown = w.cooldown;
-    if (w.kind === 'gun') {
-      this.projectiles.push(shootProjectile({ scene: this.scene, camera: this.camera, weapon: w, damage: w.damage }));
+    if (w.kind !== 'gun') { this.hud.setObjective('Прицельный режим доступен только для огнестрела.'); return; }
+    this.aimMode = !this.aimMode;
+    this.camera.fov = this.aimMode ? 52 : 72;
+    this.camera.updateProjectionMatrix();
+    this.buildViewModel();
+    this.updateCrosshair();
+    this.hud.setObjective(this.aimMode ? 'Прицел включён · V чтобы выйти' : 'Обычный обзор');
+  }
+
+  updateCrosshair() {
+    let c = document.getElementById('crosshair');
+    if (!c) {
+      c = document.createElement('div');
+      c.id = 'crosshair';
+      c.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;color:#ffd28a;text-shadow:0 0 8px #000;font:900 22px system-ui;opacity:.8';
+      document.body.appendChild(c);
+    }
+    c.textContent = this.aimMode ? '┼' : '·';
+    c.style.fontSize = this.aimMode ? '24px' : '28px';
+    c.style.opacity = this.aimMode ? '0.95' : '0.65';
+  }
+
+  switchHandSet() {
+    const newWeapon = this.inventory.switchHands();
+    this.player.weapon = newWeapon;
+    this.aimMode = false;
+    this.camera.fov = 72;
+    this.camera.updateProjectionMatrix();
+    this.buildViewModel();
+    this.updateCrosshair();
+    this.hud.setObjective(`Переключён набор оружия: ${WEAPONS[newWeapon]?.name || newWeapon}`);
+  }
+
+  openContextMenu() {
+    this.paused = true;
+    this.hud.openPanel(`<h2>Контекстное меню</h2>
+      <p>Игра на паузе.</p>
+      <div class="line"><b>I</b> — Инвентарь / кукла персонажа</div>
+      <div class="line"><b>K</b> — Персонаж / навыки</div>
+      <div class="line"><b>P</b> — Фазовая магия</div>
+      <div class="line"><b>M</b> — Карта</div>
+      <div class="line"><b>J</b> — Журнал</div>
+      <div class="line"><b>Tab</b> — левый/правый набор оружия</div>
+      <div class="line"><b>V</b> — переключить мушку/прицел</div>
+      <p><button id="closeMapBtn">Вернуться</button></p>`);
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
+  }
+
+  closePausePanel() {
+    this.paused = false;
+    this.hud.closePanel();
+  }
+
+  openInventory() {
+    this.paused = true;
+    this.hud.openPanel(this.inventory.html());
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
+  }
+
+  openCharacter() {
+    this.paused = true;
+    this.hud.openPanel(this.rpg.summaryHtml());
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
+  }
+
+  openPhasePanel() {
+    this.paused = true;
+    this.hud.openPanel(this.phaseMagic.html());
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
+  }
+
+  activateAbility(index) {
+    const ability = this.player.rpg.abilityHotbar[index];
+    if (!ability) { this.hud.setObjective(`Слот способности ${index + 1} пуст.`); return; }
+    if (ability === 'shortBlink') {
+      const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.getWorldQuaternion(new THREE.Quaternion())).setY(0).normalize();
+      if (this.player.ph < 22) { this.hud.setObjective('Не хватает фазы для короткого сдвига.'); return; }
+      this.player.ph -= 22;
+      this.rpg.useSkill('phase', 1.8);
+      this.rig.position.x += dir.x * 5.2;
+      this.rig.position.z += dir.z * 5.2;
+      this.rig.position.y = heightAt(this.rig.position.x, this.rig.position.z);
+      this.hud.setObjective('Короткий фазовый сдвиг.');
       return;
     }
+    const res = this.phaseMagic.cast(ability);
+    this.hud.setObjective(res.ok ? `Фазовая способность: ${PHASE_SPELLS[ability]?.name || ability}` : `Фаза не сработала: ${res.reason}`);
+  }
+
+  attack() {
+    if (this.paused || this.mode === 'boot') return;
+    const w = WEAPONS[this.player.weapon];
+    if (this.cooldown > 0) return;
+    if (this.player.st < (w.stamina || 0)) { this.hud.setObjective('Нет выносливости.'); return; }
+    this.player.st -= w.stamina || 0;
+    this.cooldown = w.cooldown;
+
+    if (w.kind === 'phase') {
+      const cast = this.phaseMagic.castEquipped();
+      if (!cast.ok) { this.hud.setObjective(cast.reason === 'no_phase' ? 'Не хватает фазы.' : 'Фазовое заклинание не выбрано.'); return; }
+      const target = findMeleeTarget({ weaponId: 'phase', playerRig: this.rig, camera: this.camera, monsters: this.monsters });
+      if (!target) { this.hud.setObjective('Фаза ушла в воздух.'); return; }
+      const dmg = Math.round(w.damage * (cast.spell.damageMul || 1) * (1 + this.player.rpg.skills.phase.level / 120));
+      const m = damageMonster(target, dmg);
+      this.rpg.useSkill('phase', 2.5);
+      this.hud.hitMarker(`-${dmg}`);
+      this.hud.setObjective(`${m.name}: ${cast.spell.name}`);
+      return;
+    }
+
+    if (w.kind === 'gun') {
+      if (w.ammo && this.player.ammo[w.ammo] <= 0) { this.hud.setObjective(`Нет боезапаса: ${w.name}`); return; }
+      if (w.ammo) this.player.ammo[w.ammo] -= 1;
+      const dmg = Math.round(w.damage * (1 + this.player.rpg.skills.firearms.level / 140));
+      this.projectiles.push(shootProjectile({ scene: this.scene, camera: this.camera, weapon: w, damage: dmg }));
+      this.rpg.useSkill('firearms', 1.4);
+      return;
+    }
+
     const target = findMeleeTarget({ weaponId: this.player.weapon, playerRig: this.rig, camera: this.camera, monsters: this.monsters });
     if (!target) { this.hud.setObjective(`${w.name}: не достаёт`); return; }
-    const m = damageMonster(target, w.damage);
-    this.hud.hitMarker(`-${w.damage}`);
+    const skill = w.kind === 'blade' ? 'blade' : 'blunt';
+    const dmg = Math.round(w.damage * (1 + this.player.rpg.skills[skill].level / 110));
+    const m = damageMonster(target, dmg);
+    this.rpg.useSkill(skill, 1.7);
+    this.hud.hitMarker(`-${dmg}`);
     this.hud.setObjective(`${m.name}: удар ${w.name}`);
   }
 
   interact() {
+    if (this.paused) return;
     const lifeAgent = this.livingWorld?.findNear(this.rig);
     if (lifeAgent) {
+      this.paused = true;
+      this.rpg.useSkill('speech', 0.5);
       this.hud.openPanel(this.livingWorld.describe(lifeAgent));
-      document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
+      document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
       return;
     }
     const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
     if (nearNpc) {
       const n = nearNpc.userData;
+      this.paused = true;
+      this.rpg.useSkill('speech', 0.5);
       this.hud.openPanel(`<h2>${n.name}</h2><p>${n.text}</p><p><b>Фракция:</b> ${n.faction}</p><p><button id="closeMapBtn">Закрыть</button></p>`);
-      document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
+      document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
     }
   }
 
   openMap() {
+    this.paused = true;
     this.hud.openPanel(mapHtml({ locations: LOCATIONS, biomes: BIOMES, player: { x: this.rig.position.x, z: this.rig.position.z } }));
-    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   }
 
   openJournal() {
+    this.paused = true;
     const lifeEvents = this.livingWorld?.eventLog || [];
     this.hud.openPanel(journalHtml([...lifeEvents, ...this.log]));
-    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.hud.closePanel());
+    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   }
 
   teleportNext() {
     const points = [
-      { x: -142, z: 20, n: 'Берег Порта Рейчел' },
-      { x: -88, z: 22, n: 'Рина / Порт' },
-      { x: -20, z: 66, n: 'Дорожный навес' },
-      { x: 62, z: 110, n: 'Красная дорога' },
-      { x: 142, z: 176, n: 'Форт Заря далеко от порта' },
-      { x: 250, z: 250, n: 'Мёртвая Саванна' },
-      { x: 174, z: 248, n: 'Лес царборцев' },
-      { x: 288, z: 112, n: 'Вотчина чёрных элементалей' },
-      { x: 205, z: -145, n: 'Ледяной шельф' },
+      { x: -142, z: 20, n: 'Берег Порта Рейчел' }, { x: -88, z: 22, n: 'Рина / Порт' }, { x: -20, z: 66, n: 'Дорожный навес' },
+      { x: 62, z: 110, n: 'Красная дорога' }, { x: 142, z: 176, n: 'Форт Заря далеко от порта' }, { x: 250, z: 250, n: 'Мёртвая Саванна' },
+      { x: 174, z: 248, n: 'Лес царборцев' }, { x: 288, z: 112, n: 'Вотчина чёрных элементалей' }, { x: 205, z: -145, n: 'Ледяной шельф' },
     ];
     const p = points[this.debugIndex++ % points.length];
     this.rig.position.set(p.x, heightAt(p.x, p.z), p.z);
@@ -273,35 +421,43 @@ export class PhoenixV3Engine {
   }
 
   update(dt) {
+    if (this.mode === 'boot') return;
     const mouse = this.input.consumeMouse();
-    if (this.input.pointerLocked) {
+    if (!this.paused && this.input.pointerLocked) {
       this.yaw -= mouse.dx * 0.0022;
       this.pitch = THREE.MathUtils.clamp(this.pitch - mouse.dy * 0.002, -1.15, 1.15);
       this.rig.rotation.y = this.yaw;
       this.camera.rotation.x = this.pitch;
     }
-    const sprint = movePlayer({ rig: this.rig, input: this.input, yaw: this.yaw, dt });
-    if (sprint) this.player.st = Math.max(0, this.player.st - dt * 12);
-    else this.player.st = Math.min(this.player.stMax, this.player.st + dt * 8);
-    this.player.ph = Math.min(this.player.phMax, this.player.ph + dt * 8);
-    this.cooldown = Math.max(0, this.cooldown - dt);
-    updateNpcRoutes(this.npcs, dt);
-    this.livingWorld?.update(dt, this.rig);
-    updateMonsters(this.monsters, this.rig, dt);
-    this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
+    if (!this.paused) {
+      const sprint = movePlayer({ rig: this.rig, input: this.input, yaw: this.yaw, dt, player: this.player });
+      if (sprint) { this.player.st = Math.max(0, this.player.st - dt * 12); this.rpg.useSkill('athletics', dt * 0.6); }
+      else this.player.st = Math.min(this.player.stMax, this.player.st + dt * 10);
+      this.player.ph = Math.min(this.player.phMax, this.player.ph + dt * 8);
+      this.cooldown = Math.max(0, this.cooldown - dt);
+      updateNpcRoutes(this.npcs, dt);
+      this.livingWorld?.update(dt, this.rig);
+      updateMonsters(this.monsters, this.rig, dt);
+      this.phaseMagic.update(dt);
+      this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
+    }
 
     const biomeId = biomeAt(this.rig.position.x, this.rig.position.z);
     if (biomeId !== this.currentBiomeId) { this.currentBiomeId = biomeId; applyBiomeAtmosphere(this.scene, this.atmosphere, biomeId, this.quality); }
     const biome = BIOMES.find(b => b.id === biomeId);
-    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `living agents ${this.livingWorld?.agents?.length || 0} · F9/F10/F11`);
+    const w = WEAPONS[this.player.weapon];
+    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `${w.name} · ${this.paused ? 'PAUSED' : 'live'} · V aim · I/K/P`);
     const lifeAgent = this.livingWorld?.findNear(this.rig);
-    if (lifeAgent) this.hud.showPrompt(`E — говорить: ${lifeAgent.userData.name}`);
+    if (!this.paused && lifeAgent) this.hud.showPrompt(`E — говорить: ${lifeAgent.userData.name}`);
     else {
       const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
-      if (nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
+      if (!this.paused && nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
       else this.hud.hidePrompt();
     }
-    if (this.hands) this.hands.position.x = Math.sin(performance.now() * 0.006) * 0.012;
+    if (this.hands) {
+      this.hands.position.x = Math.sin(performance.now() * 0.006) * (this.aimMode ? 0.003 : 0.012);
+      this.hands.position.y = Math.sin(this.player.motion?.bob || 0) * (this.aimMode ? 0.002 : 0.008);
+    }
   }
 
   render() { this.updateLabelVisibility(); this.renderer.render(this.scene, this.camera); }
