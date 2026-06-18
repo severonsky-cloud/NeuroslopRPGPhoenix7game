@@ -48,7 +48,7 @@ try {
   Write-Host "Cannot start local server on $Prefix" -ForegroundColor Red
   Write-Host $_.Exception.Message -ForegroundColor Red
   Write-Host ""
-  Write-Host "Try closing old Phoenix7 server windows, then run START_GAME_WINDOWS.bat again."
+  Write-Host "Try closing old Phoenix7 server windows, then run START_GAME_V3L_WINDOWS.bat again."
   Read-Host "Press Enter to exit"
   exit 1
 }
@@ -57,7 +57,7 @@ Write-Host "===============================================" -ForegroundColor Da
 Write-Host "  Phoenix7 local server is running" -ForegroundColor Yellow
 Write-Host "===============================================" -ForegroundColor DarkYellow
 Write-Host "Root: $Root"
-Write-Host "URL:  $Prefixgame.html" -ForegroundColor Green
+Write-Host "URL:  ${Prefix}v3l.html" -ForegroundColor Green
 Write-Host ""
 Write-Host "Do not close this window while playing."
 Write-Host "Press Ctrl+C here to stop the server."
@@ -70,7 +70,7 @@ while ($listener.IsListening) {
     $res = $ctx.Response
 
     $urlPath = [Uri]::UnescapeDataString($req.Url.AbsolutePath.TrimStart('/'))
-    if ([string]::IsNullOrWhiteSpace($urlPath)) { $urlPath = "game.html" }
+    if ([string]::IsNullOrWhiteSpace($urlPath)) { $urlPath = "v3l.html" }
 
     $urlPath = $urlPath -replace '/', [IO.Path]::DirectorySeparatorChar
     $filePath = Join-Path $Root $urlPath

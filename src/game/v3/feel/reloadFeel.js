@@ -1,3 +1,5 @@
+import { setWeaponViewModelReloadState } from '../items/weaponModels.js';
+
 const RELOAD_PROFILES = {
   colt: {
     label: 'REVOLVER RELOAD',
@@ -69,7 +71,6 @@ function makeDiv(id, css) {
 }
 
 function clamp01(v) { return Math.max(0, Math.min(1, v)); }
-function lerp(a, b, t) { return a + (b - a) * t; }
 
 export class ReloadFeelSystem {
   constructor(engine) {
@@ -81,7 +82,6 @@ export class ReloadFeelSystem {
     this.lastStage = '';
     this.pulse = 0;
     this.jamT = 0;
-    this.baseHand = null;
     this.buildDom();
   }
 
@@ -107,14 +107,6 @@ export class ReloadFeelSystem {
     this.active = true;
     this.lastStage = '';
     this.pulse = 0.22;
-    this.baseHand = this.engine.hands ? {
-      x: this.engine.hands.position.x,
-      y: this.engine.hands.position.y,
-      z: this.engine.hands.position.z,
-      rx: this.engine.hands.rotation.x,
-      ry: this.engine.hands.rotation.y,
-      rz: this.engine.hands.rotation.z,
-    } : null;
     this.title.textContent = info.clearing ? 'CLEARING JAM' : p.label;
     this.overlay.style.opacity = '1';
     this.engine.combatAudio?.reload?.(p.hand);
@@ -140,42 +132,13 @@ export class ReloadFeelSystem {
     if (name.includes('snap') || name.includes('close') || name.includes('ready')) this.engine.combatAudio?.reload?.('click');
   }
 
-  animateHands(progress, dt) {
-    const hands = this.engine.hands;
-    if (!hands) return;
-    const p = this.profile(this.weaponId);
-    const wave = Math.sin(progress * Math.PI);
-    const snap = Math.sin(progress * Math.PI * 4) * 0.025;
-    let y = -0.05 - wave * 0.18;
-    let z = 0.12 + wave * 0.12;
-    let rx = -wave * 0.32;
-    let ry = Math.sin(progress * Math.PI * 2) * 0.12;
-    let rz = Math.sin(progress * Math.PI * 3) * 0.18;
-
-    if (p.hand === 'revolver') {
-      y = -0.02 - wave * 0.12;
-      z = 0.08 + wave * 0.08;
-      rx = -0.18 - wave * 0.2;
-      ry = 0.24 * Math.sin(progress * Math.PI);
-      rz = 0.38 * Math.sin(progress * Math.PI * 1.4);
-    } else if (p.hand === 'lmg') {
-      y = -0.12 - wave * 0.2;
-      z = 0.18 + wave * 0.18;
-      rx = -0.38 - wave * 0.22;
-      ry = -0.16 + Math.sin(progress * Math.PI * 2) * 0.1;
-      rz = -0.12 + Math.sin(progress * Math.PI * 1.5) * 0.24;
-    } else if (p.hand === 'shotgun') {
-      y = -0.10 - wave * 0.16;
-      z = 0.16 + wave * 0.1;
-      rx = -0.28 - wave * 0.18;
-      rz = 0.12 + Math.sin(progress * Math.PI * 5) * 0.12;
-    }
-
-    hands.position.y = lerp(hands.position.y, y, Math.min(1, dt * 12));
-    hands.position.z = lerp(hands.position.z, z + snap, Math.min(1, dt * 12));
-    hands.rotation.x = lerp(hands.rotation.x, rx, Math.min(1, dt * 10));
-    hands.rotation.y = lerp(hands.rotation.y, ry, Math.min(1, dt * 10));
-    hands.rotation.z = lerp(hands.rotation.z, rz, Math.min(1, dt * 10));
+  animateHands(progress) {
+    setWeaponViewModelReloadState(this.engine.hands, {
+      active: true,
+      progress,
+      stage: this.currentStage(progress),
+      weaponId: this.weaponId,
+    });
   }
 
   update(dt) {
@@ -192,18 +155,17 @@ export class ReloadFeelSystem {
     this.stage.textContent = stage;
     this.fill.style.width = `${Math.round(progress * 100)}%`;
     this.stageSound(stage);
-    this.animateHands(progress, dt);
+    this.animateHands(progress);
 
     if (progress >= 1 || !state || state.reloadT <= 0) {
       this.active = false;
       this.overlay.style.opacity = '0';
-      if (this.engine.hands) {
-        this.engine.hands.position.y = 0;
-        this.engine.hands.position.z = 0;
-        this.engine.hands.rotation.x = 0;
-        this.engine.hands.rotation.y = 0;
-        this.engine.hands.rotation.z = 0;
-      }
+      setWeaponViewModelReloadState(this.engine.hands, {
+        active: false,
+        progress: 1,
+        stage: 'ready',
+        weaponId: this.weaponId,
+      });
     }
   }
 }

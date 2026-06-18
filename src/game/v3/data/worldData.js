@@ -25,6 +25,22 @@ export const ROADS = [
   [{ x: -72, z: 26 }, { x: -92, z: 82 }, { x: -66, z: 136 }],
 ];
 
+export const VISUAL_ATMOSPHERE_POINTS = {
+  roadsideCamps: [
+    { id: 'coastal-watch', x: -119, z: 27, heading: 0.35, fire: true },
+    { id: 'red-road-rest', x: 49, z: 103, heading: -0.4, fire: true },
+    { id: 'savanna-waycamp', x: 216, z: 250, heading: 0.8, fire: true },
+  ],
+  distantMarkers: [
+    { id: 'coast-tripod', x: -151, z: -24, height: 15, color: 0x2d2118, accent: 0x8a5c32 },
+    { id: 'red-road-needle', x: 101, z: 92, height: 19, color: 0x3b2117, accent: 0xa54c2f },
+    { id: 'fort-signal', x: 106, z: 166, height: 22, color: 0x252326, accent: 0xb36b3f },
+    { id: 'forest-totem', x: 148, z: 264, height: 18, color: 0x203326, accent: 0x58764c },
+    { id: 'savanna-bones', x: 274, z: 284, height: 16, color: 0x6c5636, accent: 0xc2a56d },
+    { id: 'glass-spire', x: 318, z: 92, height: 26, color: 0x14252b, accent: 0x5ec7c4 },
+  ],
+};
+
 export const LOCATIONS = [
   { id: 'customs', name: 'Таможня Рины', type: 'building', x: -88, z: 18 },
   { id: 'salt', name: 'Соляные доки', type: 'district', x: -118, z: 38 },

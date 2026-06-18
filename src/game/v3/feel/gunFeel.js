@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 import { ARSENAL } from '../combat/arsenal.js';
 
 const FEEL = {
@@ -49,11 +49,30 @@ export class GunFeelSystem {
     const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd28a, transparent: true, opacity: 0.0, depthTest: false });
     this.flashMesh = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.5, 8), flashMat);
     this.flashMesh.rotation.x = -Math.PI / 2;
-    this.flashMesh.position.set(0.33, -0.33, -1.35);
+    this.flashMesh.position.set(0, 0, -0.16);
     this.light = new THREE.PointLight(0xffc06a, 0, 4.0);
-    this.light.position.set(0.33, -0.25, -1.05);
+    this.light.position.set(0, 0, -0.04);
     this.muzzle.add(this.flashMesh, this.light);
     this.engine.camera.add(this.muzzle);
+  }
+
+  attachMuzzle() {
+    const anchor = this.engine.hands?.userData?.muzzleAnchor;
+    if (!anchor) {
+      if (this.muzzle.parent !== this.engine.camera) {
+        this.engine.camera.attach(this.muzzle);
+      }
+      this.flashMesh.visible = false;
+      this.light.visible = false;
+      return;
+    }
+    if (this.muzzle.parent !== anchor) {
+      anchor.attach(this.muzzle);
+      this.muzzle.position.set(0, 0, 0);
+      this.muzzle.rotation.set(0, 0, 0);
+    }
+    this.flashMesh.visible = true;
+    this.light.visible = true;
   }
 
   shot(weaponId, result) {
@@ -146,12 +165,14 @@ export class GunFeelSystem {
     this.recoilY = lerp(this.recoilY, 0, Math.min(1, dt * 8));
 
     if (this.engine.hands) {
-      this.engine.hands.position.z += this.weaponBack;
-      this.engine.hands.rotation.z += this.weaponRot;
+      const recoilRoot = this.engine.hands.userData?.recoilRoot || this.engine.hands;
+      recoilRoot.position.z = this.weaponBack;
+      recoilRoot.rotation.z = this.weaponRot;
       this.weaponBack = lerp(this.weaponBack, 0, Math.min(1, dt * 12));
       this.weaponRot = lerp(this.weaponRot, 0, Math.min(1, dt * 10));
     }
 
+    this.attachMuzzle();
     this.flashT = Math.max(0, this.flashT - dt);
     const flashAlpha = Math.min(1, this.flashT * 9);
     if (this.flashMesh) this.flashMesh.material.opacity = flashAlpha;

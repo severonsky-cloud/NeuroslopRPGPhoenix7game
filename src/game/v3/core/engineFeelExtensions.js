@@ -3,6 +3,7 @@ import { ReloadFeelSystem } from '../feel/reloadFeel.js';
 import { HitFeelSystem } from '../feel/hitFeel.js';
 import { MusicDirector } from '../audio/musicDirector.js';
 import { WEAPONS } from '../combat/weapons.js';
+import { triggerWeaponViewModelAction } from '../items/weaponModels.js';
 
 export function installFeelExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__feelExtensionInstalled) return;
@@ -94,12 +95,15 @@ export function installFeelExtensions(PhoenixV3Engine) {
   const originalOnAction = PhoenixV3Engine.prototype.onAction;
   PhoenixV3Engine.prototype.onAction = function onActionWithFeel(code, event) {
     const before = this.player?.weapon;
+    const cooldownBefore = this.cooldown;
     const result = originalOnAction.call(this, code, event);
     if (code === 'KeyV' || before !== this.player?.weapon) this.gunFeel?.bumpCrosshair?.(0.45);
     if (code === 'MouseLeft' || code === 'Space') {
       const w = WEAPONS[this.player.weapon];
       if (w?.kind !== 'gun') this.gunFeel?.bumpCrosshair?.(0.35);
+      if (this.cooldown > cooldownBefore) triggerWeaponViewModelAction(this.hands, 'primary');
     }
+    if (code === 'KeyB' && this.cooldown > cooldownBefore) triggerWeaponViewModelAction(this.hands, 'alternate');
     return result;
   };
 }

@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 import { WORLD_BOUNDS } from '../data/worldData.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -26,8 +26,8 @@ export function biomeAt(x, z) {
   if (x < -108) return 'beach';
   if (x < -20 && z > 70) return 'mangrove';
   if (x > 118 && x < 175 && z > 135 && z < 220) return 'fort';
-  if (x > 130 && z > 220) return 'tsarbor';
   if (x > 205 && z > 205) return 'savanna';
+  if (x > 130 && z > 220) return 'tsarbor';
   if (x > 230 && z > 45 && z < 160) return 'glass';
   if (x > 120 && z < -70) return 'ice';
   if (x > 30 && z < 10) return 'rednode';

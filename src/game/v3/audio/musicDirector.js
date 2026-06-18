@@ -4,13 +4,7 @@ export class MusicDirector {
     this.audio = null;
     this.started = false;
     this.fallbackNodes = [];
-    this.trackCandidates = [
-      'assets/audio/The Last Frontier (1).wav',
-      'assets/audio/The Last Frontier (2).wav',
-      'assets/audio/Gravel Frontier.mp3',
-      'assets/audio/Dark Retro Rpg Main Menu Ambience, Distant Wind Over Dead Savanna, Low Tape H....wav',
-      'assets/audio/Ancient Sci-fi Rpg Start Game Sound, Low Brass Swell, Tape Noise, Distant Gat....wav',
-    ];
+    this.trackCandidates = [];
   }
 
   ensureCtx() {
