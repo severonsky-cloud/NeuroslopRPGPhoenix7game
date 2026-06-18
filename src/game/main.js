@@ -1,20 +1,19 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
 
-const SAVE_KEY = 'phoenix7_25D_world_hands_loop';
+const SAVE_KEY = 'phoenix7_25F_combat_world';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = (id) => document.getElementById(id);
 const distXZ = (a, b) => Math.hypot((a.x ?? a.position?.x ?? 0) - (b.x ?? b.position?.x ?? 0), (a.z ?? a.position?.z ?? 0) - (b.z ?? b.position?.z ?? 0));
-
 window.__PHX_RUNTIME_READY = false;
 
 const WEAPONS = {
-  fists: { name: 'Кулаки', kind: 'melee', damage: 9, range: 1.35, stamina: 7, phase: 0, ammo: null, hold: 'fists' },
-  phase: { name: 'Фазовый удар рукой', kind: 'phase', damage: 26, range: 2.25, stamina: 11, phase: 18, ammo: null, hold: 'phase' },
-  bastard: { name: 'Бастард', kind: 'sword', damage: 34, range: 2.6, stamina: 18, phase: 0, ammo: null, hold: 'heavyBlade' },
-  rapier: { name: 'Шпага', kind: 'sword', damage: 20, range: 3.05, stamina: 10, phase: 0, ammo: null, hold: 'rapier' },
-  colt: { name: 'Кольт 1917', kind: 'gun', damage: 29, range: 30, stamina: 4, phase: 0, ammo: 'colt', hold: 'pistol' },
-  m1: { name: 'M1 Гаранд', kind: 'gun', damage: 39, range: 46, stamina: 7, phase: 0, ammo: 'm1', hold: 'rifle' },
-  bren: { name: 'Брен', kind: 'gun', damage: 18, range: 36, stamina: 13, phase: 0, ammo: 'bren', burst: 3, hold: 'lmg' },
+  fists: { name: 'Кулаки', kind: 'melee', damage: 9, range: 1.35, stamina: 7, phase: 0, ammo: null, hold: 'fists', recoil: 0.05, cadence: 0.44 },
+  phase: { name: 'Фазовый удар рукой', kind: 'phase', damage: 28, range: 2.25, stamina: 12, phase: 18, ammo: null, hold: 'phase', recoil: 0.18, cadence: 0.55 },
+  bastard: { name: 'Бастард', kind: 'sword', damage: 35, range: 2.6, stamina: 18, phase: 0, ammo: null, hold: 'heavyBlade', recoil: 0.2, cadence: 0.75 },
+  rapier: { name: 'Шпага', kind: 'sword', damage: 20, range: 3.05, stamina: 10, phase: 0, ammo: null, hold: 'rapier', recoil: 0.12, cadence: 0.42 },
+  colt: { name: 'Кольт 1917', kind: 'gun', damage: 30, range: 34, stamina: 4, phase: 0, ammo: 'colt', hold: 'pistol', recoil: 0.20, cadence: 0.38 },
+  m1: { name: 'M1 Гаранд', kind: 'gun', damage: 40, range: 52, stamina: 7, phase: 0, ammo: 'm1', hold: 'rifle', recoil: 0.24, cadence: 0.55 },
+  bren: { name: 'Брен', kind: 'gun', damage: 18, range: 40, stamina: 13, phase: 0, ammo: 'bren', burst: 3, hold: 'lmg', recoil: 0.34, cadence: 0.72 },
 };
 
 const RACES = {
@@ -26,28 +25,10 @@ const RACES = {
 };
 
 const state = {
-  mode: 'menu',
-  yaw: Math.PI * 0.46,
-  pitch: 0,
-  keys: new Set(),
-  near: null,
-  attackT: 0,
-  recoilT: 0,
-  swayT: 0,
-  toastT: 0,
-  hurtT: 0,
-  projectiles: [],
-  colliders: [],
-  npcs: [],
-  enemies: [],
-  doors: [],
-  labels: [],
-  mapPoints: [],
-  dynamicProps: [],
-  hands: null,
-  muzzleLight: null,
-  last: performance.now(),
-  player: null,
+  mode: 'menu', yaw: Math.PI * 0.46, pitch: 0, keys: new Set(), near: null,
+  attackT: 0, recoilT: 0, swayT: 0, toastT: 0, hurtT: 0, cooldown: 0,
+  projectiles: [], tracers: [], particles: [], colliders: [], npcs: [], enemies: [], doors: [], labels: [], mapPoints: [], patrols: [],
+  hands: null, muzzleLight: null, viewRoot: null, last: performance.now(), player: null,
 };
 
 const ui = {
@@ -61,9 +42,9 @@ function makePlayer(opts = {}) {
   const raceKey = opts.race || 'human';
   const r = RACES[raceKey] || RACES.human;
   return {
-    name: opts.name || 'Безымянная ошибка', race: raceKey, bg: opts.bg || 'lunar', pos: { x: -64, y: 1.7, z: 12 },
-    hp: r.hp, hpMax: r.hp, st: r.st, stMax: r.st, ph: r.ph, phMax: r.ph, hand: r.hand,
-    weapon: 'fists', ammo: { colt: 9, m1: 15, bren: 18 }, credits: 18,
+    name: opts.name || 'Безымянная ошибка', race: raceKey, bg: opts.bg || 'lunar',
+    pos: { x: -76, y: 1.7, z: 10 }, hp: r.hp, hpMax: r.hp, st: r.st, stMax: r.st, ph: r.ph, phMax: r.ph, hand: r.hand,
+    weapon: 'fists', ammo: { colt: 12, m1: 18, bren: 24 }, credits: 18,
     inv: ['мокрые бумаги', 'тюремный жетон', 'бастард', 'шпага', 'Кольт 1917', 'M1 Гаранд', 'Брен'],
     log: ['Ты стоишь на влажной красной глине Порта Рейчел. Слева океан, впереди дорога к Форту Заря.'],
     done: { rina: false, road: false, oran: false, market: false, factions: false, contraband: false, gerda: false, sava: false },
@@ -72,16 +53,15 @@ function makePlayer(opts = {}) {
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9f5c34);
-scene.fog = new THREE.FogExp2(0xb06b3f, 0.0075);
-const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 1200);
+scene.background = new THREE.Color(0xa45d34);
+scene.fog = new THREE.FogExp2(0xb36b3f, 0.0063);
+const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 1500);
 const renderer = new THREE.WebGLRenderer({ canvas: $('game'), antialias: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
 const rig = new THREE.Object3D();
-rig.position.set(-64, 0, 12);
+rig.position.set(-76, 0, 10);
 scene.add(rig);
 camera.position.set(0, 1.72, 0);
 rig.add(camera);
@@ -93,161 +73,58 @@ function material(color, options = {}) {
     transparent: options.opacity !== undefined, opacity: options.opacity ?? 1, side: options.side ?? THREE.FrontSide,
   });
 }
-
 const M = {
-  clay: material(0x93401f), wetClay: material(0x6b3520), beach: material(0xb46b3d), savanna: material(0x7a5732),
-  road: material(0x5b4025), wood: material(0x3f2718), dark: material(0x120c08), roof: material(0x21140d),
-  water: new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.23, metalness: 0.12, transparent: true, opacity: 0.86 }),
-  sign: material(0xd8b56e, { emissive: 0x241405, emissiveIntensity: 0.18 }),
-  metal: material(0x2c2b28, { roughness: 0.5, metalness: 0.2 }),
-  brass: material(0x9b7b3a, { roughness: 0.45, metalness: 0.15 }),
+  clay: material(0x93401f), wetClay: material(0x6b3520), beach: material(0xb46b3d), savanna: material(0x7a5732), salt: material(0xb9a477),
+  road: material(0x5b4025), wood: material(0x3f2718), dark: material(0x120c08), roof: material(0x21140d), metal: material(0x2c2b28, { roughness: 0.5, metalness: 0.22 }),
+  brass: material(0x9b7b3a, { roughness: 0.45, metalness: 0.15 }), water: new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.86 }),
 };
-
-function addMesh(geo, mat, x, y, z, parent = scene) {
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(x, y, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
-}
+function addMesh(geo, mat, x, y, z, parent = scene) { const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh; }
 function addCollider(x, z, w, d, tag = 'wall') { state.colliders.push({ x, z, w, d, tag }); }
 function collides(x, z, r = 0.45) { return state.colliders.some(c => Math.abs(x - c.x) < c.w / 2 + r && Math.abs(z - c.z) < c.d / 2 + r); }
 function box(x, z, w, d, h, mat, tag = '', solid = true) { const mesh = addMesh(new THREE.BoxGeometry(w, h, d), mat, x, h / 2, z); if (solid) addCollider(x, z, w, d, tag); return mesh; }
-function cylinder(x, z, radius, h, mat, solid = false, sides = 8) { const mesh = addMesh(new THREE.CylinderGeometry(radius, radius, h, sides), mat, x, h / 2, z); if (solid) addCollider(x, z, radius * 2, radius * 2); return mesh; }
-
-function label(text, x, y, z, scale = 1) {
-  const cnv = document.createElement('canvas'); cnv.width = 760; cnv.height = 150;
-  const c = cnv.getContext('2d');
-  c.fillStyle = 'rgba(8,7,5,.76)'; c.fillRect(0, 0, cnv.width, cnv.height);
-  c.strokeStyle = 'rgba(216,181,110,.9)'; c.lineWidth = 5; c.strokeRect(5, 5, cnv.width - 10, cnv.height - 10);
-  c.fillStyle = '#f4dca4'; c.font = '700 34px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, cnv.width / 2, cnv.height / 2);
-  const tex = new THREE.CanvasTexture(cnv);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  sp.position.set(x, y, z); sp.scale.set(7.0 * scale, 1.45 * scale, 1); sp.renderOrder = 10; scene.add(sp); state.labels.push(sp); return sp;
-}
+function cyl(x, z, r, h, mat, solid = false, sides = 8) { const mesh = addMesh(new THREE.CylinderGeometry(r, r, h, sides), mat, x, h / 2, z); if (solid) addCollider(x, z, r * 2, r * 2); return mesh; }
+function label(text, x, y, z, scale = 1) { const cnv = document.createElement('canvas'); cnv.width = 760; cnv.height = 150; const c = cnv.getContext('2d'); c.fillStyle = 'rgba(8,7,5,.76)'; c.fillRect(0, 0, cnv.width, cnv.height); c.strokeStyle = 'rgba(216,181,110,.9)'; c.lineWidth = 5; c.strokeRect(5, 5, cnv.width - 10, cnv.height - 10); c.fillStyle = '#f4dca4'; c.font = '700 34px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, cnv.width / 2, cnv.height / 2); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cnv), transparent: true, depthTest: false })); sp.position.set(x, y, z); sp.scale.set(7.0 * scale, 1.45 * scale, 1); sp.renderOrder = 10; scene.add(sp); state.labels.push(sp); return sp; }
 function mapPoint(name, x, z, type = 'place') { state.mapPoints.push({ name, x, z, type }); }
-
-function road(points, width = 4.2) {
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1]; const dx = b.x - a.x, dz = b.z - a.z; const len = Math.hypot(dx, dz);
-    const m = addMesh(new THREE.BoxGeometry(width, 0.06, len), M.road, (a.x + b.x) / 2, 0.035, (a.z + b.z) / 2);
-    m.rotation.y = Math.atan2(dx, dz); m.castShadow = false;
-  }
-}
+function road(points, width = 4.2) { for (let i = 0; i < points.length - 1; i++) { const a = points[i], b = points[i + 1], dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz); const m = addMesh(new THREE.BoxGeometry(width, 0.06, len), M.road, (a.x + b.x) / 2, 0.035, (a.z + b.z) / 2); m.rotation.y = Math.atan2(dx, dz); m.castShadow = false; } }
 function doorMarker(name, x, z, rot = 0) { const m = addMesh(new THREE.BoxGeometry(2.2, 2.35, 0.09), material(0x050403, { emissive: 0xe0a247, emissiveIntensity: 0.25 }), x, 1.18, z); m.rotation.y = rot; m.castShadow = false; state.doors.push({ name, x, z }); label('ВХОД', x, 2.75, z, 0.45); }
-
-function building({ name, sign, x, z, w, d, h = 3.6, color = 0x6d5535, door = 'south' }) {
-  const wall = material(color); const floor = material(0x302319); box(x, z, w, d, 0.08, floor, '', false);
-  const t = 0.32, gap = 2.4; box(x - w / 2 + t / 2, z, t, d, h, wall, name); box(x + w / 2 - t / 2, z, t, d, h, wall, name);
-  if (door === 'south') { box(x, z - d / 2 + t / 2, w, t, h, wall, name); box(x - (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name); box(x + (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name); doorMarker(name, x, z + d / 2 + 0.08, 0); }
-  else { box(x, z + d / 2 - t / 2, w, t, h, wall, name); box(x - (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name); box(x + (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name); doorMarker(name, x, z - d / 2 - 0.08, Math.PI); }
-  const roof = addMesh(new THREE.ConeGeometry(Math.max(w, d) * 0.74, h * 0.38, 4), M.roof, x, h + 0.72, z); roof.rotation.y = Math.PI / 4;
-  label(sign || name, x, h + 1.65, z, 0.72);
-}
-
-function npc(id, name, x, z, color, text) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 1.15, 4, 8), material(color)); body.position.y = 1.05;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), material(0xd3ad78)); head.position.y = 1.88;
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.5, 0.18), material(0x24170f)); pack.position.set(0, 1.12, 0.36);
-  g.add(body, head, pack); g.position.set(x, 0, z); g.userData = { type: 'npc', id, name, x, z, text };
-  scene.add(g); label(name, x, 2.65, z, 0.54); state.npcs.push(g); return g;
-}
-function enemy(id, name, x, z, hp, color, table) { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.72, 0), material(color)); body.position.y = 0.82; const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.38, 0.52), material(0x21140e)); head.position.y = 1.35; g.add(body, head); g.position.set(x, 0, z); g.userData = { type: 'enemy', id, name, x, z, hp, hpMax: hp, alive: true, looted: false, table }; scene.add(g); label(name, x, 2.2, z, 0.45); state.enemies.push(g); return g; }
-
+function building({ name, sign, x, z, w, d, h = 3.6, color = 0x6d5535, door = 'south' }) { const wall = material(color); const floor = material(0x302319); box(x, z, w, d, 0.08, floor, '', false); const t = 0.32, gap = 2.4; box(x - w / 2 + t / 2, z, t, d, h, wall, name); box(x + w / 2 - t / 2, z, t, d, h, wall, name); if (door === 'south') { box(x, z - d / 2 + t / 2, w, t, h, wall, name); box(x - (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name); box(x + (w + gap) / 4, z + d / 2 - t / 2, (w - gap) / 2, t, h, wall, name); doorMarker(name, x, z + d / 2 + 0.08, 0); } else { box(x, z + d / 2 - t / 2, w, t, h, wall, name); box(x - (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name); box(x + (w + gap) / 4, z - d / 2 + t / 2, (w - gap) / 2, t, h, wall, name); doorMarker(name, x, z - d / 2 - 0.08, Math.PI); } const roof = addMesh(new THREE.ConeGeometry(Math.max(w, d) * 0.74, h * 0.38, 4), M.roof, x, h + 0.72, z); roof.rotation.y = Math.PI / 4; label(sign || name, x, h + 1.65, z, 0.72); }
+function npc(id, name, x, z, color, text) { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 1.15, 4, 8), material(color)); body.position.y = 1.05; const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), material(0xd3ad78)); head.position.y = 1.88; const pack = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.5, 0.18), material(0x24170f)); pack.position.set(0, 1.12, 0.36); g.add(body, head, pack); g.position.set(x, 0, z); g.userData = { type: 'npc', id, name, x, z, text }; scene.add(g); label(name, x, 2.65, z, 0.54); state.npcs.push(g); return g; }
+function enemy(id, name, x, z, hp, color, table, biome = 'road') { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.72, 0), material(color)); body.position.y = 0.82; const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.38, 0.52), material(0x21140e)); head.position.y = 1.35; g.add(body, head); g.position.set(x, 0, z); g.userData = { type: 'enemy', id, name, x, z, hp, hpMax: hp, alive: true, looted: false, table, biome, hurtFlash: 0 }; scene.add(g); label(name, x, 2.2, z, 0.45); state.enemies.push(g); return g; }
 function propMast(x, z, h = 6) { box(x, z, 0.14, 0.14, h, M.dark, '', false); const sail = addMesh(new THREE.PlaneGeometry(1.25, 3), material(0x17100a, { side: THREE.DoubleSide }), x + 0.7, h * 0.55, z); sail.rotation.y = -0.35; }
 function propPalm(x, z, h = 4) { box(x, z, 0.18, 0.18, h, material(0x4c2f1b), '', false); for (let i = 0; i < 6; i++) { const leaf = addMesh(new THREE.PlaneGeometry(0.65, 2.1), material(0x284220, { side: THREE.DoubleSide }), x, h + 0.2, z); leaf.rotation.y = i * Math.PI / 3; leaf.rotation.x = 1.0; } }
-function crateCluster(cx, cz, n = 10) { for (let i = 0; i < n; i++) { const x = cx + (Math.random() - 0.5) * 8, z = cz + (Math.random() - 0.5) * 7; box(x, z, 0.8 + Math.random() * 0.8, 0.8 + Math.random() * 0.8, 0.7 + Math.random() * 0.7, material(0x3b2415), '', false); } }
+function crateCluster(cx, cz, n = 10) { for (let i = 0; i < n; i++) box(cx + (Math.random() - 0.5) * 8, cz + (Math.random() - 0.5) * 7, 0.8 + Math.random() * 0.8, 0.8 + Math.random() * 0.8, 0.7 + Math.random() * 0.7, material(0x3b2415), '', false); }
 function oldBattery(x, z) { box(x, z, 6, 3, 1.4, material(0x24212a), 'old battery'); box(x - 2.2, z + 1.1, 0.8, 1.2, 2.3, material(0x17161b), 'old battery'); box(x + 2.1, z + 1.0, 1.0, 1.0, 2.0, material(0x17161b), 'old battery'); label('СТАРАЯ БАТАРЕЯ', x, 3.2, z, 0.52); mapPoint('Старая батарея', x, z, 'ruin'); }
-
-function buildLandscape() {
-  const clay = addMesh(new THREE.PlaneGeometry(230, 165, 8, 8), M.clay, 0, -0.03, 18); clay.rotation.x = -Math.PI / 2;
-  const ocean = addMesh(new THREE.PlaneGeometry(140, 160, 20, 20), M.water, -96, 0.015, 3); ocean.rotation.x = -Math.PI / 2;
-  const beach = addMesh(new THREE.PlaneGeometry(22, 150), M.beach, -55, -0.02, 6); beach.rotation.x = -Math.PI / 2;
-  const sav = addMesh(new THREE.PlaneGeometry(105, 95, 8, 8), M.savanna, 70, -0.015, 43); sav.rotation.x = -Math.PI / 2;
-  for (let i = 0; i < 46; i++) propMast(-76 + i * 1.9, -24 - (i % 5) * 0.85, 4.5 + Math.random() * 4.0);
-  for (let i = 0; i < 50; i++) propPalm(-50 + Math.random() * 33, -22 + Math.random() * 63, 3 + Math.random() * 2.8);
-  for (let i = 0; i < 230; i++) { const x = -40 + Math.random() * 135, z = -34 + Math.random() * 96, s = 0.1 + Math.random() * 0.55; addMesh(new THREE.DodecahedronGeometry(s, 0), material(0x4b3522), x, s * 0.5, z).castShadow = false; }
-  for (let i = 0; i < 72; i++) { const x = 35 + Math.random() * 75, z = 8 + Math.random() * 60; cylinder(x, z, 0.08, 1.1 + Math.random() * 2.2, material(0x21140b), false, 5); }
-  for (let i = 0; i < 12; i++) box(15 + i * 2.3, 34 + Math.sin(i) * 0.8, 1.0, 1.0, 3.5 + (i % 4), material(0x24212a), '', false);
-}
-
-function buildWorld() {
-  state.colliders = []; state.labels = []; state.npcs = []; state.enemies = []; state.doors = []; state.mapPoints = []; state.projectiles = []; state.dynamicProps = [];
-  while (scene.children.length) scene.remove(scene.children[0]); scene.add(rig);
-  scene.add(new THREE.HemisphereLight(0xffd8a0, 0x24332c, 1.18));
-  const sun = new THREE.DirectionalLight(0xffb36e, 1.85); sun.position.set(-34, 62, 24); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); scene.add(sun);
-  const orangeSun = new THREE.PointLight(0xff7d38, 1.25, 100); orangeSun.position.set(-70, 10, -44); scene.add(orangeSun);
-  buildLandscape();
-
-  road([{ x: -64, z: 12 }, { x: -50, z: 11 }, { x: -37, z: 9 }, { x: -24, z: 10 }, { x: -9, z: 9 }, { x: 5, z: 6 }, { x: 18, z: 9 }, { x: 35, z: 25 }, { x: 55, z: 42 }], 4.7);
-  road([{ x: -37, z: 9 }, { x: -31, z: 3 }], 3.5);
-  road([{ x: -24, z: 10 }, { x: -22, z: 24 }], 3.7);
-  road([{ x: -12, z: 9 }, { x: -8, z: -20 }], 3.4);
-  road([{ x: 6, z: 6 }, { x: 25, z: -9 }], 3.6);
-  road([{ x: 22, z: 10 }, { x: 44, z: 2 }], 3.4);
-
-  building({ name: 'Таможня', sign: 'CUSTOMS / РИНА', x: -32, z: 4, w: 9.5, d: 6.5, color: 0x6b5534, door: 'south' });
-  building({ name: 'Склад соли', sign: 'SALT WAREHOUSE', x: -45, z: 18, w: 9, d: 6, color: 0x4d3928, door: 'south' });
-  building({ name: 'Грязный рынок', sign: 'RED CLAY MARKET', x: -18, z: 17, w: 10, d: 6, color: 0x5e4630, door: 'south' });
-  building({ name: 'Дорожный навес', sign: 'SHELTER', x: -22, z: 24, w: 8, d: 5, color: 0x584429, door: 'south' });
-  building({ name: 'Канцелярия Орана', sign: 'REGISTRY / ОРАН', x: 13, z: -2, w: 8, d: 6, color: 0x76603e, door: 'north' });
-  building({ name: 'Дом Герды', sign: 'GERDA', x: 21, z: 9, w: 7.5, d: 6, color: 0x49382b, door: 'north' });
-  building({ name: 'Красный Узел', sign: 'RED NODE', x: 25, z: -9, w: 7.5, d: 5.5, color: 0x6d3528, door: 'south' });
-  building({ name: 'Лагерь проводников', sign: 'GUIDES', x: 36, z: 27, w: 8, d: 5.8, color: 0x4d3c55, door: 'south' });
-
-  box(-4, 4, 1.1, 1.1, 6.5, material(0x2f3e38), 'Старый маяк'); label('СТАРЫЙ МАЯК', -4, 7.4, 4, 0.7);
-  oldBattery(44, 3); crateCluster(-50, 16, 18); crateCluster(-18, 18, 12); crateCluster(25, -6, 8);
-  label('PORT RACHEL / ОКЕАН', -57, 5.4, -16, 0.82); label('FORT ZARYA', 18, 7.0, 34, 0.8); label('КРАЙ МЁРТВОЙ САВАННЫ', 58, 4.3, 44, 0.76);
-
-  mapPoint('Океан', -82, 0, 'biome'); mapPoint('Порт Рейчел', -42, 10, 'town'); mapPoint('Таможня', -32, 4, 'building'); mapPoint('Склад соли', -45, 18, 'building'); mapPoint('Грязный рынок', -18, 17, 'building'); mapPoint('Дорожный навес', -22, 24, 'building'); mapPoint('Старая батарея', 44, 3, 'ruin'); mapPoint('Форт Заря', 18, 34, 'fort'); mapPoint('Дом Герды', 21, 9, 'building'); mapPoint('Красный Узел', 25, -9, 'building'); mapPoint('Край Мёртвой Саванны', 58, 44, 'biome');
-
-  npc('rina', 'Рина', -32, 7.25, 0x8ca3bf, 'Ты в Порту Рейчел. Проверь Дорожный навес, потом иди к Орану в Форт Заря.');
-  npc('merchant', 'Торговец красной глиной', -18, 19.8, 0xa45545, 'Рынок живёт красной глиной и слухами. Возьми слухи о Красном Узле.');
-  npc('wanderer', 'Бродячий рыцарь', -4, 8.2, 0x858078, 'Дорога в саванну начинается не с выстрела, а с долгого пути.');
-  npc('oran', 'Оран Тив', 13, -4.95, 0xd8b56e, 'Регистрация временная. Но теперь ты не пустое место в пустом деле.');
-  npc('gerda', 'Герда Гайгерманика', 21, 6.15, 0x795c43, 'Собери четыре подготовки: дорога, рынок, фракции, контрабанда. Потом я подпишу путь к Саве.');
-  npc('smuggler', 'Контрабандист', 25, -5.6, 0x9a4939, 'Канальная бирка? Забирай. Только не спрашивай, из какого корабля она снята.');
-  npc('guide', 'Сава', 36, 29.1, 0x9b7bd8, 'Когда Герда даст добро, я поведу тебя к краю Мёртвой Саванны.');
-
-  enemy('road', 'Дорожный мутант', -12, 8, 52, 0xb84634, 'road'); enemy('sand', 'Песчаная падаль', 6, 13, 44, 0x9b6b3a, 'sand'); enemy('red', 'Красная падаль', 31, -4, 48, 0xb55d35, 'red'); enemy('phase', 'Фазовое эхо', 44, 18, 58, 0x8a78ff, 'phase');
-  buildHands();
-}
-
-function buildHands() {
-  if (state.hands) camera.remove(state.hands);
-  const g = new THREE.Group(); const w = WEAPONS[state.player?.weapon || 'fists']; const skin = material(state.player?.hand || 0xc09673); const metal = M.metal; const wood = material(0x5b3b22);
-  const armGeo = new THREE.CapsuleGeometry(0.08, 0.38, 5, 8); const fistGeo = new THREE.SphereGeometry(0.115, 10, 8);
-  const left = new THREE.Group(), right = new THREE.Group();
-  const la = new THREE.Mesh(armGeo, skin), ra = new THREE.Mesh(armGeo, skin), lf = new THREE.Mesh(fistGeo, skin), rf = new THREE.Mesh(fistGeo, skin);
-  la.rotation.x = 1.15; ra.rotation.x = 1.15; lf.position.set(0, -0.01, -0.38); rf.position.set(0, -0.01, -0.38); left.add(la, lf); right.add(ra, rf);
-  left.position.set(-0.28, -0.43, -0.78); right.position.set(0.28, -0.43, -0.78); left.rotation.set(-0.18, 0.16, -0.15); right.rotation.set(-0.18, -0.16, 0.15); g.add(left, right);
-  if (w.hold === 'phase') { const orb = new THREE.Mesh(new THREE.SphereGeometry(0.15, 18, 12), new THREE.MeshStandardMaterial({ color: 0x8a78ff, emissive: 0x5845ff, emissiveIntensity: 1.5, transparent: true, opacity: 0.82 })); orb.position.set(0.02, -0.28, -0.9); g.add(orb); const l = new THREE.PointLight(0x8a78ff, 1.5, 3); l.position.copy(orb.position); g.add(l); }
-  if (w.hold === 'heavyBlade' || w.hold === 'rapier') { const bladeLen = w.hold === 'heavyBlade' ? 1.15 : 0.88; const bladeWidth = w.hold === 'heavyBlade' ? 0.07 : 0.035; const blade = new THREE.Mesh(new THREE.BoxGeometry(bladeWidth, bladeWidth, bladeLen), material(0xc8c0a8, { roughness: 0.34, metalness: 0.28 })); blade.position.set(0.37, -0.32, -1.08); blade.rotation.x = 0.1; g.add(blade); const guard = new THREE.Mesh(new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.58 : 0.38, 0.055, 0.07), M.brass); guard.position.set(0.36, -0.34, -0.68); g.add(guard); }
-  if (w.hold === 'pistol' || w.hold === 'rifle' || w.hold === 'lmg') { const len = w.hold === 'rifle' ? 1.12 : w.hold === 'lmg' ? 0.95 : 0.44; const body = new THREE.Mesh(new THREE.BoxGeometry(len, 0.12, 0.18), metal); body.position.set(0.34, -0.34, -0.78); body.rotation.y = -0.08; g.add(body); const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, w.hold === 'pistol' ? 0.42 : 0.9, 8), metal); barrel.rotation.x = Math.PI / 2; barrel.position.set(0.34 + len * 0.52, -0.32, -0.78); g.add(barrel); const grip = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.26, 0.1), wood); grip.position.set(0.22, -0.52, -0.66); g.add(grip); const flash = new THREE.PointLight(0xffd28a, 0, 4); flash.position.set(0.34 + len, -0.32, -0.78); g.add(flash); state.muzzleLight = flash; }
-  state.hands = g; camera.add(g); setWeaponText();
-}
-
+function createBiomeMarker(name, x, z, color) { const ring = addMesh(new THREE.TorusGeometry(2.2, 0.06, 8, 48), material(color, { emissive: color, emissiveIntensity: 0.18 }), x, 0.08, z); ring.rotation.x = Math.PI / 2; ring.castShadow = false; label(name, x, 3.2, z, 0.55); }
+function buildLandscape() { const clay = addMesh(new THREE.PlaneGeometry(300, 220, 8, 8), M.clay, 0, -0.03, 24); clay.rotation.x = -Math.PI / 2; const ocean = addMesh(new THREE.PlaneGeometry(175, 210, 20, 20), M.water, -115, 0.015, 0); ocean.rotation.x = -Math.PI / 2; const beach = addMesh(new THREE.PlaneGeometry(28, 200), M.beach, -68, -0.02, 5); beach.rotation.x = -Math.PI / 2; const mangrove = addMesh(new THREE.PlaneGeometry(50, 55), material(0x45502a), -46, -0.018, 46); mangrove.rotation.x = -Math.PI / 2; const sav = addMesh(new THREE.PlaneGeometry(135, 120), M.savanna, 82, -0.015, 60); sav.rotation.x = -Math.PI / 2; for (let i = 0; i < 58; i++) propMast(-94 + i * 2.1, -28 - (i % 5) * 0.85, 4.5 + Math.random() * 4.0); for (let i = 0; i < 68; i++) propPalm(-62 + Math.random() * 42, -24 + Math.random() * 90, 3 + Math.random() * 2.8); for (let i = 0; i < 310; i++) { const x = -48 + Math.random() * 170, z = -42 + Math.random() * 125, s = 0.1 + Math.random() * 0.62; addMesh(new THREE.DodecahedronGeometry(s, 0), material(0x4b3522), x, s * 0.5, z).castShadow = false; } for (let i = 0; i < 115; i++) cyl(42 + Math.random() * 95, 12 + Math.random() * 82, 0.08, 1.1 + Math.random() * 2.2, material(0x21140b), false, 5); for (let i = 0; i < 16; i++) box(20 + i * 2.3, 38 + Math.sin(i) * 0.8, 1.0, 1.0, 3.5 + (i % 4), material(0x24212a), '', false); }
+function addPatrol(name, points, color) { const obj = npc('patrol_' + state.patrols.length, name, points[0].x, points[0].z, color, 'Патруль идёт по дороге и делает мир живее.'); obj.userData.patrol = true; obj.userData.patrolIndex = 1; obj.userData.points = points; state.patrols.push(obj); return obj; }
+function buildWorld() { state.colliders = []; state.labels = []; state.npcs = []; state.enemies = []; state.doors = []; state.mapPoints = []; state.projectiles = []; state.tracers = []; state.particles = []; state.patrols = []; while (scene.children.length) scene.remove(scene.children[0]); scene.add(rig); scene.add(new THREE.HemisphereLight(0xffd8a0, 0x24332c, 1.18)); const sun = new THREE.DirectionalLight(0xffb36e, 1.85); sun.position.set(-42, 72, 30); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); scene.add(sun); const orangeSun = new THREE.PointLight(0xff7d38, 1.25, 120); orangeSun.position.set(-88, 11, -54); scene.add(orangeSun); buildLandscape(); road([{ x: -76, z: 10 }, { x: -60, z: 11 }, { x: -45, z: 9 }, { x: -30, z: 10 }, { x: -13, z: 9 }, { x: 6, z: 7 }, { x: 24, z: 13 }, { x: 42, z: 31 }, { x: 66, z: 55 }, { x: 88, z: 74 }], 4.8); road([{ x: -45, z: 9 }, { x: -35, z: 2 }], 3.5); road([{ x: -30, z: 10 }, { x: -24, z: 28 }], 3.7); road([{ x: -15, z: 9 }, { x: -10, z: -23 }], 3.4); road([{ x: 6, z: 7 }, { x: 28, z: -12 }], 3.6); road([{ x: 24, z: 13 }, { x: 50, z: 2 }], 3.4); road([{ x: -42, z: 18 }, { x: -48, z: 52 }, { x: -32, z: 72 }], 3.4); building({ name: 'Таможня', sign: 'CUSTOMS / РИНА', x: -35, z: 4, w: 10, d: 6.5, color: 0x6b5534, door: 'south' }); building({ name: 'Склад соли', sign: 'SALT WAREHOUSE', x: -50, z: 19, w: 10, d: 6, color: 0x4d3928, door: 'south' }); building({ name: 'Грязный рынок', sign: 'RED CLAY MARKET', x: -20, z: 19, w: 11, d: 6, color: 0x5e4630, door: 'south' }); building({ name: 'Дорожный навес', sign: 'SHELTER', x: -24, z: 28, w: 8, d: 5, color: 0x584429, door: 'south' }); building({ name: 'Канцелярия Орана', sign: 'REGISTRY / ОРАН', x: 17, z: -3, w: 8, d: 6, color: 0x76603e, door: 'north' }); building({ name: 'Дом Герды', sign: 'GERDA', x: 27, z: 11, w: 8, d: 6, color: 0x49382b, door: 'north' }); building({ name: 'Красный Узел', sign: 'RED NODE', x: 30, z: -12, w: 8, d: 5.5, color: 0x6d3528, door: 'south' }); building({ name: 'Лагерь проводников', sign: 'GUIDES', x: 46, z: 34, w: 8.5, d: 6, color: 0x4d3c55, door: 'south' }); building({ name: 'Станция мангровых насосов', sign: 'MANGROVE PUMP', x: -42, z: 58, w: 8, d: 5.5, color: 0x344028, door: 'south' }); box(-6, 4, 1.1, 1.1, 6.5, material(0x2f3e38), 'Старый маяк'); label('СТАРЫЙ МАЯК', -6, 7.4, 4, 0.7); oldBattery(50, 2); crateCluster(-58, 18, 22); crateCluster(-20, 20, 15); crateCluster(30, -9, 10); label('PORT RACHEL / ОКЕАН', -66, 5.4, -16, 0.82); label('FORT ZARYA', 22, 7.0, 40, 0.8); label('КРАЙ МЁРТВОЙ САВАННЫ', 72, 4.3, 62, 0.76); createBiomeMarker('МАНГРОВЫЕ БОЛОТА', -42, 62, 0x4b6b32); createBiomeMarker('СОЛЯНЫЕ ДОКИ', -58, 22, 0xc8b887); createBiomeMarker('МЁРТВАЯ САВАННА', 84, 76, 0x8d6b3b); mapPoint('Океан', -100, 0, 'biome'); mapPoint('Порт Рейчел', -48, 12, 'town'); mapPoint('Соляные доки', -58, 22, 'district'); mapPoint('Мангровые болота', -42, 62, 'biome'); mapPoint('Таможня', -35, 4, 'building'); mapPoint('Грязный рынок', -20, 19, 'building'); mapPoint('Дорожный навес', -24, 28, 'building'); mapPoint('Старая батарея', 50, 2, 'ruin'); mapPoint('Форт Заря', 22, 40, 'fort'); mapPoint('Дом Герды', 27, 11, 'building'); mapPoint('Красный Узел', 30, -12, 'building'); mapPoint('Край Мёртвой Саванны', 72, 62, 'biome'); npc('rina', 'Рина', -35, 7.25, 0x8ca3bf, 'Ты в Порту Рейчел. Проверь Дорожный навес, потом иди к Орану в Форт Заря.'); npc('merchant', 'Торговец красной глиной', -20, 21.8, 0xa45545, 'Рынок живёт красной глиной и слухами. Возьми слухи о Красном Узле.'); npc('wanderer', 'Бродячий рыцарь', -6, 8.2, 0x858078, 'Дорога в саванну начинается не с выстрела, а с долгого пути.'); npc('oran', 'Оран Тив', 17, -5.95, 0xd8b56e, 'Регистрация временная. Но теперь ты не пустое место в пустом деле.'); npc('gerda', 'Герда Гайгерманика', 27, 8.15, 0x795c43, 'Собери четыре подготовки: дорога, рынок, фракции, контрабанда. Потом я подпишу путь к Саве.'); npc('smuggler', 'Контрабандист', 30, -8.6, 0x9a4939, 'Канальная бирка? Забирай. Только не спрашивай, из какого корабля она снята.'); npc('guide', 'Сава', 46, 37.1, 0x9b7bd8, 'Когда Герда даст добро, я поведу тебя к краю Мёртвой Саванны.'); npc('mangrove_keeper', 'Смотритель насосов', -42, 61.0, 0x6f8a54, 'Болота ниже дороги. В них слышно, как планета дышит солью.'); addPatrol('Портовый патруль', [{ x: -57, z: 15 }, { x: -42, z: 11 }, { x: -24, z: 18 }, { x: -57, z: 15 }], 0x6e7085); enemy('road', 'Дорожный мутант', -12, 8, 52, 0xb84634, 'road'); enemy('sand', 'Песчаная падаль', 6, 13, 44, 0x9b6b3a, 'sand'); enemy('red', 'Красная падаль', 34, -5, 48, 0xb55d35, 'red'); enemy('phase', 'Фазовое эхо', 52, 18, 58, 0x8a78ff, 'phase'); enemy('mangrove', 'Болотная тварь', -38, 68, 50, 0x4d6a39, 'sand', 'mangrove'); buildHands(); }
+function buildHands() { if (state.hands) camera.remove(state.hands); state.muzzleLight = null; const root = new THREE.Group(); const w = WEAPONS[state.player?.weapon || 'fists']; const skin = material(state.player?.hand || 0xc09673); const metal = M.metal; const wood = material(0x5b3b22); const armGeo = new THREE.CapsuleGeometry(0.055, 0.32, 5, 8); const fistGeo = new THREE.SphereGeometry(0.09, 10, 8); const left = new THREE.Group(), right = new THREE.Group(); const la = new THREE.Mesh(armGeo, skin), ra = new THREE.Mesh(armGeo, skin), lf = new THREE.Mesh(fistGeo, skin), rf = new THREE.Mesh(fistGeo, skin); la.rotation.x = 1.18; ra.rotation.x = 1.18; lf.position.set(0, -0.01, -0.29); rf.position.set(0, -0.01, -0.29); left.add(la, lf); right.add(ra, rf); left.position.set(-0.22, -0.49, -0.82); right.position.set(0.25, -0.49, -0.82); left.rotation.set(-0.2, 0.16, -0.12); right.rotation.set(-0.2, -0.16, 0.12); root.add(left, right); const gunStock = (len, thick=0.12) => { const body = new THREE.Mesh(new THREE.BoxGeometry(len, thick, 0.16), metal); body.position.set(0.32, -0.43, -0.75); body.rotation.y = -0.08; root.add(body); const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, len * 0.9, 8), metal); barrel.rotation.x = Math.PI / 2; barrel.position.set(0.32 + len * 0.52, -0.42, -0.75); root.add(barrel); const grip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.22, 0.09), wood); grip.position.set(0.18, -0.58, -0.65); root.add(grip); const flash = new THREE.PointLight(0xffd28a, 0, 4); flash.position.set(0.32 + len * 0.96, -0.42, -0.75); root.add(flash); state.muzzleLight = flash; };
+  if (w.hold === 'phase') { const orb = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 12), new THREE.MeshStandardMaterial({ color: 0x8a78ff, emissive: 0x5845ff, emissiveIntensity: 1.7, transparent: true, opacity: 0.82 })); orb.position.set(0.02, -0.32, -0.9); root.add(orb); const l = new THREE.PointLight(0x8a78ff, 1.8, 3); l.position.copy(orb.position); root.add(l); }
+  else if (w.hold === 'heavyBlade' || w.hold === 'rapier') { const bladeLen = w.hold === 'heavyBlade' ? 1.05 : 0.82; const bladeWidth = w.hold === 'heavyBlade' ? 0.055 : 0.028; const blade = new THREE.Mesh(new THREE.BoxGeometry(bladeWidth, bladeWidth, bladeLen), material(0xc8c0a8, { roughness: 0.34, metalness: 0.28 })); blade.position.set(0.34, -0.42, -1.04); blade.rotation.x = 0.1; root.add(blade); const guard = new THREE.Mesh(new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.5 : 0.32, 0.045, 0.06), M.brass); guard.position.set(0.34, -0.44, -0.66); root.add(guard); }
+  else if (w.hold === 'pistol') gunStock(0.38, 0.12); else if (w.hold === 'rifle') gunStock(1.04, 0.115); else if (w.hold === 'lmg') { gunStock(0.86, 0.16); const mag = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.36, 0.11), metal); mag.position.set(0.38, -0.25, -0.72); root.add(mag); }
+  state.hands = root; camera.add(root); setWeaponText(); }
 function setWeapon(id) { state.player.weapon = id; buildHands(); updateAmmo(); }
 function setWeaponText() { const w = WEAPONS[state.player?.weapon || 'fists']; ui.weapon.textContent = `Оружие: ${w.name} · урон ${w.damage} · дальность ${w.range}`; }
 function updateAmmo() { const p = state.player; ui.ammo.textContent = `Боезапас: Кольт ${p.ammo.colt} · M1 ${p.ammo.m1} · Брен ${p.ammo.bren}`; }
-function startGame(fresh = true) { if (fresh) { const name = $('charName')?.value?.trim() || 'Безымянная ошибка'; const race = $('race')?.value || 'human'; const bg = $('bg')?.value || 'lunar'; state.player = makePlayer({ name, race, bg }); localStorage.removeItem(SAVE_KEY); } rig.position.set(state.player.pos.x, 0, state.player.pos.z); state.yaw = Math.PI * 0.46; state.pitch = 0; rig.rotation.y = state.yaw; camera.rotation.x = state.pitch; ui.start.classList.add('hidden'); ui.chargen.classList.add('hidden'); ui.hud.classList.remove('hidden'); state.mode = 'play'; setWeapon(state.player.weapon); toast('Мир расширен: Порт Рейчел, Форт Заря, Красный Узел, край саванны.'); saveGame(); }
+function startGame(fresh = true) { if (fresh) { const name = $('charName')?.value?.trim() || 'Безымянная ошибка'; const race = $('race')?.value || 'human'; const bg = $('bg')?.value || 'lunar'; state.player = makePlayer({ name, race, bg }); localStorage.removeItem(SAVE_KEY); } rig.position.set(state.player.pos.x, 0, state.player.pos.z); state.yaw = Math.PI * 0.46; state.pitch = 0; rig.rotation.y = state.yaw; camera.rotation.x = state.pitch; ui.start.classList.add('hidden'); ui.chargen.classList.add('hidden'); ui.hud.classList.remove('hidden'); state.mode = 'play'; setWeapon(state.player.weapon); toast('2.5F: боёвка, руки, импакт и большая карта обновлены.'); saveGame(); }
 function saveGame() { if (!state.player) return; state.player.pos.x = rig.position.x; state.player.pos.z = rig.position.z; localStorage.setItem(SAVE_KEY, JSON.stringify({ player: state.player, enemies: state.enemies.map(e => e.userData) })); }
 function loadGame() { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return toast('Сейв не найден'); try { const data = JSON.parse(raw); state.player = data.player || makePlayer(); if (data.enemies) data.enemies.forEach((saved, i) => { if (state.enemies[i]) Object.assign(state.enemies[i].userData, saved); }); startGame(false); } catch { toast('Сейв повреждён'); } }
 function toast(text) { ui.toast.textContent = text; ui.toast.classList.remove('hidden'); state.toastT = 3; }
 function log(text) { state.player.log.unshift(new Date().toLocaleTimeString() + ' — ' + text); if (state.player.log.length > 90) state.player.log.pop(); }
-function currentTarget() { const p = state.player; if (!p.done.rina) return { name: 'Рина / Таможня', x: -32, z: 7.25 }; if (!p.done.road) return { name: 'Дорожный навес', x: -22, z: 24 }; if (!p.done.oran) return { name: 'Оран / Канцелярия', x: 13, z: -4.95 }; if (!p.done.gerda) return { name: 'Герда / Дом Герды', x: 21, z: 6.15 }; if (!p.done.sava) return { name: 'Сава / Проводники', x: 36, z: 29.1 }; return { name: 'Край Мёртвой Саванны', x: 58, z: 44 }; }
-function move(dt) { const p = state.player; let mx = 0, mz = 0; if (state.keys.has('KeyW')) mz -= 1; if (state.keys.has('KeyS')) mz += 1; if (state.keys.has('KeyA')) mx -= 1; if (state.keys.has('KeyD')) mx += 1; if (!mx && !mz) return; const speed = state.keys.has('ShiftLeft') || state.keys.has('ShiftRight') ? 7.5 : 4.5; const v = new THREE.Vector3(mx, 0, mz).normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw); const nx = rig.position.x + v.x * speed * dt; const nz = rig.position.z + v.z * speed * dt; if (!collides(nx, rig.position.z)) rig.position.x = nx; if (!collides(rig.position.x, nz)) rig.position.z = nz; if (speed > 5) p.st = Math.max(0, p.st - dt * 12); }
-function updateEnemies(dt) { for (const obj of state.enemies) { const e = obj.userData; if (!e.alive) continue; const d = distXZ({ x: rig.position.x, z: rig.position.z }, e); if (d < 13 && d > 1.5) { const dx = (rig.position.x - e.x) / d, dz = (rig.position.z - e.z) / d; const nx = e.x + dx * dt * 1.1, nz = e.z + dz * dt * 1.1; if (!collides(nx, nz, 0.55)) { e.x = nx; e.z = nz; obj.position.set(e.x, 0, e.z); } } if (d < 1.45 && Math.random() < dt * 0.7) { state.player.hp = Math.max(0, state.player.hp - (state.keys.has('KeyR') ? 0.5 : 4)); state.hurtT = 0.3; if (state.player.hp <= 0) { state.player.hp = Math.floor(state.player.hpMax * 0.55); rig.position.set(-64, 0, 12); toast('Ты очнулся у берега Порта Рейчел.'); } } } }
-function updateProjectiles(dt) { for (const pr of state.projectiles) { pr.mesh.position.addScaledVector(pr.velocity, dt); pr.life -= dt; for (const obj of state.enemies) { const e = obj.userData; if (e.alive && obj.position.distanceTo(pr.mesh.position) < 0.85) { damageEnemy(obj, pr.damage, pr.name); pr.life = 0; } } if (pr.life <= 0) { scene.remove(pr.mesh); pr.dead = true; } } state.projectiles = state.projectiles.filter(p => !p.dead); }
+function currentTarget() { const p = state.player; if (!p.done.rina) return { name: 'Рина / Таможня', x: -35, z: 7.25 }; if (!p.done.road) return { name: 'Дорожный навес', x: -24, z: 28 }; if (!p.done.oran) return { name: 'Оран / Канцелярия', x: 17, z: -5.95 }; if (!p.done.gerda) return { name: 'Герда / Дом Герды', x: 27, z: 8.15 }; if (!p.done.sava) return { name: 'Сава / Проводники', x: 46, z: 37.1 }; return { name: 'Край Мёртвой Саванны', x: 72, z: 62 }; }
+function move(dt) { const p = state.player; let mx = 0, mz = 0; if (state.keys.has('KeyW')) mz -= 1; if (state.keys.has('KeyS')) mz += 1; if (state.keys.has('KeyA')) mx -= 1; if (state.keys.has('KeyD')) mx += 1; if (!mx && !mz) return; const speed = state.keys.has('ShiftLeft') || state.keys.has('ShiftRight') ? 7.8 : 4.7; const v = new THREE.Vector3(mx, 0, mz).normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw); const nx = rig.position.x + v.x * speed * dt; const nz = rig.position.z + v.z * speed * dt; if (!collides(nx, rig.position.z)) rig.position.x = nx; if (!collides(rig.position.x, nz)) rig.position.z = nz; if (speed > 5) p.st = Math.max(0, p.st - dt * 12); }
+function updatePatrols(dt) { for (const obj of state.patrols) { const u = obj.userData; const target = u.points[u.patrolIndex % u.points.length]; const d = Math.hypot(target.x - u.x, target.z - u.z); if (d < 0.6) u.patrolIndex++; else { u.x += (target.x - u.x) / d * dt * 1.2; u.z += (target.z - u.z) / d * dt * 1.2; obj.position.set(u.x, 0, u.z); } } }
+function updateEnemies(dt) { for (const obj of state.enemies) { const e = obj.userData; if (!e.alive) continue; const d = distXZ({ x: rig.position.x, z: rig.position.z }, e); if (d < 13 && d > 1.5) { const dx = (rig.position.x - e.x) / d, dz = (rig.position.z - e.z) / d; const nx = e.x + dx * dt * 1.1, nz = e.z + dz * dt * 1.1; if (!collides(nx, nz, 0.55)) { e.x = nx; e.z = nz; obj.position.set(e.x, 0, e.z); } } if (d < 1.45 && Math.random() < dt * 0.7) { state.player.hp = Math.max(0, state.player.hp - (state.keys.has('KeyR') ? 0.5 : 4)); state.hurtT = 0.3; if (state.player.hp <= 0) { state.player.hp = Math.floor(state.player.hpMax * 0.55); rig.position.set(-76, 0, 10); toast('Ты очнулся у берега Порта Рейчел.'); } } if (e.hurtFlash > 0) e.hurtFlash -= dt; } }
+function spawnImpact(pos, color = 0xffd28a) { for (let i = 0; i < 8; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6 })); p.position.copy(pos); p.userData.vel = new THREE.Vector3((Math.random()-.5)*2, Math.random()*2, (Math.random()-.5)*2); p.userData.life = 0.28 + Math.random()*0.25; scene.add(p); state.particles.push(p); } }
+function updateParticles(dt) { for (const p of state.particles) { p.userData.life -= dt; p.position.addScaledVector(p.userData.vel, dt); p.scale.multiplyScalar(0.98); if (p.userData.life <= 0) { scene.remove(p); p.dead = true; } } state.particles = state.particles.filter(p => !p.dead); }
+function updateProjectiles(dt) { for (const pr of state.projectiles) { pr.mesh.position.addScaledVector(pr.velocity, dt); pr.life -= dt; for (const obj of state.enemies) { const e = obj.userData; if (e.alive && obj.position.distanceTo(pr.mesh.position) < 0.85) { damageEnemy(obj, pr.damage, pr.name); spawnImpact(obj.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 0xffd28a); pr.life = 0; } } if (pr.life <= 0) { scene.remove(pr.mesh); pr.dead = true; } } state.projectiles = state.projectiles.filter(p => !p.dead); }
 function angleToTarget(o) { const a = Math.atan2(o.z - rig.position.z, o.x - rig.position.x) - state.yaw; return Math.abs(Math.atan2(Math.sin(a), Math.cos(a))); }
-function hitMarker(text='HIT') { let h = document.getElementById('hitMarker'); if (!h) { h = document.createElement('div'); h.id = 'hitMarker'; h.style.cssText = 'position:fixed;left:50%;top:47%;transform:translate(-50%,-50%);z-index:40;color:#ffd28a;font:900 18px system-ui;text-shadow:0 0 14px #000;pointer-events:none'; document.body.appendChild(h); } h.textContent = text; h.style.opacity = '1'; clearTimeout(h._t); h._t = setTimeout(() => h.style.opacity = '0', 180); }
-function attack() { const w = WEAPONS[state.player.weapon]; if (state.player.st < w.stamina) return toast('Нет выносливости'); if (state.player.ph < w.phase) return toast('Нет фазового заряда'); if (w.ammo && state.player.ammo[w.ammo] <= 0) return toast('Нет боезапаса: ' + w.name); state.player.st -= w.stamina; state.player.ph -= w.phase; if (w.ammo) state.player.ammo[w.ammo]--; state.attackT = 1; state.recoilT = 1; if (state.muzzleLight) { state.muzzleLight.intensity = w.kind === 'gun' ? 5 : 0; setTimeout(() => { if (state.muzzleLight) state.muzzleLight.intensity = 0; }, 80); } if (w.kind === 'gun') return shoot(w); const target = state.enemies.filter(o => o.userData.alive).sort((a, b) => angleToTarget(a.userData) - angleToTarget(b.userData))[0]; if (!target || angleToTarget(target.userData) > 0.56 || distXZ({ x: rig.position.x, z: rig.position.z }, target.userData) > w.range) return toast(w.name + ' не достаёт'); damageEnemy(target, w.damage + Math.floor(Math.random() * 8), w.name); }
-function shoot(w) { const count = w.burst || 1; for (let i = 0; i < count; i++) { if (i > 0 && w.ammo) { if (state.player.ammo[w.ammo] <= 0) break; state.player.ammo[w.ammo]--; } const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xff8a24, emissiveIntensity: 0.9 })); mesh.position.copy(camera.getWorldPosition(new THREE.Vector3())); const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())); dir.x += (Math.random() - 0.5) * 0.018; dir.z += (Math.random() - 0.5) * 0.018; dir.normalize(); scene.add(mesh); state.projectiles.push({ mesh, velocity: dir.multiplyScalar(34), life: 1.8, damage: w.damage, name: w.name }); } updateAmmo(); toast(w.name + ': выстрел'); }
-function damageEnemy(obj, amount, source) { const e = obj.userData; e.hp -= amount; hitMarker('-' + amount); toast(`${e.name}: -${amount} (${source})`); obj.position.y += 0.04; if (e.hp <= 0) { e.alive = false; obj.scale.y = 0.28; obj.position.y = 0.05; log('Победа: ' + e.name + '. Можно обыскать.'); } }
+function hitMarker(text='HIT') { let h = document.getElementById('hitMarker'); if (!h) { h = document.createElement('div'); h.id = 'hitMarker'; h.style.cssText = 'position:fixed;left:50%;top:47%;transform:translate(-50%,-50%);z-index:40;color:#ffd28a;font:900 18px system-ui;text-shadow:0 0 14px #000;pointer-events:none;transition:opacity .12s'; document.body.appendChild(h); } h.textContent = text; h.style.opacity = '1'; clearTimeout(h._t); h._t = setTimeout(() => h.style.opacity = '0', 180); }
+function attack() { if (state.cooldown > 0) return; const w = WEAPONS[state.player.weapon]; if (state.player.st < w.stamina) return toast('Нет выносливости'); if (state.player.ph < w.phase) return toast('Нет фазового заряда'); if (w.ammo && state.player.ammo[w.ammo] <= 0) return toast('Нет боезапаса: ' + w.name); state.cooldown = w.cadence; state.player.st -= w.stamina; state.player.ph -= w.phase; if (w.ammo) state.player.ammo[w.ammo]--; state.attackT = 1; state.recoilT = w.recoil * 4; if (state.muzzleLight) { state.muzzleLight.intensity = w.kind === 'gun' ? 5 : 0; setTimeout(() => { if (state.muzzleLight) state.muzzleLight.intensity = 0; }, 80); } if (w.kind === 'gun') return shoot(w); const target = state.enemies.filter(o => o.userData.alive).sort((a, b) => angleToTarget(a.userData) - angleToTarget(b.userData))[0]; if (!target || angleToTarget(target.userData) > 0.56 || distXZ({ x: rig.position.x, z: rig.position.z }, target.userData) > w.range) return toast(w.name + ' не достаёт'); damageEnemy(target, w.damage + Math.floor(Math.random() * 8), w.name); spawnImpact(target.position.clone().add(new THREE.Vector3(0,1,0)), w.kind === 'phase' ? 0x8a78ff : 0xffd28a); }
+function shoot(w) { const count = w.burst || 1; for (let i = 0; i < count; i++) { if (i > 0 && w.ammo) { if (state.player.ammo[w.ammo] <= 0) break; state.player.ammo[w.ammo]--; } const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xff8a24, emissiveIntensity: 0.9 })); mesh.position.copy(camera.getWorldPosition(new THREE.Vector3())); const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())); dir.x += (Math.random() - 0.5) * 0.018; dir.z += (Math.random() - 0.5) * 0.018; dir.normalize(); scene.add(mesh); state.projectiles.push({ mesh, velocity: dir.multiplyScalar(38), life: 1.8, damage: w.damage, name: w.name }); } updateAmmo(); toast(w.name + ': выстрел'); }
+function damageEnemy(obj, amount, source) { const e = obj.userData; e.hp -= amount; e.hurtFlash = 0.16; obj.scale.setScalar(1.08); setTimeout(() => obj.scale.set(1, e.alive ? 1 : 0.28, 1), 80); hitMarker('-' + amount); toast(`${e.name}: -${amount} (${source})`); if (e.hp <= 0) { e.alive = false; obj.scale.y = 0.28; obj.position.y = 0.05; log('Победа: ' + e.name + '. Можно обыскать.'); } }
 function lootEnemy(obj) { const e = obj.userData; if (e.looted) return toast('Уже обыскано'); const tables = { road: [['colt', 1, 5, .55], ['m1', 1, 4, .35], ['credits', 1, 6, .8], ['сломанный жетон дороги', 1, 1, .25]], sand: [['colt', 1, 3, .35], ['bren', 3, 10, .28], ['credits', 1, 4, .65]], red: [['m1', 2, 8, .55], ['bren', 2, 12, .45], ['канальная бирка', 1, 1, .4]], phase: [['colt', 1, 2, .25], ['m1', 1, 6, .3], ['фазовый осадок', 1, 2, .75]] }; const out = []; for (const row of tables[e.table] || []) { if (Math.random() <= row[3]) { const n = row[1] + Math.floor(Math.random() * (row[2] - row[1] + 1)); if (row[0] === 'credits') state.player.credits += n; else if (state.player.ammo[row[0]] !== undefined) state.player.ammo[row[0]] += n; else state.player.inv.push(row[0]); out.push(row[0] + ' ×' + n); } } if (!out.length) { state.player.credits++; out.push('credits ×1'); } e.looted = true; obj.visible = false; toast('Лут: ' + out.join(', ')); log('Лут с ' + e.name + ': ' + out.join(', ')); updateAmmo(); saveGame(); }
-function discover() { const p = state.player; if (!p.done.road && distXZ({ x: rig.position.x, z: rig.position.z }, { x: -22, z: 24 }) < 2.6) { p.done.road = true; toast('Дорожный навес проверен'); log('Дорожный навес проверен.'); } if (!p.flags.green && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 44, z: 3 }) < 3.0) { p.flags.green = true; toast('Зелёный след получен у Старой батареи'); } if (!p.flags.blue && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 58, z: 44 }) < 4.0) { p.flags.blue = true; toast('Синий след записан на краю саванны'); } if (p.flags.green && p.flags.blue && !p.done.factions) { p.done.factions = true; log('Фракционная подготовка выполнена.'); } if (!p.done.contraband && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 25, z: -5.0 }) < 3.0) { p.done.contraband = true; toast('Красный Узел найден'); } }
+function discover() { const p = state.player; if (!p.done.road && distXZ({ x: rig.position.x, z: rig.position.z }, { x: -24, z: 28 }) < 2.6) { p.done.road = true; toast('Дорожный навес проверен'); log('Дорожный навес проверен.'); } if (!p.flags.green && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 50, z: 2 }) < 3.0) { p.flags.green = true; toast('Зелёный след получен у Старой батареи'); } if (!p.flags.blue && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 72, z: 62 }) < 4.0) { p.flags.blue = true; toast('Синий след записан на краю саванны'); } if (p.flags.green && p.flags.blue && !p.done.factions) { p.done.factions = true; log('Фракционная подготовка выполнена.'); } if (!p.done.contraband && distXZ({ x: rig.position.x, z: rig.position.z }, { x: 30, z: -8.6 }) < 3.0) { p.done.contraband = true; toast('Красный Узел найден'); } }
 function findNear() { state.near = null; let best = 999; const here = { x: rig.position.x, z: rig.position.z }; for (const n of state.npcs) { const d = distXZ(here, n.userData); if (d < best && d < 2.25) { best = d; state.near = n; } } for (const e of state.enemies) { const d = distXZ(here, e.userData); if (d < best && d < 2.35 && ((!e.userData.alive && !e.userData.looted) || e.userData.alive)) { best = d; state.near = e; } } if (state.near) { const d = state.near.userData; ui.prompt.textContent = d.type === 'enemy' && !d.alive ? 'E — обыскать: ' + d.name : (d.type === 'npc' ? 'E — говорить: ' : 'ЛКМ/Space — атака: ') + d.name; ui.prompt.classList.remove('hidden'); } else { const door = state.doors.find(d => Math.hypot(d.x - rig.position.x, d.z - rig.position.z) < 1.6); if (door) { ui.prompt.textContent = 'Вход: ' + door.name; ui.prompt.classList.remove('hidden'); } else ui.prompt.classList.add('hidden'); } }
 function interact() { if (!state.near) return; const d = state.near.userData; if (d.type === 'enemy') { if (d.alive) return attack(); return lootEnemy(state.near); } openDialogue(d); }
 function openDialogue(n) { state.mode = 'panel'; ui.panel.classList.remove('hidden'); let html = `<h2>${n.name}</h2><p>${n.text}</p><div class="choices">`; if (n.id === 'rina') html += '<button data-a="rina">Взять направление к Дорожному навесу</button>'; if (n.id === 'oran') html += '<button data-a="oran">Получить регистрацию</button>'; if (n.id === 'gerda') html += '<button data-a="tasks">Доска Герды</button><button data-a="reward">Сдать готовое</button>'; if (n.id === 'merchant') html += '<button data-a="market">Купить слухи о Красном Узле</button>'; if (n.id === 'smuggler') html += '<button data-a="contraband">Забрать канальную бирку</button>'; if (n.id === 'guide') html += '<button data-a="sava">Спросить про Мёртвую Саванну</button>'; html += '<button data-a="close">Закончить</button></div>'; ui.panelText.innerHTML = html; ui.panelText.querySelectorAll('button').forEach(b => b.onclick = () => action(b.dataset.a)); }
@@ -258,10 +135,10 @@ function task(name, done) { return `<div class="log"><b class="${done ? 'done' :
 function closePanel() { ui.panel.classList.add('hidden'); state.mode = 'play'; }
 function openBook() { state.mode = 'panel'; ui.panel.classList.remove('hidden'); ui.panelText.innerHTML = '<h2>Журнал</h2><p><span class="tag">' + state.player.name + '</span><span class="tag">' + WEAPONS[state.player.weapon].name + '</span><span class="tag">кр. ' + state.player.credits + '</span></p>' + state.player.log.map(x => '<div class="log">' + x + '</div>').join(''); }
 function openInv() { state.mode = 'panel'; ui.panel.classList.remove('hidden'); ui.panelText.innerHTML = '<h2>Инвентарь</h2>' + state.player.inv.map(x => '<div class="log">' + x + '</div>').join('') + '<h3>Боезапас</h3><p>Кольт ' + state.player.ammo.colt + ' · M1 ' + state.player.ammo.m1 + ' · Брен ' + state.player.ammo.bren + '</p>'; }
-function openMap() { state.mode = 'panel'; ui.panel.classList.remove('hidden'); const t = currentTarget(); ui.panelText.innerHTML = '<h2>Карта Феникса 7: Порт Рейчел и Форт Заря</h2><p>Океанский берег → Порт Рейчел → Форт Заря → Красный Узел → край Мёртвой Саванны.</p><p><b>Текущая цель:</b> ' + t.name + '</p>' + state.mapPoints.map(p => '<div class="log"><b>' + p.name + '</b> — ' + p.type + '</div>').join('') + '<div class="choices"><button data-a="close">Закрыть</button></div>'; ui.panelText.querySelectorAll('button').forEach(b => b.onclick = () => action(b.dataset.a)); }
-function debugTravel() { const pts = [[-64, 12, 'Берег'], [-32, 7.25, 'Рина'], [-22, 24, 'Навес'], [13, -4.95, 'Оран'], [21, 6.15, 'Герда'], [25, -5.0, 'Красный Узел'], [36, 29.1, 'Сава'], [58, 44, 'Край саванны']]; const i = state.player.flags.debugIndex || 0; const p = pts[i % pts.length]; rig.position.set(p[0], 0, p[1]); state.player.flags.debugIndex = i + 1; toast('Перенос: ' + p[2]); }
-function updateHUD(dt) { const p = state.player; if (state.toastT > 0) { state.toastT -= dt; if (state.toastT <= 0) ui.toast.classList.add('hidden'); } ui.hp.style.width = (100 * p.hp / p.hpMax) + '%'; ui.st.style.width = (100 * p.st / p.stMax) + '%'; ui.ph.style.width = (100 * p.ph / p.phMax) + '%'; ui.hpTxt.textContent = Math.round(p.hp); ui.stTxt.textContent = Math.round(p.st); ui.phTxt.textContent = Math.round(p.ph); ui.questTitle.textContent = 'Phoenix7 2.5D world'; ui.questBody.textContent = 'Большая карта: океанский Порт Рейчел → Форт Заря → край Мёртвой Саванны. M — карта.'; ui.questProgress.textContent = 'Подготовки: ' + countDone() + '/4 · ' + WEAPONS[p.weapon].name; const t = currentTarget(); ui.nav.textContent = 'Цель: ' + t.name + ' · ' + Math.hypot(t.x - rig.position.x, t.z - rig.position.z).toFixed(1) + ' м'; ui.debug.textContent = 'x ' + rig.position.x.toFixed(1) + ' z ' + rig.position.z.toFixed(1) + ' weapon ' + p.weapon; }
-function update(dt) { if (state.mode !== 'play') return; state.player.st = Math.min(state.player.stMax, state.player.st + dt * 8); state.player.ph = Math.min(state.player.phMax, state.player.ph + dt * 8); move(dt); updateEnemies(dt); updateProjectiles(dt); discover(); findNear(); updateHUD(dt); state.attackT = Math.max(0, state.attackT - dt * 5); state.recoilT = Math.max(0, state.recoilT - dt * 7); if (state.hands) { state.swayT += dt * 6; state.hands.position.x = Math.sin(state.swayT) * 0.012; state.hands.position.y = -state.recoilT * 0.035; state.hands.rotation.x = -state.attackT * 0.18 - state.recoilT * 0.09 + (state.keys.has('KeyR') ? 0.14 : 0); } }
+function openMap() { state.mode = 'panel'; ui.panel.classList.remove('hidden'); const t = currentTarget(); ui.panelText.innerHTML = '<h2>Карта Феникса 7: расширенный берег</h2><p>Океан → Порт Рейчел → Соляные доки → Мангровые болота → Форт Заря → Красный Узел → Мёртвая Саванна.</p><p><b>Текущая цель:</b> ' + t.name + '</p>' + state.mapPoints.map(p => '<div class="log"><b>' + p.name + '</b> — ' + p.type + '</div>').join('') + '<div class="choices"><button data-a="close">Закрыть</button></div>'; ui.panelText.querySelectorAll('button').forEach(b => b.onclick = () => action(b.dataset.a)); }
+function debugTravel() { const pts = [[-76, 10, 'Берег'], [-35, 7.25, 'Рина'], [-24, 28, 'Навес'], [17, -5.95, 'Оран'], [27, 8.15, 'Герда'], [30, -8.6, 'Красный Узел'], [46, 37.1, 'Сава'], [72, 62, 'Край саванны'], [-42, 62, 'Мангры']]; const i = state.player.flags.debugIndex || 0; const p = pts[i % pts.length]; rig.position.set(p[0], 0, p[1]); state.player.flags.debugIndex = i + 1; toast('Перенос: ' + p[2]); }
+function updateHUD(dt) { const p = state.player; if (state.toastT > 0) { state.toastT -= dt; if (state.toastT <= 0) ui.toast.classList.add('hidden'); } ui.hp.style.width = (100 * p.hp / p.hpMax) + '%'; ui.st.style.width = (100 * p.st / p.stMax) + '%'; ui.ph.style.width = (100 * p.ph / p.phMax) + '%'; ui.hpTxt.textContent = Math.round(p.hp); ui.stTxt.textContent = Math.round(p.st); ui.phTxt.textContent = Math.round(p.ph); ui.questTitle.textContent = 'Phoenix7 2.5F'; ui.questBody.textContent = 'Боёвка/руки/импакт обновлены. Мир расширен: океан, порт, болота, форт, саванна. M — карта.'; ui.questProgress.textContent = 'Подготовки: ' + countDone() + '/4 · ' + WEAPONS[p.weapon].name; const t = currentTarget(); ui.nav.textContent = 'Цель: ' + t.name + ' · ' + Math.hypot(t.x - rig.position.x, t.z - rig.position.z).toFixed(1) + ' м'; ui.debug.textContent = 'x ' + rig.position.x.toFixed(1) + ' z ' + rig.position.z.toFixed(1) + ' weapon ' + p.weapon; }
+function update(dt) { if (state.mode !== 'play') return; state.player.st = Math.min(state.player.stMax, state.player.st + dt * 8); state.player.ph = Math.min(state.player.phMax, state.player.ph + dt * 8); state.cooldown = Math.max(0, state.cooldown - dt); move(dt); updatePatrols(dt); updateEnemies(dt); updateProjectiles(dt); updateParticles(dt); discover(); findNear(); updateHUD(dt); state.attackT = Math.max(0, state.attackT - dt * 5); state.recoilT = Math.max(0, state.recoilT - dt * 7); if (state.hands) { state.swayT += dt * 6; state.hands.position.x = Math.sin(state.swayT) * 0.012; state.hands.position.y = -state.recoilT * 0.035; state.hands.rotation.x = -state.attackT * 0.18 - state.recoilT * 0.09 + (state.keys.has('KeyR') ? 0.14 : 0); } }
 function render() { renderer.render(scene, camera); for (const s of state.labels) s.quaternion.copy(camera.quaternion); }
 function loop(now) { const dt = Math.min(0.05, (now - state.last) / 1000 || 0.016); state.last = now; update(dt); render(); requestAnimationFrame(loop); }
 function resize() { renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
@@ -272,4 +149,4 @@ window.addEventListener('mousemove', (e) => { if (document.pointerLockElement !=
 renderer.domElement.addEventListener('click', () => { if (state.mode !== 'play') return; if (document.pointerLockElement !== renderer.domElement) renderer.domElement.requestPointerLock?.(); else attack(); });
 $('newBtn').onclick = () => ui.chargen.classList.remove('hidden'); $('quickBtn').onclick = () => { state.player = makePlayer({}); startGame(false); }; $('loadBtn').onclick = loadGame; $('beginBtn').onclick = () => startGame(true); $('backBtn').onclick = () => ui.chargen.classList.add('hidden'); $('closePanel').onclick = closePanel;
 window.__PHX_RUNTIME_READY = true;
-console.log('Phoenix7 2.5D world/hands/loop runtime ready.');
+console.log('Phoenix7 2.5F combat/world runtime ready.');
