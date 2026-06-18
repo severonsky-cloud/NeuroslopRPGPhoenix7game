@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phoenix7 v3 Architecture Prototype</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080604; color: #f3dca8; font-family: system-ui, Segoe UI, Arial, sans-serif; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, rgba(106,55,24,.72), rgba(5,4,3,.96)); z-index: 20; }
+    .card { width: min(760px, calc(100vw - 32px)); border: 1px solid rgba(242,199,112,.38); background: rgba(12,8,5,.86); box-shadow: 0 18px 70px rgba(0,0,0,.55); padding: 24px; }
+    h1 { margin: 0 0 10px; font-size: 32px; letter-spacing: .04em; }
+    p { line-height: 1.48; opacity: .9; }
+    button { background: #d8a64d; color: #160d06; border: 0; padding: 12px 18px; font-weight: 800; cursor: pointer; margin-right: 10px; }
+    button.secondary { background: #4f3822; color: #f3dca8; border: 1px solid #9f7132; }
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+    #topLeft { position: absolute; left: 16px; top: 14px; width: 380px; font-size: 14px; text-shadow: 0 2px 10px #000; }
+    #objective { padding: 12px; background: rgba(10,7,5,.55); border-left: 3px solid #d8a64d; }
+    #bars { margin-top: 10px; display: grid; gap: 6px; }
+    .bar { height: 8px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.12); }
+    .fill { height: 100%; background: #d8a64d; width: 100%; }
+    #bottom { position: absolute; left: 16px; bottom: 14px; color: #f4dca4; font-size: 13px; text-shadow: 0 2px 8px #000; }
+    #prompt { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); padding: 10px 14px; background: rgba(0,0,0,.68); border: 1px solid rgba(216,166,77,.45); display:none; }
+    #panel { position: fixed; right: 18px; top: 18px; width: min(460px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; background: rgba(9,7,5,.9); border: 1px solid rgba(216,166,77,.45); padding: 14px; z-index: 30; display:none; }
+    #panel h2 { margin-top: 0; }
+    #panel .line { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+    #error { position: fixed; left: 14px; right: 14px; bottom: 14px; background: #3a0907; color: #ffd8c6; padding: 12px; border: 1px solid #ff6b4a; z-index: 50; display:none; white-space: pre-wrap; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="boot">
+    <div class="card">
+      <h1>Phoenix7 v3</h1>
+      <p><b>Новый архитектурный билд.</b> Старый 2.5I остаётся в <code>game.html</code>. Этот билд запускает модульную основу: чанки, биомы, живые NPC, combat shell и карту.</p>
+      <p>Управление: WASD, Shift, мышь, ЛКМ/Space атака, E говорить/обыскать, M карта, J журнал, F1 телепорт по регионам.</p>
+      <button id="startBtn">Начать v3</button>
+      <button class="secondary" id="mapBtn">Показать карту</button>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div id="topLeft">
+      <div id="objective">v3 booting...</div>
+      <div id="bars">
+        <div class="bar"><div id="hpFill" class="fill"></div></div>
+        <div class="bar"><div id="stFill" class="fill"></div></div>
+        <div class="bar"><div id="phFill" class="fill"></div></div>
+      </div>
+    </div>
+    <div id="prompt"></div>
+    <div id="bottom">1 fists · 2 phase · 3 bastard · 4 rapier · 5 Colt · 6 M1 · 7 Bren · M map · F1 region jump</div>
+  </div>
+  <div id="panel"></div>
+  <div id="error"></div>
+
+  <script type="module">
+    window.__PHX_V3_READY = false;
+    const error = document.getElementById('error');
+    import('./src/game/v3/main.js?v=30a_arch_1')
+      .then(() => { window.__PHX_V3_READY = true; })
+      .catch((err) => {
+        error.style.display = 'block';
+        error.textContent = 'Phoenix7 v3 module failed:\n' + (err?.stack || err?.message || err);
+      });
+  </script>
+</body>
+</html>
