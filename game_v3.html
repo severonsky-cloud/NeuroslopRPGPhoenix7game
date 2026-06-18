@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phoenix7 v3.0F Enchant Reload Loot Prototype</title>
+  <title>Phoenix7 v3 Runtime</title>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080604; color: #f3dca8; font-family: system-ui, Segoe UI, Arial, sans-serif; }
     #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -36,12 +36,12 @@
 
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3.0F</h1>
-      <p><b>Enchantments + Reload + Loot + Equip.</b> Старое огнестрельное оружие теперь тяжёлое и ненадёжное: состояние, осечки, перезарядка, обоймы/магазины, лут патронов, зачарования для огнестрела и ближнего оружия.</p>
-      <p>Управление: ЛКМ/Space атака, <code>R</code> перезарядка/устранить осечку, <code>B</code> приклад/штык, <code>V</code> мушка, <code>Y</code> зачарование, <code>O</code> купить патроны, <code>I</code> инвентарь, <code>Tab</code> смена набора.</p>
-      <p>Качество: <code>F9 Low</code>, <code>F10 Medium</code>, <code>F11 High</code>. После смены качества нажми Ctrl+F5.</p>
-      <button id="startBtn">Начать v3</button>
-      <button class="secondary" id="mapBtn">Показать карту</button>
+      <h1>Phoenix7 v3</h1>
+      <p><b>Runtime updated.</b> Loaded build includes the latest RPG, inventory, faction and encounter systems.</p>
+      <p>Controls: LMB/Space, <code>R</code>, <code>B</code>, <code>V</code>, <code>Y</code>, <code>O</code>, <code>I</code>, <code>Tab</code>, <code>M</code>, <code>J</code>.</p>
+      <p>Quality: <code>F9 Low</code>, <code>F10 Medium</code>, <code>F11 High</code>. After update press Ctrl+F5.</p>
+      <button id="startBtn">Start v3</button>
+      <button class="secondary" id="mapBtn">Map</button>
     </div>
   </div>
 
@@ -55,7 +55,7 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">R reload/clear jam · B butt/bayonet · V aim · Y enchant · O ammo shop · I inventory</div>
+    <div id="bottom">R · B · V · Y · O · I · Tab · M · J</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
@@ -63,7 +63,7 @@
   <script type="module">
     window.__PHX_V3_READY = false;
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30f_enchant_reload_loot_1')
+    import('./src/game/v3/main.js?v=30g_armed_npc_1')
       .then(() => { window.__PHX_V3_READY = true; })
       .catch((err) => {
         error.style.display = 'block';
