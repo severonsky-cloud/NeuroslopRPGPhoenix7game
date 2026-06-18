@@ -1,9 +1,9 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30j_fort_zarya_encounter_1';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30j_fort_zarya_encounter_1';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30j_fort_zarya_encounter_1';
-import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30j_fort_zarya_encounter_1';
-import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30j_fort_zarya_encounter_1';
-import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30j_fort_zarya_encounter_1';
+import { PhoenixV3Engine } from './core/engine.js?v=30j1_build_review_roadfix_1';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30j1_build_review_roadfix_1';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30j1_build_review_roadfix_1';
+import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30j1_build_review_roadfix_1';
+import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30j1_build_review_roadfix_1';
+import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30j1_build_review_roadfix_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installArmedWorldExtensions(PhoenixV3Engine);
@@ -23,4 +23,4 @@ const mapBtn = document.getElementById('mapBtn');
 startBtn?.addEventListener('click', () => engine.start());
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3.0J Fort Zarya encounter prototype ready');
+console.log('Phoenix7 v3.0J1 build review roadfix runtime ready');
