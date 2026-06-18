@@ -36,6 +36,19 @@ export function installFeelExtensions(PhoenixV3Engine) {
       };
     }
 
+    if (this.armedWorld && !this.armedWorld.__hitFeelWrapped) {
+      this.armedWorld.__hitFeelWrapped = true;
+      const rawDealDamage = this.armedWorld.dealDamage.bind(this.armedWorld);
+      this.armedWorld.dealDamage = (target, dmg, kind) => {
+        rawDealDamage(target, dmg, kind);
+        if (target === 'player') {
+          this.hitFeel?.playerHit?.({ damage: dmg, kind });
+        } else if (target?.userData) {
+          this.hitFeel?.hitActor?.(target, { damage: dmg, kind: dmg >= 20 ? 'heavy' : 'medium' });
+        }
+      };
+    }
+
     if (this.firearms && !this.firearms.__feelWrapped) {
       this.firearms.__feelWrapped = true;
       const rawTryFire = this.firearms.tryFire.bind(this.firearms);
