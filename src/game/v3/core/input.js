@@ -25,6 +25,10 @@ export class InputSystem {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
       else if (this.onAction) this.onAction('MouseLeft', new Event('mouseleft'));
     });
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (this.onAction) this.onAction('MouseRight', e);
+    });
   }
 
   consumeMouse() {
