@@ -1,4 +1,4 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30d_action_rpg_1';
+import { PhoenixV3Engine } from './core/engine.js?v=30e_arsenal_ballistics_1';
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
@@ -12,4 +12,4 @@ const mapBtn = document.getElementById('mapBtn');
 startBtn?.addEventListener('click', () => engine.start());
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3.0D action RPG combat prototype ready');
+console.log('Phoenix7 v3.0E arsenal ballistics prototype ready');
