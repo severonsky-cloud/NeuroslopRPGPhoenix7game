@@ -37,22 +37,22 @@ export class BallisticSystem {
     this.sparks = [];
   }
 
-  fire({ weaponId, camera, monsters, aimMode = false, skillLevel = 5, damageScale = 1 }) {
+  fire({ weaponId, camera, monsters, aimMode = false, skillLevel = 5, damageScale = 1, spreadMul = 1 }) {
     const weapon = ARSENAL[weaponId];
     if (!weapon || !weapon.ammoType) return { ok: false, reason: 'not_firearm' };
 
     const pellets = weapon.pellets || 1;
     const results = [];
     for (let i = 0; i < pellets; i++) {
-      results.push(this.fireSingle({ weapon, camera, monsters, aimMode, skillLevel, damageScale, pelletIndex: i }));
+      results.push(this.fireSingle({ weapon, camera, monsters, aimMode, skillLevel, damageScale, spreadMul, pelletIndex: i }));
     }
     return { ok: true, results };
   }
 
-  fireSingle({ weapon, camera, monsters, aimMode, skillLevel, damageScale }) {
+  fireSingle({ weapon, camera, monsters, aimMode, skillLevel, damageScale, spreadMul }) {
     const from = camera.getWorldPosition(new THREE.Vector3());
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion())).normalize();
-    const spread = weapon.spread * (aimMode ? 0.35 : 1.0) * Math.max(0.35, 1.1 - skillLevel / 80);
+    const spread = weapon.spread * spreadMul * (aimMode ? 0.35 : 1.0) * Math.max(0.35, 1.1 - skillLevel / 80);
     dir.x += randSpread(spread);
     dir.y += randSpread(spread * 0.6);
     dir.z += randSpread(spread);
@@ -93,7 +93,7 @@ export class BallisticSystem {
         best.userData.alive = false;
         best.scale.y = 0.28;
       }
-      this.sparks.push(...makeImpact(this.scene, bestPoint, 0xffd28a));
+      this.sparks.push(...makeImpact(this.scene, bestPoint, weapon.ammoType === 'phaseCell' ? 0x8a78ff : 0xffd28a));
       return { hit: true, target: best, damage: dmg, point: bestPoint };
     }
     return { hit: false, point: bestPoint };
