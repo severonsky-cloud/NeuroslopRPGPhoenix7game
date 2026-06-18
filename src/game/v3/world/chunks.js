@@ -1,4 +1,4 @@
-import { createInstancedRocks, createInstancedTsarborTrees, createInstancedGlassTrees, placeRoad } from './props.js';
+import { createInstancedRocks, createInstancedTsarborTrees, createInstancedGlassTrees, placeRoad } from './props.js?v=road_terrain_hug_1';
 import { ROADS, WORLD_BOUNDS } from '../data/worldData.js';
 
 function seededRandom(seed) {
