@@ -11,13 +11,15 @@ import { mapHtml, journalHtml } from '../ui/map.js';
 import { WEAPONS, weaponByDigit } from '../combat/weapons.js';
 import { findMeleeTarget, damageMonster, shootProjectile, updateProjectiles } from '../combat/combat.js';
 import { Materials, makeMat, placeBox, labelSprite } from '../world/props.js';
+import { getQualityPreset, setQualityPreset } from './quality.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
     this.canvas = canvas;
+    this.quality = getQualityPreset();
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x9b5a35);
-    this.scene.fog = new THREE.FogExp2(0xb36b3f, 0.0034);
+    this.scene.fog = new THREE.FogExp2(0xb36b3f, this.quality.fogDensity);
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -31,6 +33,7 @@ export class PhoenixV3Engine {
     this.input = new InputSystem(canvas);
     this.hud = new Hud();
 
+    this.mode = 'boot';
     this.yaw = Math.PI * 0.45;
     this.pitch = 0;
     this.last = performance.now();
@@ -39,8 +42,7 @@ export class PhoenixV3Engine {
     this.npcs = [];
     this.monsters = [];
     this.labels = [];
-    this.log = ['v3 architecture booted. Старый 2.5I сохранён как backup.'];
-    this.near = null;
+    this.log = ['v3.0A: архитектурный билд запущен. 2.5I сохранён как backup.'];
     this.debugIndex = 0;
 
     this.input.onAction = (code, event) => this.onAction(code, event);
@@ -55,26 +57,33 @@ export class PhoenixV3Engine {
 
   buildScene() {
     this.scene.add(new THREE.HemisphereLight(0xffd8a0, 0x182129, 1.05));
-    const sun = new THREE.DirectionalLight(0xffb36e, 1.85);
+    const sun = new THREE.DirectionalLight(0xffb36e, 1.7);
     sun.position.set(-70, 90, 42);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.mapSize.set(this.quality.shadowMapSize, this.quality.shadowMapSize);
     this.scene.add(sun);
-    const violet = new THREE.PointLight(0x5a22ff, 1.2, 120);
-    violet.position.set(226, 20, 72);
-    this.scene.add(violet);
 
-    this.scene.add(createTerrainMesh());
-    const ocean = new THREE.Mesh(new THREE.PlaneGeometry(220, 310), new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.86 }));
+    if (this.quality.realtimeAccentLights) {
+      const violet = new THREE.PointLight(0x5a22ff, 0.95, 115);
+      violet.position.set(226, 20, 72);
+      this.scene.add(violet);
+    }
+
+    this.scene.add(createTerrainMesh({ segmentsX: this.quality.terrainSegmentsX, segmentsZ: this.quality.terrainSegmentsZ }));
+    const ocean = new THREE.Mesh(
+      new THREE.PlaneGeometry(220, 310),
+      new THREE.MeshStandardMaterial({ color: 0x12384d, roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.86 })
+    );
     ocean.position.set(-205, -0.65, 15);
     ocean.rotation.x = -Math.PI / 2;
     this.scene.add(ocean);
 
-    this.chunks = new WorldChunks(this.scene);
+    this.chunks = new WorldChunks(this.scene, this.quality);
     this.chunks.buildStaticWorld();
     this.buildLocations();
     this.buildEntities();
     this.buildViewModel();
+    this.hud.setObjective(`v3.0A architecture · quality ${this.quality.name} · Enter through button`);
   }
 
   buildLocations() {
@@ -85,13 +94,13 @@ export class PhoenixV3Engine {
     };
     for (const loc of LOCATIONS) {
       if (loc.type === 'biome' || loc.type === 'district' || loc.type === 'ruin') {
-        labelSprite(this.scene, loc.name, loc.x, loc.z, 3.3, 0.55);
+        this.labels.push(labelSprite(this.scene, loc.name, loc.x, loc.z, 3.3, 0.55));
         if (loc.type === 'ruin') this.makeBattery(loc.x, loc.z);
         continue;
       }
       this.makeBuilding(loc.name, loc.x, loc.z, colorById[loc.id] ?? 0x5e4630);
     }
-    labelSprite(this.scene, 'ВОТЧИНА ЧЁРНЫХ ЭЛЕМЕНТАЛЕЙ', 226, 72, 4.0, 0.72);
+    this.labels.push(labelSprite(this.scene, 'ВОТЧИНА ЧЁРНЫХ ЭЛЕМЕНТАЛЕЙ', 226, 72, 4.0, 0.72));
   }
 
   makeBuilding(name, x, z, color) {
@@ -153,11 +162,17 @@ export class PhoenixV3Engine {
       barrel.position.set(0.32 + len * 0.52, -0.42, -0.75);
       root.add(barrel);
     } else if (w.kind === 'blade') {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.055 : 0.028, 0.045, w.hold === 'heavyBlade' ? 1.05 : 0.82), makeMat(0xc8c0a8, { roughness: 0.34, metalness: 0.28 }));
+      const blade = new THREE.Mesh(
+        new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.055 : 0.028, 0.045, w.hold === 'heavyBlade' ? 1.05 : 0.82),
+        makeMat(0xc8c0a8, { roughness: 0.34, metalness: 0.28 })
+      );
       blade.position.set(0.34, -0.42, -1.04);
       root.add(blade);
     } else if (w.kind === 'phase') {
-      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 12), new THREE.MeshStandardMaterial({ color: 0x8a78ff, emissive: 0x5845ff, emissiveIntensity: 1.7, transparent: true, opacity: 0.82 }));
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.13, 18, 12),
+        new THREE.MeshStandardMaterial({ color: 0x8a78ff, emissive: 0x5845ff, emissiveIntensity: 1.7, transparent: true, opacity: 0.82 })
+      );
       orb.position.set(0.02, -0.32, -0.9);
       root.add(orb);
     }
@@ -168,7 +183,7 @@ export class PhoenixV3Engine {
   start() {
     document.getElementById('boot')?.classList.add('hidden');
     this.mode = 'play';
-    this.hud.setObjective('v3 ready · WASD move · M map · F1 regions');
+    this.hud.setObjective(`v3 ready · quality ${this.quality.name} · WASD move · M map · F1 regions`);
   }
 
   onAction(code, event) {
@@ -186,6 +201,14 @@ export class PhoenixV3Engine {
       this.teleportNext();
     }
     if (code === 'KeyE') this.interact();
+    if (code === 'F9') this.setQuality('low');
+    if (code === 'F10') this.setQuality('medium');
+    if (code === 'F11') this.setQuality('high');
+  }
+
+  setQuality(name) {
+    setQualityPreset(name);
+    this.hud.setObjective(`Quality set to ${name}. Перезагрузи страницу Ctrl+F5.`);
   }
 
   attack() {
@@ -235,6 +258,15 @@ export class PhoenixV3Engine {
     this.hud.setObjective(`F1 teleport: ${p.n}`);
   }
 
+  updateLabelVisibility() {
+    const max = this.quality.labelsDistance;
+    for (const l of this.labels) {
+      const d = Math.hypot(l.position.x - this.rig.position.x, l.position.z - this.rig.position.z);
+      l.visible = d < max;
+      if (l.visible) l.quaternion.copy(this.camera.quaternion);
+    }
+  }
+
   update(dt) {
     const mouse = this.input.consumeMouse();
     if (this.input.pointerLocked) {
@@ -253,18 +285,16 @@ export class PhoenixV3Engine {
     this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
 
     const biome = BIOMES.find(b => b.id === biomeAt(this.rig.position.x, this.rig.position.z));
-    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', 'v3 architecture slice');
+    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `quality ${this.quality.name} · F9/F10/F11`);
     const nearNpc = this.npcs.find(n => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4);
     if (nearNpc) this.hud.showPrompt(`E — говорить: ${nearNpc.userData.name}`);
     else this.hud.hidePrompt();
 
-    if (this.hands) {
-      this.hands.position.x = Math.sin(performance.now() * 0.006) * 0.012;
-    }
+    if (this.hands) this.hands.position.x = Math.sin(performance.now() * 0.006) * 0.012;
   }
 
   render() {
-    for (const l of this.labels) l.quaternion.copy(this.camera.quaternion);
+    this.updateLabelVisibility();
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -277,7 +307,7 @@ export class PhoenixV3Engine {
   }
 
   resize() {
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.quality.pixelRatio));
     this.renderer.setSize(innerWidth, innerHeight);
     this.camera.aspect = innerWidth / innerHeight;
     this.camera.updateProjectionMatrix();
