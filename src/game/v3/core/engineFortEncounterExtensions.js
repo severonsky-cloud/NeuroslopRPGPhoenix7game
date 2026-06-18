@@ -1,4 +1,4 @@
-import { FortZaryaEncounter } from '../encounters/fortZaryaEncounter.js';
+import { FortZaryaEncounter } from '../encounters/fortZaryaEncounter.js?v=random_event_1';
 
 export function installFortEncounterExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__fortEncounterExtensionInstalled) return;
@@ -9,7 +9,7 @@ export function installFortEncounterExtensions(PhoenixV3Engine) {
     originalBuildScene.call(this);
     this.fortEncounter = new FortZaryaEncounter(this);
     this.fortEncounter.build();
-    this.log.unshift('v3.0J: Fort Zarya encounter loop, Sherman vs Puma, timed occupation and NPC evacuation.');
+    this.log.unshift('v3.0J1: Fort Zarya random encounter loop, AI vehicles, timed occupation and NPC evacuation.');
   };
 
   const originalUpdate = PhoenixV3Engine.prototype.update;
