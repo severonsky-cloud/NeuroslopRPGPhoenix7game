@@ -11,10 +11,11 @@
     .card { width: min(760px, calc(100vw - 32px)); border: 1px solid rgba(242,199,112,.38); background: rgba(12,8,5,.86); box-shadow: 0 18px 70px rgba(0,0,0,.55); padding: 24px; }
     h1 { margin: 0 0 10px; font-size: 32px; letter-spacing: .04em; }
     p { line-height: 1.48; opacity: .9; }
+    code { color: #ffd28a; }
     button { background: #d8a64d; color: #160d06; border: 0; padding: 12px 18px; font-weight: 800; cursor: pointer; margin-right: 10px; }
     button.secondary { background: #4f3822; color: #f3dca8; border: 1px solid #9f7132; }
     #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-    #topLeft { position: absolute; left: 16px; top: 14px; width: 380px; font-size: 14px; text-shadow: 0 2px 10px #000; }
+    #topLeft { position: absolute; left: 16px; top: 14px; width: 430px; font-size: 14px; text-shadow: 0 2px 10px #000; }
     #objective { padding: 12px; background: rgba(10,7,5,.55); border-left: 3px solid #d8a64d; }
     #bars { margin-top: 10px; display: grid; gap: 6px; }
     .bar { height: 8px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.12); }
@@ -33,9 +34,10 @@
 
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3</h1>
-      <p><b>Новый архитектурный билд.</b> Старый 2.5I остаётся в <code>game.html</code>. Этот билд запускает модульную основу: чанки, биомы, живые NPC, combat shell и карту.</p>
-      <p>Управление: WASD, Shift, мышь, ЛКМ/Space атака, E говорить/обыскать, M карта, J журнал, F1 телепорт по регионам.</p>
+      <h1>Phoenix7 v3.0A</h1>
+      <p><b>Новый архитектурный билд.</b> Старый 2.5I остаётся в <code>game.html</code>. Этот билд запускает модульную основу: чанки, биомы, живые NPC, combat shell, quality presets и карту.</p>
+      <p>Управление: WASD, Shift, мышь, ЛКМ/Space атака, E говорить, M карта, J журнал, F1 телепорт по регионам.</p>
+      <p>Качество: <code>F9 Low</code>, <code>F10 Medium</code>, <code>F11 High</code>. После смены качества нажми Ctrl+F5.</p>
       <button id="startBtn">Начать v3</button>
       <button class="secondary" id="mapBtn">Показать карту</button>
     </div>
@@ -51,7 +53,7 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">1 fists · 2 phase · 3 bastard · 4 rapier · 5 Colt · 6 M1 · 7 Bren · M map · F1 region jump</div>
+    <div id="bottom">1 fists · 2 phase · 3 bastard · 4 rapier · 5 Colt · 6 M1 · 7 Bren · M map · F1 regions · F9/F10/F11 quality</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
@@ -59,7 +61,7 @@
   <script type="module">
     window.__PHX_V3_READY = false;
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30a_arch_1')
+    import('./src/game/v3/main.js?v=30a_arch_2')
       .then(() => { window.__PHX_V3_READY = true; })
       .catch((err) => {
         error.style.display = 'block';
