@@ -9,7 +9,7 @@ import { InputSystem } from './input.js';
 import { Hud } from '../ui/hud.js';
 import { mapHtml, journalHtml } from '../ui/map.js';
 import { WEAPONS, weaponByDigit } from '../combat/weapons.js';
-import { findMeleeTarget, damageMonster, shootProjectile, updateProjectiles } from '../combat/combat.js';
+import { findMeleeTarget, damageMonster, updateProjectiles } from '../combat/combat.js';
 import { Materials, makeMat, placeBox, labelSprite } from '../world/props.js';
 import { getQualityPreset, setQualityPreset } from './quality.js';
 import { createAtmosphere, applyBiomeAtmosphere } from '../world/atmosphere.js';
@@ -18,6 +18,9 @@ import { LivingWorldSystem } from '../world/life.js';
 import { RpgSystem } from '../rpg/rpgSystem.js';
 import { InventorySystem } from '../items/inventory.js';
 import { PhaseMagicSystem, PHASE_SPELLS } from '../magic/phaseMagic.js';
+import { BallisticSystem } from '../combat/ballistics.js';
+import { ARSENAL, AMMO_TYPES, attackProfile } from '../combat/arsenal.js';
+import { createWeaponViewModel } from '../items/weaponModels.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
@@ -42,6 +45,7 @@ export class PhoenixV3Engine {
     this.player.weapon = this.inventory.activeWeaponId();
     this.input = new InputSystem(canvas);
     this.hud = new Hud();
+    this.ballistics = new BallisticSystem(this.scene);
 
     this.mode = 'boot';
     this.paused = false;
@@ -54,7 +58,7 @@ export class PhoenixV3Engine {
     this.npcs = [];
     this.monsters = [];
     this.labels = [];
-    this.log = ['v3.0D: Action RPG combat, inventory, paper doll, phase magic foundation.'];
+    this.log = ['v3.0E: arsenal, ballistics, ammo, weapon models, buttstock and bayonet foundation.'];
     this.debugIndex = 0;
     this.currentBiomeId = 'clay';
 
@@ -63,10 +67,7 @@ export class PhoenixV3Engine {
     this.resize();
   }
 
-  boot() {
-    this.buildScene();
-    this.loop(performance.now());
-  }
+  boot() { this.buildScene(); this.loop(performance.now()); }
 
   buildScene() {
     this.atmosphere = createAtmosphere(this.scene, this.quality);
@@ -93,7 +94,7 @@ export class PhoenixV3Engine {
     this.livingWorld.build();
     this.buildViewModel();
     this.updateCrosshair();
-    this.hud.setObjective(`v3.0D Action RPG · inventory I · character K · phase P · aim V`);
+    this.hud.setObjective(`v3.0E Arsenal · V sight · B butt/bayonet · O ammo shop`);
   }
 
   buildLocations() {
@@ -143,66 +144,15 @@ export class PhoenixV3Engine {
 
   buildViewModel() {
     if (this.hands) this.camera.remove(this.hands);
-    const root = new THREE.Group();
-    const skin = makeMat(0xc09673);
-    const armGeo = new THREE.CapsuleGeometry(0.055, 0.32, 5, 8);
-    const fistGeo = new THREE.SphereGeometry(0.09, 10, 8);
-    const left = new THREE.Group();
-    const right = new THREE.Group();
-    const la = new THREE.Mesh(armGeo, skin); la.rotation.x = 1.18;
-    const ra = new THREE.Mesh(armGeo, skin); ra.rotation.x = 1.18;
-    const lf = new THREE.Mesh(fistGeo, skin); lf.position.set(0, -0.01, -0.29);
-    const rf = new THREE.Mesh(fistGeo, skin); rf.position.set(0, -0.01, -0.29);
-    left.add(la, lf); right.add(ra, rf);
-    left.position.set(-0.22, -0.49, -0.82);
-    right.position.set(0.25, -0.49, -0.82);
-    left.rotation.set(-0.2, 0.16, -0.12);
-    right.rotation.set(-0.2, -0.16, 0.12);
-    root.add(left, right);
-
-    const w = WEAPONS[this.player.weapon];
-    if (w.kind === 'gun') {
-      const len = w.hold === 'rifle' ? 1.04 : w.hold === 'lmg' ? 0.86 : 0.38;
-      const body = new THREE.Mesh(new THREE.BoxGeometry(len, w.hold === 'lmg' ? 0.16 : 0.12, 0.16), Materials.metal);
-      body.position.set(this.aimMode ? 0.02 : 0.32, this.aimMode ? -0.36 : -0.43, this.aimMode ? -0.92 : -0.75);
-      body.rotation.y = this.aimMode ? 0 : -0.08;
-      root.add(body);
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, len * 0.9, 8), Materials.metal);
-      barrel.rotation.x = Math.PI / 2;
-      barrel.position.set((this.aimMode ? 0.02 : 0.32) + len * 0.52, this.aimMode ? -0.35 : -0.42, this.aimMode ? -0.92 : -0.75);
-      root.add(barrel);
-      const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.13, 0.035), makeMat(0x0c0b0a));
-      frontSight.position.set(barrel.position.x + len * 0.42, barrel.position.y + 0.1, barrel.position.z);
-      root.add(frontSight);
-      if (w.hold === 'lmg') {
-        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.36, 0.11), Materials.metal);
-        mag.position.set(0.18, -0.25, -0.78);
-        root.add(mag);
-      }
-    } else if (w.kind === 'blade') {
-      const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(w.hold === 'heavyBlade' ? 0.055 : 0.028, 0.045, w.hold === 'heavyBlade' ? 1.05 : 0.82),
-        makeMat(0xc8c0a8, { roughness: 0.34, metalness: 0.28 })
-      );
-      blade.position.set(0.34, -0.42, -1.04);
-      root.add(blade);
-    } else if (w.kind === 'phase') {
-      const orb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.13, 18, 12),
-        new THREE.MeshStandardMaterial({ color: 0x8a78ff, emissive: 0x5845ff, emissiveIntensity: 1.7, transparent: true, opacity: 0.82 })
-      );
-      orb.position.set(0.02, -0.32, -0.9);
-      root.add(orb);
-    }
-    this.hands = root;
-    this.camera.add(root);
+    this.hands = createWeaponViewModel(this.player.weapon, this.aimMode);
+    this.camera.add(this.hands);
   }
 
   start() {
     document.getElementById('boot')?.classList.add('hidden');
     this.mode = 'play';
     this.paused = false;
-    this.hud.setObjective(`v3.0D ready · I inventory · K character · P phase · V aim · Tab hand set`);
+    this.hud.setObjective(`v3.0E ready · ${ARSENAL[this.player.weapon].name} · V sight · B butt/bayonet · O ammo`);
   }
 
   onAction(code, event) {
@@ -211,14 +161,20 @@ export class PhoenixV3Engine {
     if (code === 'KeyI') { this.openInventory(); return; }
     if (code === 'KeyK') { this.openCharacter(); return; }
     if (code === 'KeyP') { this.openPhasePanel(); return; }
+    if (code === 'KeyO') { this.openAmmoShop(); return; }
     if (code === 'KeyV') { this.toggleAim(); return; }
+    if (code === 'KeyB') { this.altWeaponAttack(); return; }
     if (code === 'Tab') { event?.preventDefault?.(); this.switchHandSet(); return; }
     if (this.paused && code !== 'KeyM' && code !== 'KeyJ') return;
 
     const weapon = weaponByDigit(code);
     if (weapon) {
       this.player.weapon = weapon;
+      this.aimMode = false;
+      this.camera.fov = 72;
+      this.camera.updateProjectionMatrix();
       this.buildViewModel();
+      this.updateCrosshair();
     }
     if (code === 'MouseLeft' || code === 'Space') this.attack();
     if (code === 'KeyM') this.openMap();
@@ -240,11 +196,11 @@ export class PhoenixV3Engine {
     const w = WEAPONS[this.player.weapon];
     if (w.kind !== 'gun') { this.hud.setObjective('Прицельный режим доступен только для огнестрела.'); return; }
     this.aimMode = !this.aimMode;
-    this.camera.fov = this.aimMode ? 52 : 72;
+    this.camera.fov = this.aimMode ? 50 : 72;
     this.camera.updateProjectionMatrix();
     this.buildViewModel();
     this.updateCrosshair();
-    this.hud.setObjective(this.aimMode ? 'Прицел включён · V чтобы выйти' : 'Обычный обзор');
+    this.hud.setObjective(this.aimMode ? 'Мушка включена · V чтобы выйти' : 'Обычный обзор');
   }
 
   updateCrosshair() {
@@ -268,7 +224,7 @@ export class PhoenixV3Engine {
     this.camera.updateProjectionMatrix();
     this.buildViewModel();
     this.updateCrosshair();
-    this.hud.setObjective(`Переключён набор оружия: ${WEAPONS[newWeapon]?.name || newWeapon}`);
+    this.hud.setObjective(`Переключён набор оружия: ${ARSENAL[newWeapon]?.name || newWeapon}`);
   }
 
   openContextMenu() {
@@ -278,34 +234,27 @@ export class PhoenixV3Engine {
       <div class="line"><b>I</b> — Инвентарь / кукла персонажа</div>
       <div class="line"><b>K</b> — Персонаж / навыки</div>
       <div class="line"><b>P</b> — Фазовая магия</div>
-      <div class="line"><b>M</b> — Карта</div>
-      <div class="line"><b>J</b> — Журнал</div>
-      <div class="line"><b>Tab</b> — левый/правый набор оружия</div>
-      <div class="line"><b>V</b> — переключить мушку/прицел</div>
+      <div class="line"><b>O</b> — Купить патроны</div>
+      <div class="line"><b>B</b> — Приклад / штык</div>
+      <div class="line"><b>V</b> — Мушка / прицел</div>
       <p><button id="closeMapBtn">Вернуться</button></p>`);
     document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   }
 
-  closePausePanel() {
-    this.paused = false;
-    this.hud.closePanel();
-  }
+  closePausePanel() { this.paused = false; this.hud.closePanel(); }
+  openInventory() { this.paused = true; this.hud.openPanel(this.inventory.html()); document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel()); }
+  openCharacter() { this.paused = true; this.hud.openPanel(this.rpg.summaryHtml()); document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel()); }
+  openPhasePanel() { this.paused = true; this.hud.openPanel(this.phaseMagic.html()); document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel()); }
 
-  openInventory() {
+  openAmmoShop() {
     this.paused = true;
-    this.hud.openPanel(this.inventory.html());
-    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
-  }
-
-  openCharacter() {
-    this.paused = true;
-    this.hud.openPanel(this.rpg.summaryHtml());
-    document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
-  }
-
-  openPhasePanel() {
-    this.paused = true;
-    this.hud.openPanel(this.phaseMagic.html());
+    const rows = Object.entries(AMMO_TYPES).map(([type, ammo]) => `<div class="line"><b>${ammo.icon} ${ammo.name}</b> · цена ${ammo.price}<br><button data-ammo="${type}">Купить 5</button></div>`).join('');
+    this.hud.openPanel(`<h2>Покупка патронов</h2><p>Кредиты: ${this.player.credits}</p>${rows}<p><button id="closeMapBtn">Закрыть</button></p>`);
+    document.querySelectorAll('[data-ammo]').forEach(btn => btn.addEventListener('click', () => {
+      const ok = this.inventory.buyAmmo(btn.dataset.ammo, 5);
+      this.hud.setObjective(ok ? `Куплено: ${AMMO_TYPES[btn.dataset.ammo].name} ×5` : 'Не хватает кредитов.');
+      this.openAmmoShop();
+    }));
     document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   }
 
@@ -325,6 +274,34 @@ export class PhoenixV3Engine {
     }
     const res = this.phaseMagic.cast(ability);
     this.hud.setObjective(res.ok ? `Фазовая способность: ${PHASE_SPELLS[ability]?.name || ability}` : `Фаза не сработала: ${res.reason}`);
+  }
+
+  meleeAttackWithProfile(profile, baseWeapon, skillKey = 'blade') {
+    const virtualWeapon = { ...baseWeapon, range: profile.range, arc: profile.arc };
+    const old = WEAPONS.__virtual;
+    WEAPONS.__virtual = virtualWeapon;
+    const target = findMeleeTarget({ weaponId: '__virtual', playerRig: this.rig, camera: this.camera, monsters: this.monsters });
+    if (old) WEAPONS.__virtual = old; else delete WEAPONS.__virtual;
+    if (!target) { this.hud.setObjective(`${profile.name}: не достаёт`); return false; }
+    const dmg = Math.round(baseWeapon.damage * (profile.damageMul || 1) * (1 + this.player.rpg.skills[skillKey].level / 110));
+    const m = damageMonster(target, dmg);
+    this.rpg.useSkill(skillKey, 1.5);
+    this.hud.hitMarker(`-${dmg}`);
+    this.hud.setObjective(`${m.name}: ${profile.name}`);
+    return true;
+  }
+
+  altWeaponAttack() {
+    if (this.paused || this.mode === 'boot') return;
+    const w = WEAPONS[this.player.weapon];
+    const profile = w.bayonet ? attackProfile(this.player.weapon, 'bayonet') : attackProfile(this.player.weapon, 'butt') || attackProfile(this.player.weapon, 'heavy');
+    if (!profile) { this.hud.setObjective('У этого оружия нет альтернативной атаки.'); return; }
+    const stamina = Math.ceil((w.stamina || 8) * (profile.staminaMul || 1.1));
+    if (this.player.st < stamina) { this.hud.setObjective('Нет выносливости для альтернативной атаки.'); return; }
+    this.player.st -= stamina;
+    this.cooldown = Math.max(this.cooldown, (w.cooldown || 0.5) * 1.25);
+    const skill = profile.type === 'butt' ? 'blunt' : profile.type === 'bayonet' ? 'blade' : w.kind === 'gun' ? 'blunt' : 'blade';
+    this.meleeAttackWithProfile(profile, w, skill);
   }
 
   attack() {
@@ -349,22 +326,20 @@ export class PhoenixV3Engine {
     }
 
     if (w.kind === 'gun') {
-      if (w.ammo && this.player.ammo[w.ammo] <= 0) { this.hud.setObjective(`Нет боезапаса: ${w.name}`); return; }
-      if (w.ammo) this.player.ammo[w.ammo] -= 1;
-      const dmg = Math.round(w.damage * (1 + this.player.rpg.skills.firearms.level / 140));
-      this.projectiles.push(shootProjectile({ scene: this.scene, camera: this.camera, weapon: w, damage: dmg }));
+      const shotCount = w.pellets ? 1 : 1;
+      if (!this.inventory.spendAmmo(this.player.weapon, shotCount)) { this.hud.setObjective(`Нет патронов: ${AMMO_TYPES[w.ammo]?.name || w.name}`); return; }
+      const scale = 1 + this.player.rpg.skills.firearms.level / 140;
+      const result = this.ballistics.fire({ weaponId: this.player.weapon, camera: this.camera, monsters: this.monsters, aimMode: this.aimMode, skillLevel: this.player.rpg.skills.firearms.level, damageScale: scale });
       this.rpg.useSkill('firearms', 1.4);
+      const hit = result.results?.find(r => r.hit);
+      this.hud.setObjective(hit ? `${hit.target.userData.name}: ballistic hit` : `${w.name}: трассер ушёл в даль`);
+      if (hit) this.hud.hitMarker(`-${hit.damage}`);
       return;
     }
 
-    const target = findMeleeTarget({ weaponId: this.player.weapon, playerRig: this.rig, camera: this.camera, monsters: this.monsters });
-    if (!target) { this.hud.setObjective(`${w.name}: не достаёт`); return; }
+    const profile = attackProfile(this.player.weapon, 'primary') || { name: 'удар', range: w.range, arc: w.arc, damageMul: 1 };
     const skill = w.kind === 'blade' ? 'blade' : 'blunt';
-    const dmg = Math.round(w.damage * (1 + this.player.rpg.skills[skill].level / 110));
-    const m = damageMonster(target, dmg);
-    this.rpg.useSkill(skill, 1.7);
-    this.hud.hitMarker(`-${dmg}`);
-    this.hud.setObjective(`${m.name}: удар ${w.name}`);
+    this.meleeAttackWithProfile(profile, w, skill);
   }
 
   interact() {
@@ -424,8 +399,9 @@ export class PhoenixV3Engine {
     if (this.mode === 'boot') return;
     const mouse = this.input.consumeMouse();
     if (!this.paused && this.input.pointerLocked) {
-      this.yaw -= mouse.dx * 0.0022;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - mouse.dy * 0.002, -1.15, 1.15);
+      const sensitivity = this.aimMode ? 0.0012 : 0.0022;
+      this.yaw -= mouse.dx * sensitivity;
+      this.pitch = THREE.MathUtils.clamp(this.pitch - mouse.dy * sensitivity, -1.15, 1.15);
       this.rig.rotation.y = this.yaw;
       this.camera.rotation.x = this.pitch;
     }
@@ -439,6 +415,7 @@ export class PhoenixV3Engine {
       this.livingWorld?.update(dt, this.rig);
       updateMonsters(this.monsters, this.rig, dt);
       this.phaseMagic.update(dt);
+      this.ballistics.update(dt);
       this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });
     }
 
@@ -446,7 +423,8 @@ export class PhoenixV3Engine {
     if (biomeId !== this.currentBiomeId) { this.currentBiomeId = biomeId; applyBiomeAtmosphere(this.scene, this.atmosphere, biomeId, this.quality); }
     const biome = BIOMES.find(b => b.id === biomeId);
     const w = WEAPONS[this.player.weapon];
-    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `${w.name} · ${this.paused ? 'PAUSED' : 'live'} · V aim · I/K/P`);
+    const ammoText = w.ammo ? ` · ammo ${this.inventory.ammoForWeapon(this.player.weapon)}` : '';
+    this.hud.update(this.player, biome?.name ?? 'Неизвестная зона', `${ARSENAL[this.player.weapon]?.name || w.name}${ammoText} · ${this.paused ? 'PAUSED' : 'live'} · B alt · V aim`);
     const lifeAgent = this.livingWorld?.findNear(this.rig);
     if (!this.paused && lifeAgent) this.hud.showPrompt(`E — говорить: ${lifeAgent.userData.name}`);
     else {
@@ -455,7 +433,8 @@ export class PhoenixV3Engine {
       else this.hud.hidePrompt();
     }
     if (this.hands) {
-      this.hands.position.x = Math.sin(performance.now() * 0.006) * (this.aimMode ? 0.003 : 0.012);
+      const sway = this.aimMode ? 0.003 : 0.012;
+      this.hands.position.x = Math.sin(performance.now() * 0.006) * sway;
       this.hands.position.y = Math.sin(this.player.motion?.bob || 0) * (this.aimMode ? 0.002 : 0.008);
     }
   }
