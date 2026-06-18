@@ -1,4 +1,5 @@
 import { GunFeelSystem } from '../feel/gunFeel.js';
+import { ReloadFeelSystem } from '../feel/reloadFeel.js';
 import { MusicDirector } from '../audio/musicDirector.js';
 import { WEAPONS } from '../combat/weapons.js';
 
@@ -10,8 +11,9 @@ export function installFeelExtensions(PhoenixV3Engine) {
   PhoenixV3Engine.prototype.buildScene = function buildSceneWithFeel() {
     originalBuildScene.call(this);
     this.gunFeel = new GunFeelSystem(this);
+    this.reloadFeel = new ReloadFeelSystem(this);
     this.musicDirector = new MusicDirector();
-    this.log.unshift('v3.0K1: gun feel, recoil, muzzle flash, hit feedback, ammo HUD and music director.');
+    this.log.unshift('v3.0K2: gun feel plus visible reload stages, jam warning, weapon reload animation and music director.');
 
     if (this.ballistics && !this.ballistics.__feelWrapped) {
       this.ballistics.__feelWrapped = true;
@@ -30,13 +32,19 @@ export function installFeelExtensions(PhoenixV3Engine) {
       const rawTryFire = this.firearms.tryFire.bind(this.firearms);
       this.firearms.tryFire = (weaponId, jamMul, wearMul) => {
         const result = rawTryFire(weaponId, jamMul, wearMul);
-        if (!result.ok && (result.reason === 'jammed' || result.reason === 'jammed_now')) this.gunFeel?.jam?.();
+        if (!result.ok && (result.reason === 'jammed' || result.reason === 'jammed_now')) {
+          this.gunFeel?.jam?.();
+          this.reloadFeel?.jammed?.();
+        }
         return result;
       };
       const rawStartReload = this.firearms.startReload.bind(this.firearms);
       this.firearms.startReload = (weaponId) => {
         const result = rawStartReload(weaponId);
-        if (result.ok) this.gunFeel?.reloadStart?.(weaponId);
+        if (result.ok) {
+          this.gunFeel?.reloadStart?.(weaponId);
+          this.reloadFeel?.start?.(weaponId, result);
+        }
         return result;
       };
     }
@@ -53,6 +61,7 @@ export function installFeelExtensions(PhoenixV3Engine) {
     originalUpdate.call(this, dt);
     if (this.mode !== 'boot') {
       this.gunFeel?.update?.(dt);
+      this.reloadFeel?.update?.(dt);
       const enemiesNear = [...(this.monsters || []), ...(this.livingWorld?.agents || [])]
         .filter(o => o?.userData?.alive !== false && o.position?.distanceTo?.(this.rig.position) < 32).length;
       this.musicDirector?.setCombatIntensity?.(Math.min(1, enemiesNear / 6));
