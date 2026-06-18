@@ -14,6 +14,7 @@ export function createPlayer() {
     inventory: ['мокрые бумаги', 'тюремный жетон', 'бастард', 'шпага', 'Кольт 1917', 'M1 Гаранд', 'Брен'],
     quest: { rina: false, road: false, oran: false, market: false, factions: false, contraband: false, gerda: false, sava: false },
     flags: { debugIndex: 0 },
+    motion: { vx: 0, vz: 0, bob: 0 },
   };
 }
 
@@ -27,14 +28,25 @@ export function createPlayerRig(scene) {
   return { rig, camera };
 }
 
-export function movePlayer({ rig, input, yaw, dt, speedWalk = 5.0, speedRun = 8.2 }) {
+export function movePlayer({ rig, input, yaw, dt, player = null, speedWalk = 6.2, speedRun = 10.6 }) {
   const axis = input.axis();
-  if (!axis.x && !axis.z) return false;
+  const motion = player?.motion || { vx: 0, vz: 0, bob: 0 };
+  const hasInput = !!(axis.x || axis.z);
   const speed = input.sprinting() ? speedRun : speedWalk;
-  const v = new THREE.Vector3(axis.x, 0, axis.z).normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-  const next = clampToWorld(rig.position.x + v.x * speed * dt, rig.position.z + v.z * speed * dt);
+  const target = new THREE.Vector3(axis.x, 0, axis.z);
+  if (target.lengthSq() > 0) target.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(speed);
+
+  const accel = input.sprinting() ? 13.0 : 10.5;
+  const drag = hasInput ? accel : 16.0;
+  motion.vx = THREE.MathUtils.damp(motion.vx, target.x, drag, dt);
+  motion.vz = THREE.MathUtils.damp(motion.vz, target.z, drag, dt);
+
+  const next = clampToWorld(rig.position.x + motion.vx * dt, rig.position.z + motion.vz * dt);
   rig.position.x = next.x;
   rig.position.z = next.z;
-  rig.position.y = THREE.MathUtils.lerp(rig.position.y, heightAt(next.x, next.z), 0.25);
-  return input.sprinting();
+  rig.position.y = THREE.MathUtils.lerp(rig.position.y, heightAt(next.x, next.z), 0.32);
+  motion.bob += dt * Math.hypot(motion.vx, motion.vz) * 1.35;
+
+  if (player) player.motion = motion;
+  return input.sprinting() && hasInput;
 }
