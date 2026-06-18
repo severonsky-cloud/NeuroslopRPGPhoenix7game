@@ -125,15 +125,20 @@ function buildM1(root, aimMode, mats, weapon) {
 }
 
 function buildBren(root, aimMode, mats) {
-  const x = aimMode ? 0 : 0.16;
-  const y = aimMode ? -0.28 : -0.35;
+  const x = aimMode ? 0.04 : 0.16;
+  const y = aimMode ? -0.32 : -0.35;
   const receiverZ = -0.74;
+  const magazineSize = aimMode ? [0.2, 0.36, 0.16] : [0.24, 0.42, 0.18];
+  const magazinePosition = aimMode
+    ? [x - 0.22, y + 0.31, receiverZ - 0.08]
+    : [x, y + 0.31, receiverZ - 0.08];
+  const magazineRotation = aimMode ? [0.08, 0, -0.18] : [0.08, 0, 0.04];
   box(root, [0.22, 0.24, 0.55], mats.gunmetal, 'bren-heavy-receiver', [x, y, receiverZ]);
   box(root, [0.2, 0.19, 0.46], mats.wood, 'bren-stock', [x, y - 0.045, receiverZ + 0.48], [-0.04, 0, 0]);
   box(root, [0.19, 0.16, 0.44], mats.woodLight, 'bren-foregrip', [x, y - 0.03, receiverZ - 0.43]);
   cylinder(root, 0.034, 0.88, mats.blueSteel, 'bren-heavy-barrel', [x, y + 0.02, receiverZ - 1.02], 'z', 12);
   cylinder(root, 0.058, 0.32, mats.dark, 'bren-barrel-jacket', [x, y + 0.02, receiverZ - 0.74], 'z', 12);
-  const magazine = remember(box(root, [0.24, 0.42, 0.18], mats.gunmetal, 'bren-top-magazine', [x, y + 0.31, receiverZ - 0.08], [0.08, 0, 0.04]));
+  const magazine = remember(box(root, magazineSize, mats.gunmetal, 'bren-top-magazine', magazinePosition, magazineRotation));
   box(root, [0.15, 0.05, 0.38], mats.dark, 'bren-carry-handle', [x + 0.18, y + 0.16, receiverZ - 0.16], [0, 0, -0.42]);
   const bipodLeft = box(root, [0.025, 0.48, 0.025], mats.gunmetal, 'bren-bipod-left', [x - 0.13, y - 0.2, receiverZ - 1.12], [0, 0, -0.22]);
   const bipodRight = box(root, [0.025, 0.48, 0.025], mats.gunmetal, 'bren-bipod-right', [x + 0.13, y - 0.2, receiverZ - 1.12], [0, 0, 0.22]);

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>Phoenix7 v3L4 — Visual Atmosphere</title>
+  <title>Phoenix7 v3L4.1 — PR Polish</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080604;color:#f3dca8;font-family:system-ui}
     #game{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -28,7 +28,7 @@
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3L4</h1>
+      <h1>Phoenix7 v3L4.1</h1>
       <p>Visual Atmosphere Pass: low warm sun, coastal haze, gradient sky, grounded roads and distant landmarks.</p>
       <p><b>Проверка:</b> Start → пройти по дороге → F1 между регионами → осмотреть горизонт.</p>
       <button id="startBtn">Start</button>
@@ -37,7 +37,7 @@
   </div>
   <div id="hud">
     <div id="topLeft">
-      <div id="objective">v3L4 booting...</div>
+      <div id="objective">v3L4.1 booting...</div>
       <div id="bars">
         <div class="bar"><div id="hpFill" class="fill"></div></div>
         <div class="bar"><div id="stFill" class="fill"></div></div>
@@ -45,13 +45,13 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">v3L4 · atmosphere pass · F8 body debug</div>
+    <div id="bottom">v3L4.1 · PR polish · F8 body debug</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30l4_visual_atmosphere_1').catch(err => {
+    import('./src/game/v3/main.js?v=30l4_1_pr_polish_1').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });

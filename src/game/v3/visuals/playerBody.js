@@ -8,7 +8,7 @@ export const PLAYER_BODY_RACE_PROFILES = Object.freeze({
     heightScale: 1,
     widthScale: 1,
     eyeHeight: 1.72,
-    moveSpeedMultiplier: 1,
+    animationSpeedMultiplier: 1,
     gaitMultiplier: 1,
     reptilian: false,
     coat: 0x44382b,
@@ -23,7 +23,7 @@ export const PLAYER_BODY_RACE_PROFILES = Object.freeze({
     heightScale: 0.98,
     widthScale: 1.04,
     eyeHeight: 1.68,
-    moveSpeedMultiplier: 1.08,
+    animationSpeedMultiplier: 1.08,
     gaitMultiplier: 1.1,
     reptilian: true,
     coat: 0x394235,
@@ -38,7 +38,7 @@ export const PLAYER_BODY_RACE_PROFILES = Object.freeze({
     heightScale: 0.88,
     widthScale: 0.92,
     eyeHeight: 1.52,
-    moveSpeedMultiplier: 1.16,
+    animationSpeedMultiplier: 1.16,
     gaitMultiplier: 1.22,
     reptilian: true,
     junior: true,
@@ -54,7 +54,7 @@ export const PLAYER_BODY_RACE_PROFILES = Object.freeze({
     heightScale: 0.94,
     widthScale: 1.08,
     eyeHeight: 1.61,
-    moveSpeedMultiplier: 1.05,
+    animationSpeedMultiplier: 1.05,
     gaitMultiplier: 1.08,
     reptilian: false,
     coat: 0x55562f,
@@ -69,7 +69,7 @@ export const PLAYER_BODY_RACE_PROFILES = Object.freeze({
     heightScale: 1.08,
     widthScale: 1.03,
     eyeHeight: 1.84,
-    moveSpeedMultiplier: 0.94,
+    animationSpeedMultiplier: 0.94,
     gaitMultiplier: 0.92,
     reptilian: false,
     coat: 0x304a34,
@@ -386,7 +386,7 @@ export class PlayerBodySystem {
     this.time += dt;
     const motion = this.engine.player?.motion || {};
     const rawSpeed = Math.hypot(motion.vx || 0, motion.vz || 0);
-    const effectiveSpeed = rawSpeed * this.profile.moveSpeedMultiplier;
+    const effectiveSpeed = rawSpeed * this.profile.animationSpeedMultiplier;
     const move = Math.min(1, effectiveSpeed / 6.2);
     const sprint = effectiveSpeed > 7.2 ? 1 : 0;
     const phase = (motion.bob || this.time * 2.5) * this.profile.gaitMultiplier;
@@ -419,7 +419,7 @@ export class PlayerBodySystem {
       raceLabel: this.profile.label,
       heightScale: this.profile.heightScale,
       eyeHeight: this.profile.eyeHeight,
-      moveSpeedMultiplier: this.profile.moveSpeedMultiplier,
+      animationSpeedMultiplier: this.profile.animationSpeedMultiplier,
       debugThirdPerson: this.debugThirdPerson,
       upperBodyVisible: Boolean(this.upperBody?.visible),
       lowerBodyVisible: Boolean(this.lowerBody?.visible),

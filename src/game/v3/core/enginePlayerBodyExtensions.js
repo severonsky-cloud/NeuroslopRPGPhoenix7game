@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three.module.js';
-import { clampToWorld, heightAt } from '../world/terrain.js';
+import { heightAt } from '../world/terrain.js';
 import { PlayerBodySystem, resolvePlayerBodyRace } from '../visuals/playerBody.js';
 
 function removeLegacyPlayerVisual(engine) {
@@ -23,23 +23,6 @@ function thirdPersonCameraPosition(engine, immediate = false) {
   if (immediate) engine.camera.position.copy(target);
   else engine.camera.position.lerp(target, 0.24);
   engine.camera.rotation.x = -0.16 + engine.pitch * 0.55;
-}
-
-function applyRaceMovement(engine, startX, startZ) {
-  const profile = engine.playerBody?.profile;
-  const multiplier = profile?.moveSpeedMultiplier || 1;
-  if (multiplier === 1 || engine.paused || engine.mode === 'boot') return;
-  const dx = engine.rig.position.x - startX;
-  const dz = engine.rig.position.z - startZ;
-  if (Math.abs(dx) + Math.abs(dz) < 0.000001) return;
-  const next = clampToWorld(startX + dx * multiplier, startZ + dz * multiplier);
-  engine.rig.position.x = next.x;
-  engine.rig.position.z = next.z;
-  engine.rig.position.y = THREE.MathUtils.lerp(
-    engine.rig.position.y,
-    heightAt(next.x, next.z),
-    0.32,
-  );
 }
 
 export function installPlayerBodyExtensions(PhoenixV3Engine) {
@@ -90,7 +73,7 @@ export function installPlayerBodyExtensions(PhoenixV3Engine) {
     if (this.playerBodyDebugThirdPerson) thirdPersonCameraPosition(this, true);
     else firstPersonCameraPosition(this, true);
     this.hud?.setObjective?.(
-      `Body profile: ${profile.label} · рост ${Math.round(profile.heightScale * 100)}% · скорость ${Math.round(profile.moveSpeedMultiplier * 100)}%`,
+      `Body profile: ${profile.label} · рост ${Math.round(profile.heightScale * 100)}% · темп анимации ${Math.round(profile.animationSpeedMultiplier * 100)}%`,
     );
     return profile;
   };
@@ -114,11 +97,8 @@ export function installPlayerBodyExtensions(PhoenixV3Engine) {
 
   const originalUpdate = PhoenixV3Engine.prototype.update;
   PhoenixV3Engine.prototype.update = function updateWithV3L3PlayerBody(dt) {
-    const startX = this.rig.position.x;
-    const startZ = this.rig.position.z;
     originalUpdate.call(this, dt);
     if (this.mode === 'boot') return;
-    applyRaceMovement(this, startX, startZ);
     this.playerBody?.update(dt);
     if (this.hands) this.hands.visible = !this.playerBodyDebugThirdPerson;
     if (this.playerBodyDebugThirdPerson) thirdPersonCameraPosition(this);

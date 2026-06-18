@@ -1,13 +1,13 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30l4_visual_atmosphere_1';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30l4_visual_atmosphere_1';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30l4_visual_atmosphere_1';
-import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30l4_visual_atmosphere_1';
-import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30l4_visual_atmosphere_1';
-import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30l4_visual_atmosphere_1';
-import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30l4_visual_atmosphere_1';
-import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30l4_visual_atmosphere_1';
-import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30l4_visual_atmosphere_1';
-import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30l4_visual_atmosphere_1';
+import { PhoenixV3Engine } from './core/engine.js?v=30l4_1_pr_polish_1';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30l4_1_pr_polish_1';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30l4_1_pr_polish_1';
+import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30l4_1_pr_polish_1';
+import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30l4_1_pr_polish_1';
+import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30l4_1_pr_polish_1';
+import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30l4_1_pr_polish_1';
+import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30l4_1_pr_polish_1';
+import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30l4_1_pr_polish_1';
+import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30l4_1_pr_polish_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installArmedWorldExtensions(PhoenixV3Engine);
@@ -31,4 +31,4 @@ const mapBtn = document.getElementById('mapBtn');
 startBtn?.addEventListener('click', () => engine.start());
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3.0L4 visual atmosphere, grounded roads and roadside landmarks ready');
+console.log('Phoenix7 v3.0L4.1 PR polish, Bren ADS clearance and merge checks ready');
