@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phoenix7 v3H</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080604; color: #f3dca8; font-family: system-ui, Segoe UI, Arial, sans-serif; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, rgba(106,55,24,.72), rgba(5,4,3,.96)); z-index: 20; }
+    .card { width: min(900px, calc(100vw - 32px)); border: 1px solid rgba(242,199,112,.38); background: rgba(12,8,5,.86); box-shadow: 0 18px 70px rgba(0,0,0,.55); padding: 24px; }
+    h1 { margin: 0 0 10px; font-size: 32px; letter-spacing: .04em; }
+    p { line-height: 1.48; opacity: .9; }
+    code { color: #ffd28a; }
+    button { background: #d8a64d; color: #160d06; border: 0; padding: 8px 12px; font-weight: 800; cursor: pointer; margin: 4px 6px 4px 0; }
+    button.secondary { background: #4f3822; color: #f3dca8; border: 1px solid #9f7132; }
+    button:disabled { opacity: .35; cursor: default; }
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+    #topLeft { position: absolute; left: 16px; top: 14px; width: 540px; font-size: 14px; text-shadow: 0 2px 10px #000; }
+    #objective { padding: 12px; background: rgba(10,7,5,.55); border-left: 3px solid #d8a64d; }
+    #bars { margin-top: 10px; display: grid; gap: 6px; }
+    .bar { height: 8px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.12); }
+    .fill { height: 100%; background: #d8a64d; width: 100%; }
+    #bottom { position: absolute; left: 16px; bottom: 14px; color: #f4dca4; font-size: 13px; text-shadow: 0 2px 8px #000; }
+    #prompt { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); padding: 10px 14px; background: rgba(0,0,0,.68); border: 1px solid rgba(216,166,77,.45); display:none; }
+    #panel { position: fixed; right: 18px; top: 18px; width: min(600px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; background: rgba(9,7,5,.92); border: 1px solid rgba(216,166,77,.45); padding: 14px; z-index: 30; display:none; pointer-events:auto; }
+    #panel h2 { margin-top: 0; }
+    #panel .line { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .itemIcon { display:inline-grid; place-items:center; width:26px; height:26px; border:1px solid rgba(216,166,77,.35); background:rgba(255,255,255,.06); margin-right:6px; color:#ffd28a; font-weight:900; }
+    #error { position: fixed; left: 14px; right: 14px; bottom: 14px; background: #3a0907; color: #ffd8c6; padding: 12px; border: 1px solid #ff6b4a; z-index: 50; display:none; white-space: pre-wrap; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="boot">
+    <div class="card">
+      <h1>Phoenix7 v3H</h1>
+      <p><b>AI-feel runtime.</b> Загружает свежую v3-сборку с RPG, инвентарём, живыми фракциями, реакциями NPC, тревогами и loot-cache после боя.</p>
+      <p>Controls: LMB/Space, <code>R</code>, <code>B</code>, <code>V</code>, <code>Y</code>, <code>O</code>, <code>I</code>, <code>Tab</code>, <code>M</code>, <code>J</code>.</p>
+      <button id="startBtn">Start v3H</button>
+      <button class="secondary" id="mapBtn">Map</button>
+    </div>
+  </div>
+  <div id="hud">
+    <div id="topLeft"><div id="objective">v3H booting...</div><div id="bars"><div class="bar"><div id="hpFill" class="fill"></div></div><div class="bar"><div id="stFill" class="fill"></div></div><div class="bar"><div id="phFill" class="fill"></div></div></div></div>
+    <div id="prompt"></div>
+    <div id="bottom">R · B · V · Y · O · I · Tab · M · J · E loot/talk</div>
+  </div>
+  <div id="panel"></div>
+  <div id="error"></div>
+  <script type="module">
+    window.__PHX_V3_READY = false;
+    const error = document.getElementById('error');
+    import('./src/game/v3/main.js?v=30h_ai_feel_1')
+      .then(() => { window.__PHX_V3_READY = true; })
+      .catch((err) => {
+        error.style.display = 'block';
+        error.textContent = 'Phoenix7 v3H module failed:\n' + (err?.stack || err?.message || err);
+      });
+  </script>
+</body>
+</html>
