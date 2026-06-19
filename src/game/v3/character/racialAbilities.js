@@ -132,10 +132,12 @@ export class RacialAbilitySystem {
         pushFromPlayer(engine, target, 1.4);
       }
     } else if (race.id === 'blue') {
+      const slowedTargets = new Set(aliveTargets(engine, 5.5));
       const direction = forward(engine);
       engine.rig.position.addScaledVector(direction, 6.2);
       engine.rig.position.y = heightAt(engine.rig.position.x, engine.rig.position.z);
-      for (const target of aliveTargets(engine, 5)) {
+      for (const target of aliveTargets(engine, 5.5)) slowedTargets.add(target);
+      for (const target of slowedTargets) {
         if (target.userData.conditionalHostile) target.userData.provoked = true;
         target.userData.slowT = Math.max(target.userData.slowT || 0, 3.5);
       }

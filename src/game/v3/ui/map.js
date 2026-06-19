@@ -20,6 +20,12 @@ function riskColor(risk) {
   return ['#82a66a', '#c0a85a', '#d68842', '#c45c36', '#9d302c'][Math.max(0, Math.min(4, Number(risk || 1) - 1))];
 }
 
+const SETTLEMENT_LABEL_LAYOUT = Object.freeze({
+  'tesla-6': { dx: -10, dy: -10, anchor: 'end' },
+  'arcole-bivouac': { dx: 10, dy: 15, anchor: 'start' },
+  'chi-cassini': { dx: 10, dy: 15, anchor: 'start' },
+});
+
 export function mapHtml({ locations = [], biomes = [], player, roads = [], settlements = [], bounds = null }) {
   if (!bounds || !settlements.length) {
     return `
@@ -70,11 +76,12 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
   }).join('');
   const settlementSvg = settlements.map((settlement) => {
     const p = project(settlement);
-    const tx = (p.x + 10).toFixed(1);
-    const ty = (p.y - 8).toFixed(1);
+    const label = SETTLEMENT_LABEL_LAYOUT[settlement.id] || { dx: 10, dy: -8, anchor: 'start' };
+    const tx = (p.x + label.dx).toFixed(1);
+    const ty = (p.y + label.dy).toFixed(1);
     return `<g class="settlement-node" data-settlement-map="${escapeHtml(settlement.id)}" tabindex="0" role="button" aria-label="${escapeHtml(settlement.name)}">
       <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="${riskColor(settlement.riskLevel)}"/>
-      <text x="${tx}" y="${ty}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(settlement.name)}</text>
+      <text x="${tx}" y="${ty}" text-anchor="${label.anchor}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(settlement.name)}</text>
     </g>`;
   }).join('');
   const first = settlements[0];
