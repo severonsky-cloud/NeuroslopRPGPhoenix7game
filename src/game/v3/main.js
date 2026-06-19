@@ -10,6 +10,8 @@ import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions
 import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_character_creation_1';
 import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_character_creation_1';
 import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_character_creation_1';
+import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30n1_living_world_daynight_1';
+import { installPoiExtensions } from './core/enginePoiExtensions.js?v=30n2_exploration_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -22,6 +24,8 @@ installPlayerHandsExtensions(PhoenixV3Engine);
 installPlayerBodyExtensions(PhoenixV3Engine);
 installAtmosphereExtensions(PhoenixV3Engine);
 installCharacterExtensions(PhoenixV3Engine);
+installDayNightExtensions(PhoenixV3Engine);
+installPoiExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
@@ -37,4 +41,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3M2A Character Creation: profiles, eight races, racial hands and Q abilities ready');
+console.log('Phoenix7 v3 integration build: character creation, settlements, day-night, exploration POIs, fixed weapons');
