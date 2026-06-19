@@ -1,4 +1,5 @@
 import { ARSENAL, AMMO_TYPES } from '../combat/arsenal.js';
+import { backgroundDefinition } from '../data/characterData.js';
 import { itemIconHtml } from './weaponModels.js';
 
 export const ITEM_DEFS = {
@@ -38,6 +39,36 @@ export function makeInventoryState() {
   };
 }
 
+export function makeCharacterInventoryState(backgroundId = 'lunar') {
+  const background = backgroundDefinition(backgroundId);
+  const uniqueItems = [...new Set(['fists', 'phaseHand', ...background.items])];
+  const firstWeapon = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon') || 'fists';
+  const firearm = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon' && ARSENAL[ITEM_DEFS[id]?.weaponId]?.ammoType);
+  const melee = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon' && !ARSENAL[ITEM_DEFS[id]?.weaponId]?.ammoType);
+  return {
+    items: uniqueItems,
+    ammo: {
+      revolver: background.ammo.revolver || 0,
+      rifle: background.ammo.rifle || 0,
+      lmg: background.ammo.lmg || 0,
+      scatter: background.ammo.scatter || 0,
+      phaseCell: background.ammo.phaseCell || 0,
+    },
+    equipment: {
+      head: background.items.includes('clayHelmet') ? 'clayHelmet' : null,
+      chest: background.items.includes('roadCuirass') ? 'roadCuirass' : null,
+      hands: null,
+      legs: null,
+      boots: background.items.includes('saltBoots') ? 'saltBoots' : null,
+      amulet: background.items.includes('phaseCharm') ? 'phaseCharm' : null,
+      leftHand: melee || firstWeapon,
+      rightHand: firearm || (melee ? 'fists' : firstWeapon),
+      activeHand: firearm ? 'rightHand' : 'leftHand',
+      spellHand: 'phaseHand',
+    },
+  };
+}
+
 export class InventorySystem {
   constructor(player) {
     this.player = player;
@@ -48,6 +79,12 @@ export class InventorySystem {
     const eq = this.player.inventoryState.equipment;
     const itemId = eq[eq.activeHand] || 'fists';
     return ITEM_DEFS[itemId]?.weaponId || 'fists';
+  }
+
+  ownsWeapon(weaponId) {
+    if (weaponId === 'fists') return true;
+    if (weaponId === 'phase') return this.player.inventoryState.items.includes('phaseHand');
+    return this.player.inventoryState.items.some((itemId) => ITEM_DEFS[itemId]?.weaponId === weaponId);
   }
 
   switchHands() {

@@ -66,10 +66,10 @@ export function installPlayerBodyExtensions(PhoenixV3Engine) {
     return enabled;
   };
 
-  PhoenixV3Engine.prototype.setPlayerBodyRace = function setPlayerBodyRace(raceId) {
-    const profile = resolvePlayerBodyRace(raceId);
+  PhoenixV3Engine.prototype.setPlayerBodyRace = function setPlayerBodyRace(raceOrProfile) {
+    const profile = resolvePlayerBodyRace(raceOrProfile);
     this.player.race = profile.id;
-    this.playerBody?.setRace(profile.id);
+    this.playerBody?.setRace(raceOrProfile);
     if (this.playerBodyDebugThirdPerson) thirdPersonCameraPosition(this, true);
     else firstPersonCameraPosition(this, true);
     this.hud?.setObjective?.(

@@ -154,6 +154,10 @@ const commonBackgroundLines = {
   archive: 'Архивные беглецы знают цену каждой печати и каждой пропавшей страницы.',
   caravan: 'Ребёнку каравана не нужно объяснять, почему дорога важнее обещания.',
   duelist: 'Дуэлянту здесь рады, пока клинок остаётся в ножнах.',
+  deserter: 'Солдатскую выправку не спрячешь даже под дорожной пылью. Здесь не любят приказы, но ценят тех, кто перестал им подчиняться.',
+  guide: 'Проводник смотрит не туда, куда указывает знак, а туда, откуда вернулся ветер.',
+  clerk: 'У чиновника без ведомства всё равно остаётся опасный навык: он понимает, где в бумаге спрятана власть.',
+  resonant: 'Ученики резонанса слышат в дороге второй голос. Главное — не отвечать ему при свидетелях.',
 };
 
 export const SETTLEMENT_AGENTS = Object.freeze([
@@ -162,6 +166,7 @@ export const SETTLEMENT_AGENTS = Object.freeze([
     text: 'Сети стоят дольше империй, если их вовремя сушить.',
     dialogue: dialogue('Вода у нас общая, рыба — по договору, а слухи дорожают к вечеру.', redPeasantRaceLines, commonBackgroundLines, {
       redMale: 'Красному мужчине далеко от родной планеты требуется редкое разрешение. Покажи его не мне — покажи тем, кто тебя отпустил.',
+      female: 'Путница у нашего огня отвечает за собственное имя. На имперском посту это почему-то считают необычной привилегией.',
     }),
     route: localLoop(-114, 56, 3, 2),
   },
@@ -181,9 +186,12 @@ export const SETTLEMENT_AGENTS = Object.freeze([
     text: 'Пошлина поддерживает дорогу, даже если дорога с этим не согласна.',
     dialogue: dialogue('Пост Ришелье проверяет документы и груз. Проход свободный после осмотра — в пределах разумного.', {
       red: 'Приказ Императрицы Красных признал нашу юрисдикцию. Ваше недовольство не отменяет печать.',
-      human: 'Гражданин Империи обязан показывать пример дорожной дисциплины.',
+      human: 'Подданный Империи обязан показывать пример дорожной дисциплины.',
       zhuzher: 'Оружие на землю. Медленно.',
-    }, commonBackgroundLines),
+    }, commonBackgroundLines, {
+      male: 'В ведомости вас запишут как гражданина под дорожным надзором.',
+      female: 'В ведомости вас запишут как гражданку под дорожным надзором.',
+    }),
     route: localLoop(-69, 77, 4, 2),
   },
   {
@@ -395,6 +403,7 @@ export function normalizePlayerCulture(player = {}) {
     blueelemental: 'blue',
     blackelemental: 'black',
     deimurian: 'deimur',
+    seniorreptiloid: 'reptiloid',
     juniorreptiloid: 'juniorReptiloid',
     minorreptiloid: 'juniorReptiloid',
     tsarborian: 'tsarbor',
@@ -412,8 +421,11 @@ export function resolveSettlementDialogue(agent, player = {}) {
   const lines = [data.base || agent.text || ''];
   const raceLine = data.race?.[culture.race];
   const backgroundLine = data.background?.[culture.background];
-  const redMale = culture.race === 'red' && ['male', 'man', 'мужчина', 'мужской'].includes(culture.gender);
-  const genderLine = redMale ? data.gender?.redMale : null;
+  const male = ['male', 'man', 'мужчина', 'мужской'].includes(culture.gender);
+  const female = ['female', 'woman', 'женщина', 'женский'].includes(culture.gender);
+  const genderKey = male ? 'male' : female ? 'female' : 'neutral';
+  const redMale = culture.race === 'red' && male;
+  const genderLine = redMale ? data.gender?.redMale || data.gender?.male : data.gender?.[genderKey];
   if (raceLine) lines.push(raceLine);
   if (backgroundLine) lines.push(backgroundLine);
   if (genderLine) lines.push(genderLine);

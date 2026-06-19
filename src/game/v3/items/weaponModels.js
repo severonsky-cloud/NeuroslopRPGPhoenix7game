@@ -286,7 +286,7 @@ function updateReloadParts(data) {
   }
 }
 
-export function createWeaponViewModel(weaponId, aimMode = false) {
+export function createWeaponViewModel(weaponId, aimMode = false, character = {}) {
   const root = new THREE.Group();
   root.name = 'first-person-viewmodel-v3l1';
   const recoilRoot = new THREE.Group();
@@ -299,7 +299,7 @@ export function createWeaponViewModel(weaponId, aimMode = false) {
   const cls = WEAPON_ARCHETYPES[weapon.archetype]?.class;
   const kind = cls === 'firearm' ? 'firearm' : cls === 'phase' ? 'phase' : weapon.id === 'fists' ? 'fists' : WEAPON_ARCHETYPES[weapon.archetype]?.model || 'blade';
   const mats = materials();
-  const handsRoot = createPlayerHands(kind, aimMode);
+  const handsRoot = createPlayerHands(kind, aimMode, character);
 
   root.add(recoilRoot);
   recoilRoot.add(poseRoot);
@@ -312,6 +312,7 @@ export function createWeaponViewModel(weaponId, aimMode = false) {
   else if (weapon.id !== 'fists') result = buildBlade(weaponRoot, weapon, mats);
 
   root.userData.weaponId = weapon.id;
+  root.userData.characterRace = character?.characterProfile?.race || character?.race || 'human';
   root.userData.kind = kind;
   root.userData.weaponClass = cls;
   root.userData.aimMode = Boolean(aimMode);
@@ -392,23 +393,25 @@ export function updateWeaponViewModel(viewModel, { dt = 1 / 60, motion, aimMode 
   const walkY = Math.abs(Math.sin(bob)) * (aimMode ? 0.002 : 0.012) * move;
   const walkX = Math.sin(bob * 0.5) * (aimMode ? 0.0015 : 0.009) * move;
 
-  data.poseRoot.position.x = THREE.MathUtils.damp(data.poseRoot.position.x, walkX, 14, step);
-  data.poseRoot.position.y = THREE.MathUtils.damp(data.poseRoot.position.y, breathing - walkY, 14, step);
-  data.poseRoot.position.z = THREE.MathUtils.damp(data.poseRoot.position.z, 0, 14, step);
-  data.poseRoot.rotation.x = THREE.MathUtils.damp(data.poseRoot.rotation.x, 0, 13, step);
-  data.poseRoot.rotation.y = THREE.MathUtils.damp(data.poseRoot.rotation.y, 0, 13, step);
-  data.poseRoot.rotation.z = THREE.MathUtils.damp(data.poseRoot.rotation.z, -walkX * 0.85, 13, step);
-
+  let poseZ = 0;
+  let poseRotY = 0;
+  let poseRotZ = -walkX * 0.85;
+  let weaponZ = 0;
   if (['fists', 'sword', 'rapier', 'axe', 'dagger'].includes(data.kind) && action > 0) {
     const alternate = data.actionKind === 'alternate';
-    data.poseRoot.rotation.y -= action * (alternate ? 0.76 : 0.5);
-    data.poseRoot.rotation.z += action * (alternate ? 0.48 : 0.29);
-    data.poseRoot.position.z -= action * (data.kind === 'fists' ? 0.2 : 0.11);
+    poseRotY = -action * (alternate ? 0.76 : 0.5);
+    poseRotZ += action * (alternate ? 0.48 : 0.29);
+    poseZ = -action * (data.kind === 'fists' ? 0.2 : 0.11);
   } else if (data.weaponClass === 'firearm' && action > 0 && data.actionKind !== 'reload') {
-    data.weaponRoot.position.z = THREE.MathUtils.damp(data.weaponRoot.position.z, action * 0.035, 22, step);
-  } else {
-    data.weaponRoot.position.z = THREE.MathUtils.damp(data.weaponRoot.position.z, 0, 18, step);
+    weaponZ = action * 0.035;
   }
+  data.poseRoot.position.x = THREE.MathUtils.damp(data.poseRoot.position.x, walkX, 14, step);
+  data.poseRoot.position.y = THREE.MathUtils.damp(data.poseRoot.position.y, breathing - walkY, 14, step);
+  data.poseRoot.position.z = THREE.MathUtils.damp(data.poseRoot.position.z, poseZ, 14, step);
+  data.poseRoot.rotation.x = THREE.MathUtils.damp(data.poseRoot.rotation.x, 0, 13, step);
+  data.poseRoot.rotation.y = THREE.MathUtils.damp(data.poseRoot.rotation.y, poseRotY, 13, step);
+  data.poseRoot.rotation.z = THREE.MathUtils.damp(data.poseRoot.rotation.z, poseRotZ, 13, step);
+  data.weaponRoot.position.z = THREE.MathUtils.damp(data.weaponRoot.position.z, weaponZ, data.weaponClass === 'firearm' ? 22 : 18, step);
 
   if (data.weaponClass === 'phase') {
     const pulse = 1 + Math.sin(data.time * 5.2) * 0.08 + action * 0.42;

@@ -165,6 +165,10 @@ export class ActorVisualSystem {
     else if (u.archetype === 'glass' || u.archetype === 'phase') addElementalRig(obj, 0x6fc8c0, false);
     else addHumanRig(obj, color, role, u.role);
 
+    u.visualRig?.traverse?.((node) => {
+      node.userData.actorBasePosition = node.position.clone();
+      node.userData.actorBaseRotation = node.rotation.clone();
+    });
     this.prev.set(obj, obj.position.clone());
     this.actors.push(obj);
   }
@@ -229,8 +233,9 @@ export class ActorVisualSystem {
     for (const child of rig.children) {
       if (child.name?.startsWith('shard_')) {
         const idx = Number(child.name.split('_')[1] || 0);
-        child.rotation.y += dt * (0.8 + idx * 0.08);
-        child.position.y += Math.sin(this.time * 2.2 + idx) * 0.004;
+        const base = child.userData.actorBasePosition || child.position;
+        child.rotation.y = this.time * (0.8 + idx * 0.08);
+        child.position.y = base.y + Math.sin(this.time * 2.2 + idx) * 0.045;
       }
     }
 
@@ -239,6 +244,7 @@ export class ActorVisualSystem {
       if ((u.windupT || 0) > 0) weapon.rotation.z = THREE.MathUtils.damp(weapon.rotation.z, -0.55, 13, dt);
       else weapon.rotation.z = THREE.MathUtils.damp(weapon.rotation.z, 0, 8, dt);
       if (u.weaponProfile?.kind === 'firearm' && (u.windupT || 0) > 0) weapon.position.z = Math.sin(this.time * 18) * 0.025;
+      else weapon.position.z = THREE.MathUtils.damp(weapon.position.z, 0, 10, dt);
     }
   }
 }

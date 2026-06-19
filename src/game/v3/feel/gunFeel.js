@@ -77,8 +77,9 @@ export class GunFeelSystem {
 
   shot(weaponId, result) {
     const f = FEEL[weaponId] || FEEL.caravanCarbine;
-    this.recoilX += f.kick * (0.82 + Math.random() * 0.36);
-    this.recoilY += (Math.random() - 0.5) * f.side;
+    const control = this.engine.player.characterRuntime?.firearmSpread || 1;
+    this.recoilX += f.kick * control * (0.82 + Math.random() * 0.36);
+    this.recoilY += (Math.random() - 0.5) * f.side * control;
     this.weaponBack = Math.max(this.weaponBack, f.weaponBack);
     this.weaponRot += (Math.random() - 0.5) * 0.18;
     this.shakeT = Math.max(this.shakeT, 0.13);
@@ -159,8 +160,8 @@ export class GunFeelSystem {
 
   update(dt) {
     const cam = this.engine.camera;
-    cam.rotation.x -= this.recoilX;
-    cam.rotation.y += this.recoilY;
+    cam.rotation.x = this.engine.pitch - this.recoilX;
+    cam.rotation.y = this.recoilY;
     this.recoilX = lerp(this.recoilX, 0, Math.min(1, dt * 9));
     this.recoilY = lerp(this.recoilY, 0, Math.min(1, dt * 8));
 

@@ -1,4 +1,5 @@
 import { makeRpgState, LEVEL_RULES, SKILLS, ATTRIBUTES, PHASE_TREES } from './rpgData.js';
+import { raceDefinition } from '../data/characterData.js';
 
 export class RpgSystem {
   constructor(player) {
@@ -93,9 +94,10 @@ export class RpgSystem {
 
   recalculateDerivedStats() {
     const a = this.player.rpg.attributes;
-    this.player.hpMax = 90 + a.endurance * 5;
-    this.player.stMax = 85 + a.agility * 3 + a.endurance * 3;
-    this.player.phMax = 60 + a.willpower * 4 + a.intellect * 3;
+    const base = raceDefinition(this.player.race).stats;
+    this.player.hpMax = base.hp + (a.endurance - 5) * 5;
+    this.player.stMax = base.stamina + (a.agility - 5) * 3 + (a.endurance - 5) * 3;
+    this.player.phMax = base.phase + (a.willpower - 5) * 4 + (a.intellect - 5) * 3;
     this.player.hp = Math.min(this.player.hp, this.player.hpMax);
     this.player.st = Math.min(this.player.st, this.player.stMax);
     this.player.ph = Math.min(this.player.ph, this.player.phMax);
