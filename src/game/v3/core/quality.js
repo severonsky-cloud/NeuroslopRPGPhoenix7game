@@ -11,6 +11,10 @@ export const QUALITY_PRESETS = {
     instancedGlassTrees: 48,
     realtimeAccentLights: false,
     labelsDistance: 55,
+    settlementLandmarkDistance: 135,
+    settlementDetailDistance: 62,
+    settlementResidentDistance: 48,
+    settlementRoadsideDensity: 0.55,
   },
   medium: {
     name: 'Medium',
@@ -24,6 +28,10 @@ export const QUALITY_PRESETS = {
     instancedGlassTrees: 66,
     realtimeAccentLights: true,
     labelsDistance: 75,
+    settlementLandmarkDistance: 175,
+    settlementDetailDistance: 82,
+    settlementResidentDistance: 68,
+    settlementRoadsideDensity: 0.8,
   },
   high: {
     name: 'High',
@@ -37,6 +45,10 @@ export const QUALITY_PRESETS = {
     instancedGlassTrees: 86,
     realtimeAccentLights: true,
     labelsDistance: 95,
+    settlementLandmarkDistance: 220,
+    settlementDetailDistance: 105,
+    settlementResidentDistance: 88,
+    settlementRoadsideDensity: 1,
   },
 };
 

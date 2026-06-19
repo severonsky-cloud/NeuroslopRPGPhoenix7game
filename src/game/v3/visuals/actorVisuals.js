@@ -26,15 +26,18 @@ const COLORS = {
   blackElementals: 0x0a0612,
   phaseGuild: 0x8a78ff,
   travelers: 0xc9a66c,
+  redPeasants: 0xb64a32,
 };
 
-function addHumanRig(obj, color, role = 'civilian') {
+function addHumanRig(obj, color, role = 'civilian', occupation = '') {
   const rig = new THREE.Group();
   rig.name = 'actor_visual_rig';
 
   const torso = box(0.5, 0.9, 0.32, color);
   torso.name = 'torso'; torso.position.y = 1.08; rig.add(torso);
-  const head = sphere(0.22, 0xd2aa7a); head.name = 'head'; head.position.y = 1.72; rig.add(head);
+  const redElemental = role === 'redElemental';
+  const head = sphere(0.22, redElemental ? 0xb9472f : 0xd2aa7a, redElemental ? { emissive: 0x4a120b, emissiveIntensity: 0.2 } : {});
+  head.name = 'head'; head.position.y = 1.72; rig.add(head);
   const leftArm = cyl(0.055, 0.78, color, 'y'); leftArm.name = 'leftArm'; leftArm.position.set(-0.34, 1.15, 0); rig.add(leftArm);
   const rightArm = cyl(0.055, 0.78, color, 'y'); rightArm.name = 'rightArm'; rightArm.position.set(0.34, 1.15, 0); rig.add(rightArm);
   const leftLeg = cyl(0.07, 0.82, 0x2a211a, 'y'); leftLeg.name = 'leftLeg'; leftLeg.position.set(-0.14, 0.44, 0); rig.add(leftLeg);
@@ -64,6 +67,28 @@ function addHumanRig(obj, color, role = 'civilian') {
   }
   if (role === 'bandit') {
     const hood = cone(0.27, 0.36, 0x1b100a); hood.position.y = 1.92; rig.add(hood);
+  }
+  if (redElemental) {
+    const eyeMaterial = mat(0xff9a4a, { emissive: 0xff4a18, emissiveIntensity: 1.25 });
+    for (const x of [-0.075, 0.075]) {
+      const eye = sphere(0.026, 0xff9a4a, { emissive: 0xff4a18, emissiveIntensity: 1.25 });
+      eye.material = eyeMaterial;
+      eye.position.set(x, 1.75, 0.205);
+      rig.add(eye);
+    }
+    const workColor = ['fisher', 'boatman', 'fisherElder'].includes(occupation)
+      ? 0x416565 // teal — water/fishing crews
+      : ['interpreter', 'guide'].includes(occupation)
+        ? 0xb08b59 // tan — interpreters and road guides
+        : ['farmer', 'farmerElder', 'agronomist'].includes(occupation)
+          ? 0x756b31 // olive — field hands
+          : ['worker', 'workerBoss', 'clayDryer', 'cableWorker'].includes(occupation)
+            ? 0x9a6a3c // clay-brown — labour crews
+            : 0x8f2f24; // default ember red
+    const emberSash = box(0.54, 0.045, 0.34, workColor, { emissive: 0x3b0905, emissiveIntensity: 0.35 });
+    emberSash.position.set(0, 1.17, -0.02);
+    emberSash.rotation.z = -0.18;
+    rig.add(emberSash);
   }
 
   obj.add(rig);
@@ -100,6 +125,7 @@ function roleFor(u) {
   if (u.faction === 'bandits') return 'bandit';
   if (u.faction === 'blueElementals') return 'blueElemental';
   if (u.faction === 'blackElementals') return 'blackElemental';
+  if (u.faction === 'redPeasants') return 'redElemental';
   return 'civilian';
 }
 
@@ -137,7 +163,7 @@ export class ActorVisualSystem {
     if (role === 'blueElemental') addElementalRig(obj, 0x4d78b8, false);
     else if (role === 'blackElemental' || u.archetype === 'black') addElementalRig(obj, 0x111018, true);
     else if (u.archetype === 'glass' || u.archetype === 'phase') addElementalRig(obj, 0x6fc8c0, false);
-    else addHumanRig(obj, color, role);
+    else addHumanRig(obj, color, role, u.role);
 
     this.prev.set(obj, obj.position.clone());
     this.actors.push(obj);
@@ -147,6 +173,7 @@ export class ActorVisualSystem {
     this.time += dt;
     for (const obj of this.collectActors()) {
       this.enhance(obj);
+      if (obj.userData.settlementCulled || !obj.visible) continue;
       this.animateActor(obj, dt);
     }
   }

@@ -1,5 +1,6 @@
 import * as THREE from '../vendor/three.module.js';
 import { LIFE_AGENTS, FACTIONS } from '../data/lifeData.js';
+import { resolveSettlementDialogue } from '../data/settlementsData.js';
 import { heightAt } from './terrain.js';
 import { makeMat, labelSprite } from './props.js';
 
@@ -49,36 +50,58 @@ function createAgentModel(agent) {
 }
 
 export class LivingWorldSystem {
-  constructor(scene, labels) {
+  constructor(scene, labels, playerProvider = null) {
     this.scene = scene;
     this.labels = labels;
+    this.playerProvider = playerProvider;
     this.agents = [];
     this.eventLog = [];
     this.time = 0;
   }
 
   build() {
-    for (const agent of LIFE_AGENTS) {
-      const obj = createAgentModel(agent);
-      obj.position.set(agent.x, heightAt(agent.x, agent.z), agent.z);
-      obj.userData = {
-        type: 'lifeAgent',
-        ...agent,
-        routeIndex: 1,
-        speed: agent.speed ?? (agent.role === 'caravan' ? 0.75 : agent.role === 'patrol' ? 1.1 : 0.95),
-        factionName: FACTIONS[agent.faction]?.name || agent.faction,
-        state: agent.role === 'worker' ? 'working' : agent.role === 'raidPatrol' ? 'raiding' : 'travelling',
-      };
-      this.scene.add(obj);
-      this.agents.push(obj);
-      this.labels.push(labelSprite(this.scene, agent.name, agent.x, agent.z, 2.65, 0.42));
-    }
+    this.addAgents(LIFE_AGENTS);
+  }
+
+  addAgent(agent) {
+    const existing = this.agents.find((obj) => obj.userData.id === agent.id);
+    if (existing) return existing;
+    const obj = createAgentModel(agent);
+    obj.position.set(agent.x, heightAt(agent.x, agent.z), agent.z);
+    const label = labelSprite(this.scene, agent.name, agent.x, agent.z, 2.65, 0.42);
+    obj.userData = {
+      type: 'lifeAgent',
+      ...agent,
+      routeIndex: 1,
+      speed: agent.speed ?? (agent.role === 'caravan' ? 0.75 : agent.role === 'patrol' ? 1.1 : 0.95),
+      factionName: FACTIONS[agent.faction]?.name || agent.faction,
+      state: agent.role === 'worker' ? 'working' : agent.role === 'raidPatrol' ? 'raiding' : 'travelling',
+      label,
+    };
+    label.userData.lifeAgent = obj;
+    this.scene.add(obj);
+    this.agents.push(obj);
+    this.labels.push(label);
+    return obj;
+  }
+
+  addAgents(agents = []) {
+    return agents.map((agent) => this.addAgent(agent));
   }
 
   update(dt, playerRig) {
     this.time += dt;
     for (const obj of this.agents) {
       const u = obj.userData;
+      const playerDistance = Math.hypot(u.x - playerRig.position.x, u.z - playerRig.position.z);
+      if (u.settlementId) {
+        const residentDistance = u.residentDistance || 68;
+        const culled = playerDistance > residentDistance;
+        u.settlementCulled = culled;
+        obj.visible = !culled;
+        if (u.label) u.label.visible = !culled;
+        if (culled) continue;
+      }
       if (u.route && u.route.length) {
         const target = u.route[u.routeIndex % u.route.length];
         const d = Math.hypot(target.x - u.x, target.z - u.z);
@@ -93,7 +116,7 @@ export class LivingWorldSystem {
         }
       }
 
-      const nearPlayer = Math.hypot(u.x - playerRig.position.x, u.z - playerRig.position.z) < 22;
+      const nearPlayer = playerDistance < 22;
       if (nearPlayer && Math.random() < dt * 0.015) this.ambientLine(u);
     }
   }
@@ -124,11 +147,13 @@ export class LivingWorldSystem {
   }
 
   findNear(playerRig, distance = 2.6) {
-    return this.agents.find(a => Math.hypot(a.userData.x - playerRig.position.x, a.userData.z - playerRig.position.z) < distance) || null;
+    return this.agents.find(a => !a.userData.settlementCulled && Math.hypot(a.userData.x - playerRig.position.x, a.userData.z - playerRig.position.z) < distance) || null;
   }
 
   describe(agent) {
     const u = agent.userData;
-    return `<h2>${u.name}</h2><p>${u.text}</p><p><b>Фракция:</b> ${u.factionName}</p><p><b>Роль:</b> ${u.role}</p><p><b>Состояние:</b> ${u.state}</p><p><button id="closeMapBtn">Закрыть</button></p>`;
+    const player = this.playerProvider?.() || {};
+    const text = resolveSettlementDialogue(u, player);
+    return `<h2>${u.name}</h2><p>${text}</p><p><b>Фракция:</b> ${u.factionName}</p><p><b>Роль:</b> ${u.role}</p><p><b>Состояние:</b> ${u.state}</p><p><button id="closeMapBtn">Закрыть</button></p>`;
   }
 }

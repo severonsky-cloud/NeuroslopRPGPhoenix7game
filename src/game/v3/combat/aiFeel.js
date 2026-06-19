@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import { heightAt } from '../world/terrain.js';
 import { makeMat } from '../world/props.js';
+import { hostileToPlayer } from './npcLoadouts.js';
 
 function hpRatio(obj) {
   const u = obj?.userData || {};
@@ -73,6 +74,7 @@ export class AIFeelSystem {
     for (const obj of this.allActors()) {
       this.initActor(obj);
       const u = obj.userData;
+      if (u.settlementCulled) continue;
       if (u.alive === false) {
         this.ensureLootCache(obj);
         continue;
@@ -96,8 +98,8 @@ export class AIFeelSystem {
   combatPose(obj, dt) {
     const u = obj.userData;
     const d = obj.position.distanceTo(this.engine.rig.position);
-    const hostileToPlayer = ['bandits', 'zhuzher'].includes(u.faction) || u.type === 'monster';
-    if (!hostileToPlayer || d > 16) return;
+    const isHostile = hostileToPlayer(u) || (u.type === 'monster' && !u.conditionalHostile);
+    if (!isHostile || d > 16) return;
 
     if (u.dodgeT <= 0 && Math.random() < dt * 0.18) {
       u.dodgeT = 0.55;

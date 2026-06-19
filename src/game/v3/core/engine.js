@@ -90,7 +90,7 @@ export class PhoenixV3Engine {
     this.buildLocations();
     this.labels.push(...createBiomeLandmarks(this.scene, this.quality));
     this.buildEntities();
-    this.livingWorld = new LivingWorldSystem(this.scene, this.labels);
+    this.livingWorld = new LivingWorldSystem(this.scene, this.labels, () => this.player);
     this.livingWorld.build();
     this.buildViewModel();
     this.updateCrosshair();
@@ -102,7 +102,7 @@ export class PhoenixV3Engine {
       customs: 0x6b5534, salt: 0x4d3928, market: 0x5e4630, shelter: 0x584429,
       registry: 0x76603e, gerda: 0x49382b, rednode: 0x6d3528, guidecamp: 0x4d3c55,
       mangrovepump: 0x344028, tsarborcamp: 0x2f4c35, glassdemesne: 0x15121f, iceshelfpost: 0x496574,
-      portVillage: 0x6b4f32, redroadcamp: 0x5a3924, fortBarracks: 0x33302d, fortGate: 0x2a2826, blueCaravanYard: 0x314c72,
+      fortBarracks: 0x33302d, fortGate: 0x2a2826, blueCaravanYard: 0x314c72,
     };
     for (const loc of LOCATIONS) {
       if (loc.type === 'biome' || loc.type === 'district' || loc.type === 'ruin') {
@@ -389,6 +389,10 @@ export class PhoenixV3Engine {
   updateLabelVisibility() {
     const max = this.quality.labelsDistance;
     for (const l of this.labels) {
+      if (l.userData.lifeAgent?.userData.settlementCulled) {
+        l.visible = false;
+        continue;
+      }
       const d = Math.hypot(l.position.x - this.rig.position.x, l.position.z - this.rig.position.z);
       l.visible = d < max;
       if (l.visible) l.quaternion.copy(this.camera.quaternion);

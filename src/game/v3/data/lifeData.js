@@ -2,6 +2,7 @@ export const FACTIONS = {
   empire: { name: 'Имперская армия', color: 0xc0b090, attitude: 'law' },
   rebels: { name: 'Повстанцы-крестьяне', color: 0xb44d33, attitude: 'resistance' },
   peasants: { name: 'Крестьяне', color: 0xb08058, attitude: 'civilian' },
+  redPeasants: { name: 'Красные общины', color: 0xb64a32, attitude: 'taxed_autonomy' },
   knights: { name: 'Бродячие рыцари', color: 0xaaa39a, attitude: 'wandering' },
   errorOrder: { name: 'Орден Системных Ошибок', color: 0x8a78ff, attitude: 'strange' },
   soundOrder: { name: 'Орден Звука', color: 0xd8b56e, attitude: 'mystic' },

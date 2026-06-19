@@ -68,6 +68,7 @@ export function updateMonsters(monsters, playerRig, dt) {
   for (const obj of monsters) {
     const m = obj.userData;
     if (!m.alive) continue;
+    if (m.conditionalHostile && !m.provoked && !m.autoHostile) continue;
     const d = Math.hypot(playerRig.position.x - m.x, playerRig.position.z - m.z);
     if (d < 16 && d > 1.6) {
       const dx = (playerRig.position.x - m.x) / d;
