@@ -32,6 +32,7 @@ export function installSettlementExtensions(PhoenixV3Engine) {
     this.settlementWorld.build();
     this.settlementDebugIndex = 0;
     this.log.unshift('v3M1: восемь поселений, длинный официальный тракт и дорожная жизнь между Портом и Фортом.');
+    this.log.unshift('v3M1.1: полировка силуэтов поселений, заземление реквизита и читаемость карты.');
   };
 
   const originalOnAction = PhoenixV3Engine.prototype.onAction;

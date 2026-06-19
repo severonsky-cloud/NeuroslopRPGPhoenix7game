@@ -66,9 +66,19 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
   }).join('');
   const settlementSvg = settlements.map((settlement, index) => {
     const p = project(settlement);
+    // The eight nodes cluster tightly; fan labels outward (left/right of the
+    // cluster split near x≈24) across four vertical tiers with a thin leader
+    // line so the names no longer overlap each other on the parchment map.
+    const leftSide = settlement.x < 24;
+    const dx = leftSide ? -11 : 11;
+    const anchor = leftSide ? 'end' : 'start';
+    const dy = -20 + (index % 4) * 13;
+    const tx = (p.x + dx).toFixed(1);
+    const ty = (p.y + dy).toFixed(1);
     return `<g class="settlement-node" data-settlement-map="${escapeHtml(settlement.id)}" tabindex="0" role="button" aria-label="${escapeHtml(settlement.name)}">
+      <line class="settlement-leader" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${tx}" y2="${ty}"/>
       <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="${riskColor(settlement.riskLevel)}"/>
-      <text x="${(p.x + 10).toFixed(1)}" y="${(p.y - 8 + (index % 2) * 17).toFixed(1)}">${escapeHtml(settlement.name)}</text>
+      <text x="${tx}" y="${ty}" text-anchor="${anchor}">${escapeHtml(settlement.name)}</text>
     </g>`;
   }).join('');
   const first = settlements[0];
@@ -84,6 +94,7 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
       .phoenix-map .biome-mark text{font-size:8px;text-anchor:middle;fill:#513923;opacity:.7}
       .phoenix-map .location-mark rect{fill:#342116;opacity:.8}.phoenix-map .location-mark text{font-size:7px;fill:#45301f;opacity:.72}
       .phoenix-map .settlement-node{cursor:pointer}.phoenix-map .settlement-node circle{stroke:#21130c;stroke-width:2}
+      .phoenix-map .settlement-leader{stroke:#5a3d23;stroke-width:1;opacity:.55}
       .phoenix-map .settlement-node:hover circle,.phoenix-map .settlement-node:focus circle{stroke:#f4d48a;stroke-width:4}
       .phoenix-map .settlement-node text{font-size:9px;font-weight:700;fill:#24170e;paint-order:stroke;stroke:#c8a875;stroke-width:2px}
       .phoenix-map .player-marker{fill:#f5df9d;stroke:#7f1f1b;stroke-width:3}
