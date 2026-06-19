@@ -9,6 +9,7 @@ import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m1_wor
 import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m1_world_settlements_1';
 import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m1_world_settlements_1';
 import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m1_world_settlements_1';
+import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30n1_living_world_daynight_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -20,6 +21,7 @@ installFeelExtensions(PhoenixV3Engine);
 installPlayerHandsExtensions(PhoenixV3Engine);
 installPlayerBodyExtensions(PhoenixV3Engine);
 installAtmosphereExtensions(PhoenixV3Engine);
+installDayNightExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
