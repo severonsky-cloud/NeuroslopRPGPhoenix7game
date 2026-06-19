@@ -169,6 +169,7 @@ export function installSettlementExtensions(PhoenixV3Engine) {
       settlements: SETTLEMENTS,
       bounds: WORLD_BOUNDS,
       player: { x: this.rig.position.x, z: this.rig.position.z },
+      pois: this.poiSystem?.mapMarkers() || [],
     }));
     bindSettlementMap(this);
   };
@@ -176,7 +177,7 @@ export function installSettlementExtensions(PhoenixV3Engine) {
   PhoenixV3Engine.prototype.openJournal = function openSettlementJournal() {
     this.paused = true;
     const lifeEvents = this.livingWorld?.eventLog || [];
-    this.hud.openPanel(journalHtml([...lifeEvents, ...this.log], SETTLEMENTS));
+    this.hud.openPanel(journalHtml([...lifeEvents, ...this.log], SETTLEMENTS, this.poiSystem?.discoveries() || []));
     document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   };
 

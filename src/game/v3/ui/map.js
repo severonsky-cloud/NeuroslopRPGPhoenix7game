@@ -26,7 +26,7 @@ const SETTLEMENT_LABEL_LAYOUT = Object.freeze({
   'chi-cassini': { dx: 10, dy: 15, anchor: 'start' },
 });
 
-export function mapHtml({ locations = [], biomes = [], player, roads = [], settlements = [], bounds = null }) {
+export function mapHtml({ locations = [], biomes = [], player, roads = [], settlements = [], bounds = null, pois = [] }) {
   if (!bounds || !settlements.length) {
     return `
       <h2>Карта Phoenix7 v3</h2>
@@ -84,6 +84,14 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
       <text x="${tx}" y="${ty}" text-anchor="${label.anchor}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(settlement.name)}</text>
     </g>`;
   }).join('');
+  const poiSvg = pois.map((poi) => {
+    const p = project(poi);
+    const cx = p.x.toFixed(1);
+    const cy = p.y.toFixed(1);
+    const tx = (p.x + 8).toFixed(1);
+    const ty = (p.y + 3).toFixed(1);
+    return `<g class="poi-mark"><path d="M${cx} ${(p.y - 6).toFixed(1)}L${(p.x + 6).toFixed(1)} ${cy}L${cx} ${(p.y + 6).toFixed(1)}L${(p.x - 6).toFixed(1)} ${cy}Z"/><text x="${tx}" y="${ty}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(poi.name)}</text></g>`;
+  }).join('');
   const first = settlements[0];
 
   return `
@@ -103,6 +111,8 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
       .phoenix-map .settlement-node text{display:none;font-size:13px;font-weight:700;fill:#24170e;paint-order:stroke;stroke:#c8a875;stroke-width:2px}
       .phoenix-map.map-show-settlements .settlement-node text,.phoenix-map .settlement-node.map-selected text{display:block}
       .phoenix-map.map-show-locations .location-mark text{display:block}
+      .phoenix-map .poi-mark path{fill:#6f5cff;stroke:#1a1330;stroke-width:1.5;opacity:.92}
+      .phoenix-map .poi-mark text{font-size:9px;font-weight:700;fill:#241a52;paint-order:stroke;stroke:#cdbce6;stroke-width:1.6px}
       .phoenix-map .player-marker{fill:#f5df9d;stroke:#7f1f1b;stroke-width:3}
       .map-controls{position:absolute;z-index:2;right:16px;top:16px;display:flex;gap:4px;align-items:center;background:rgba(54,34,19,.82);border:1px solid #321b0e;padding:5px}
       .map-controls button{min-width:32px;margin:0;padding:5px 8px;background:#d0aa6f;color:#24170e;border:1px solid #51321d}
@@ -124,6 +134,7 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
         <g>${roadSvg}</g>
         <g>${locationSvg}</g>
         <g>${settlementSvg}</g>
+        <g>${poiSvg}</g>
         <path class="player-marker" d="M${playerPoint.x.toFixed(1)} ${(playerPoint.y - 10).toFixed(1)}l8 17h-16z"/>
       </svg>
     </div>
@@ -151,10 +162,19 @@ export function settlementDetailsHtml(settlement) {
   `;
 }
 
-export function journalHtml(lines = [], settlements = []) {
+export function journalHtml(lines = [], settlements = [], discoveries = []) {
   return `
     <h2>Журнал v3</h2>
     ${lines.map((line) => `<div class="line">${line}</div>`).join('') || '<p>Пока пусто.</p>'}
+    ${discoveries.length ? `
+      <h3>Находки тракта (${discoveries.length})</h3>
+      ${discoveries.map((poi) => `
+        <div class="line">
+          <b>◆ ${escapeHtml(poi.name)}</b> · ${poi.x}, ${poi.z}<br>
+          ${escapeHtml(poi.lore)}
+        </div>
+      `).join('')}
+    ` : ''}
     ${settlements.length ? `
       <h3>Поселения тракта</h3>
       ${settlements.map((settlement) => `
