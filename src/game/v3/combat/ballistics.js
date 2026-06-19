@@ -88,6 +88,7 @@ export class BallisticSystem {
     this.tracers.push(makeTracer(this.scene, from, bestPoint, weapon.ammoType === 'phaseCell' ? 0x8a78ff : 0xffd28a));
     if (best) {
       const dmg = Math.round(weapon.damage * damageScale * (weapon.pellets ? 0.7 : 1));
+      if (best.userData.conditionalHostile) best.userData.provoked = true;
       best.userData.hp -= dmg;
       if (best.userData.hp <= 0) {
         best.userData.alive = false;

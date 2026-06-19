@@ -1,3 +1,5 @@
+import { PORT_FORT_SETTLEMENT_ROAD } from './settlementsData.js';
+
 export const WORLD_BOUNDS = { minX: -360, maxX: 420, minZ: -240, maxZ: 430 };
 
 export const PLAYER_START = { x: -142, z: 20 };
@@ -17,7 +19,7 @@ export const BIOMES = [
 ];
 
 export const ROADS = [
-  [{ x: -142, z: 20 }, { x: -108, z: 22 }, { x: -72, z: 26 }, { x: -34, z: 38 }, { x: 16, z: 70 }, { x: 62, z: 110 }, { x: 102, z: 145 }, { x: 142, z: 176 }],
+  [{ x: -142, z: 20 }, { x: -108, z: 22 }, ...PORT_FORT_SETTLEMENT_ROAD],
   [{ x: 142, z: 176 }, { x: 162, z: 215 }, { x: 174, z: 248 }, { x: 220, z: 262 }, { x: 250, z: 250 }],
   [{ x: 142, z: 176 }, { x: 192, z: 156 }, { x: 238, z: 132 }, { x: 288, z: 112 }],
   [{ x: -34, z: 38 }, { x: -10, z: 8 }, { x: 44, z: -34 }],
@@ -45,16 +47,12 @@ export const LOCATIONS = [
   { id: 'customs', name: 'Таможня Рины', type: 'building', x: -88, z: 18 },
   { id: 'salt', name: 'Соляные доки', type: 'district', x: -118, z: 38 },
   { id: 'market', name: 'Грязный рынок', type: 'building', x: -62, z: 40 },
-  { id: 'portVillage', name: 'Посёлок докеров', type: 'village', x: -72, z: 58 },
-  { id: 'shelter', name: 'Дорожный навес', type: 'building', x: -20, z: 66 },
-  { id: 'redroadcamp', name: 'Лагерь Красной дороги', type: 'camp', x: 54, z: 112 },
   { id: 'registry', name: 'Канцелярия Орана', type: 'building', x: 130, z: 166 },
   { id: 'gerda', name: 'Дом Герды', type: 'building', x: 152, z: 186 },
   { id: 'fortBarracks', name: 'Казармы Форта Заря', type: 'fort', x: 146, z: 206 },
   { id: 'fortGate', name: 'Врата Форта Заря', type: 'fort', x: 112, z: 154 },
   { id: 'rednode', name: 'Красный Узел', type: 'building', x: 44, z: -34 },
   { id: 'guidecamp', name: 'Лагерь проводников', type: 'camp', x: 176, z: 214 },
-  { id: 'battery', name: 'Старая батарея', type: 'ruin', x: 82, z: 78 },
   { id: 'mangrovepump', name: 'Мангровые насосы', type: 'building', x: -66, z: 136 },
   { id: 'tsarborcamp', name: 'Стан царборцев', type: 'camp', x: 174, z: 248 },
   { id: 'glassdemesne', name: 'Вотчина чёрных элементалей', type: 'biome', x: 288, z: 112 },

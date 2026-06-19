@@ -30,6 +30,7 @@ export function findMeleeTarget({ weaponId, playerRig, camera, monsters }) {
 
 export function damageMonster(obj, amount) {
   const m = obj.userData;
+  if (m.conditionalHostile) m.provoked = true;
   m.hp -= amount;
   obj.scale.setScalar(1.1);
   setTimeout(() => obj.scale.set(1, m.alive ? 1 : 0.28, 1), 80);

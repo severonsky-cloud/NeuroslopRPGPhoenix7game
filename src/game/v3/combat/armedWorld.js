@@ -141,7 +141,7 @@ export class ArmedWorldSystem {
     for (const obj of all) {
       const u = obj.userData;
       const profile = u.weaponProfile;
-      if (!profile || u.alive === false) continue;
+      if (!profile || u.alive === false || u.settlementCulled) continue;
       if (u.staggerT > 0) { u.staggerT -= dt; continue; }
       u.combatCooldown = Math.max(0, (u.combatCooldown || 0) - dt);
       if (u.windupT > 0) {
@@ -189,7 +189,7 @@ export class ArmedWorldSystem {
     let best = null;
     let bestD = Infinity;
     for (const other of all) {
-      if (other === obj || other.userData.alive === false) continue;
+      if (other === obj || other.userData.alive === false || other.userData.settlementCulled) continue;
       if (!hostility(u, other.userData)) continue;
       const d = dist2(obj, other);
       if (d < bestD && d < 34 * 34) { best = other; bestD = d; }

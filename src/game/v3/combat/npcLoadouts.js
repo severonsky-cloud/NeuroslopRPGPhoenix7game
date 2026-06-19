@@ -28,7 +28,7 @@ export function loadoutForAgent(agent) {
   if (f === 'zhuzher') return Math.random() < 0.7 ? 'smg_zhuzher' : 'nagant_zhuzher';
   if (f === 'bandits') return Math.random() < 0.5 ? 'bandit_shotgun' : 'bandit_knife';
   if (f === 'rebels') return Math.random() < 0.5 ? 'bandit_knife' : 'peasant_tool';
-  if (f === 'peasants') return 'peasant_tool';
+  if (f === 'peasants' || f === 'redPeasants') return 'peasant_tool';
   if (role === 'caravan') return 'caravan_guard';
   return 'peasant_tool';
 }
@@ -48,5 +48,6 @@ export function hostility(a, b) {
 }
 
 export function hostileToPlayer(agent) {
+  if (agent?.conditionalHostile) return Boolean(agent.provoked || agent.autoHostile);
   return ['bandits', 'zhuzher'].includes(agent?.faction);
 }
