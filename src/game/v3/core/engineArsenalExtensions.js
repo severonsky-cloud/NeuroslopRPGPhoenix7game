@@ -33,7 +33,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
 
   PhoenixV3Engine.prototype.buildViewModel = function buildArsenalViewModel() {
     if (this.hands) this.camera.remove(this.hands);
-    this.hands = createWeaponViewModel(this.player.weapon, this.aimMode);
+    this.hands = createWeaponViewModel(this.player.weapon, this.aimMode, this.player);
     this.camera.add(this.hands);
   };
 
@@ -114,7 +114,10 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     const heavy = profile.type?.toLowerCase().includes('heavy') || profile.type === 'chop' || profile.type === 'bayonet';
     this.impact?.meleeTrail(this.camera, enchanted.effects?.[0]?.color || 0xffd28a, heavy);
     if (!target) { this.hud.setObjective(`${profile.name}: не достаёт`); return false; }
-    const dmg = Math.round((baseWeapon.damage * (profile.damageMul || 1) * (1 + this.player.rpg.skills[skillKey].level / 110) * (enchanted.damageScale || 1)) + (enchanted.extraDamage || 0));
+    const racialDamage = skillKey === 'phase'
+      ? (this.player.characterRuntime?.phaseDamage || 1)
+      : (this.player.characterRuntime?.meleeDamage || 1);
+    const dmg = Math.round((baseWeapon.damage * (profile.damageMul || 1) * (1 + this.player.rpg.skills[skillKey].level / 110) * (enchanted.damageScale || 1) * racialDamage) + (enchanted.extraDamage || 0));
     const m = damageMonster(target, dmg);
     this.impact?.hitImpact(target.position.clone().add(new THREE.Vector3(0, 1, 0)), profile.impact || 'blade');
     this.impact?.applyStagger(target, 0.25 + (enchanted.staggerBonus || 0));
@@ -152,7 +155,15 @@ export function installArsenalExtensions(PhoenixV3Engine) {
         return;
       }
       const scale = (1 + this.player.rpg.skills.firearms.level / 140) * (shotMods.damageScale || 1);
-      const result = this.ballistics.fire({ weaponId: this.player.weapon, camera: this.camera, monsters: this.monsters, aimMode: this.aimMode, skillLevel: this.player.rpg.skills.firearms.level, damageScale: scale, spreadMul: shotMods.spreadMul || 1 });
+      const result = this.ballistics.fire({
+        weaponId: this.player.weapon,
+        camera: this.camera,
+        monsters: this.monsters,
+        aimMode: this.aimMode,
+        skillLevel: this.player.rpg.skills.firearms.level,
+        damageScale: scale,
+        spreadMul: (shotMods.spreadMul || 1) * (this.player.characterRuntime?.firearmSpread || 1),
+      });
       this.rpg.useSkill('firearms', 1.4);
       const hit = result.results?.find(r => r.hit);
       if (hit) {

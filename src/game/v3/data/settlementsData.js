@@ -154,6 +154,10 @@ const commonBackgroundLines = {
   archive: 'Архивные беглецы знают цену каждой печати и каждой пропавшей страницы.',
   caravan: 'Ребёнку каравана не нужно объяснять, почему дорога важнее обещания.',
   duelist: 'Дуэлянту здесь рады, пока клинок остаётся в ножнах.',
+  deserter: 'Солдатскую выправку не спрячешь даже под дорожной пылью. Здесь не любят приказы, но ценят тех, кто перестал им подчиняться.',
+  guide: 'Проводник смотрит не туда, куда указывает знак, а туда, откуда вернулся ветер.',
+  clerk: 'У чиновника без ведомства всё равно остаётся опасный навык: он понимает, где в бумаге спрятана власть.',
+  resonant: 'Ученики резонанса слышат в дороге второй голос. Главное — не отвечать ему при свидетелях.',
 };
 
 export const SETTLEMENT_AGENTS = Object.freeze([
@@ -395,6 +399,7 @@ export function normalizePlayerCulture(player = {}) {
     blueelemental: 'blue',
     blackelemental: 'black',
     deimurian: 'deimur',
+    seniorreptiloid: 'reptiloid',
     juniorreptiloid: 'juniorReptiloid',
     minorreptiloid: 'juniorReptiloid',
     tsarborian: 'tsarbor',

@@ -144,7 +144,7 @@ export class PhoenixV3Engine {
 
   buildViewModel() {
     if (this.hands) this.camera.remove(this.hands);
-    this.hands = createWeaponViewModel(this.player.weapon, this.aimMode);
+    this.hands = createWeaponViewModel(this.player.weapon, this.aimMode, this.player);
     this.camera.add(this.hands);
   }
 
@@ -169,6 +169,10 @@ export class PhoenixV3Engine {
 
     const weapon = weaponByDigit(code);
     if (weapon) {
+      if (!this.inventory.ownsWeapon(weapon)) {
+        this.hud.setObjective(`Оружие ${ARSENAL[weapon]?.name || weapon} не входит в стартовый набор этого персонажа.`);
+        return;
+      }
       this.player.weapon = weapon;
       this.aimMode = false;
       this.camera.fov = 72;
@@ -412,12 +416,12 @@ export class PhoenixV3Engine {
     if (!this.paused) {
       const sprint = movePlayer({ rig: this.rig, input: this.input, yaw: this.yaw, dt, player: this.player });
       if (sprint) { this.player.st = Math.max(0, this.player.st - dt * 12); this.rpg.useSkill('athletics', dt * 0.6); }
-      else this.player.st = Math.min(this.player.stMax, this.player.st + dt * 10);
-      this.player.ph = Math.min(this.player.phMax, this.player.ph + dt * 8);
+      else this.player.st = Math.min(this.player.stMax, this.player.st + dt * 10 * (this.player.characterRuntime?.staminaRegen || 1));
+      this.player.ph = Math.min(this.player.phMax, this.player.ph + dt * 8 * (this.player.characterRuntime?.phaseRegen || 1));
       this.cooldown = Math.max(0, this.cooldown - dt);
       updateNpcRoutes(this.npcs, dt);
       this.livingWorld?.update(dt, this.rig);
-      updateMonsters(this.monsters, this.rig, dt);
+      updateMonsters(this.monsters, this.rig, dt, this.player);
       this.phaseMagic.update(dt);
       this.ballistics.update(dt);
       this.projectiles = updateProjectiles({ scene: this.scene, projectiles: this.projectiles, monsters: this.monsters, dt, onHit: (obj, dmg) => this.hud.hitMarker(`-${dmg}`) });

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>Phoenix7 v3M1 — World Settlements</title>
+  <title>Phoenix7 v3M2A — Character Creation</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080604;color:#f3dca8;font-family:system-ui}
     #game{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -28,10 +28,11 @@
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3M1</h1>
-      <p>World Settlements: восемь узлов длинного тракта между Портом Рейчел и Фортом Заря.</p>
-      <p><b>Проверка:</b> Start → F2 по поселениям → M карта → J журнал.</p>
-      <button id="startBtn">Start</button>
+      <h1>Phoenix7 v3M2A</h1>
+      <p>Создание ссыльного: восемь рас, восемь предысторий, расовые тела, руки и способности.</p>
+      <p><b>Проверка:</b> создать персонажа → Start → Q способность → F2 поселения → M карта → J журнал.</p>
+      <button id="startBtn">Создать персонажа</button>
+      <button id="newGameBtn" hidden>Новая игра</button>
       <button id="mapBtn">Map</button>
     </div>
   </div>
@@ -45,13 +46,13 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">v3M1 · F2 settlements · F8 body debug · F9/F10/F11 quality</div>
+    <div id="bottom">v3M2A · Q racial ability · F2 settlements · F8 body debug · F9/F10/F11 quality</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30m1_world_settlements_1').catch(err => {
+    import('./src/game/v3/main.js?v=30m2a_character_creation_1').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });

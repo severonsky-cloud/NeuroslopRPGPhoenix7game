@@ -60,13 +60,14 @@ export class FirearmStateSystem {
     const s = this.state(weaponId);
     if (s.jammed) {
       s.jammed = false;
-      s.reloadT = 0.85;
-      return { ok: true, clearing: true };
+      s.reloadT = 0.85 * (this.player.characterRuntime?.reloadDuration || 1);
+      return { ok: true, clearing: true, duration: s.reloadT };
     }
     if (s.loaded >= w.clipSize) return { ok: false, reason: 'full' };
     if ((this.player.inventoryState.ammo[w.ammoType] || 0) <= 0) return { ok: false, reason: 'no_ammo' };
-    s.reloadT = w.archetype === 'revolver' ? 1.5 : w.archetype === 'lmg' ? 2.4 : w.archetype === 'shotgun' ? 1.9 : 1.65;
-    return { ok: true, reloading: true };
+    const baseDuration = w.archetype === 'revolver' ? 1.5 : w.archetype === 'lmg' ? 2.4 : w.archetype === 'shotgun' ? 1.9 : 1.65;
+    s.reloadT = baseDuration * (this.player.characterRuntime?.reloadDuration || 1);
+    return { ok: true, reloading: true, duration: s.reloadT };
   }
 
   update(dt) {

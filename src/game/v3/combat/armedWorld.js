@@ -184,7 +184,8 @@ export class ArmedWorldSystem {
     const u = obj.userData;
     const profile = u.weaponProfile;
     const dp = obj.position.distanceTo(playerPos);
-    if (hostileToPlayer(u) && dp < Math.min(profile.range, 28)) return 'player';
+    const veiled = Boolean(this.engine.player.characterRuntime?.nullVeil);
+    if (hostileToPlayer(u) && dp < Math.min(profile.range, veiled ? 5 : 28)) return 'player';
 
     let best = null;
     let bestD = Infinity;
@@ -226,7 +227,8 @@ export class ArmedWorldSystem {
     if (target === 'player') {
       const engine = this.engine;
       const armor = engine.inventory?.armorValue?.() || 0;
-      const final = Math.max(1, Math.round(dmg * (1 - Math.min(0.45, armor * 0.025))));
+      const racialDefense = engine.player.characterRuntime?.incomingDamage || 1;
+      const final = Math.max(1, Math.round(dmg * (1 - Math.min(0.45, armor * 0.025)) * racialDefense));
       engine.player.hp = Math.max(0, engine.player.hp - final);
       engine.hud.hitMarker?.(`-${final}`);
       engine.hud.setObjective(`Попадание: ${kind} · HP ${engine.player.hp}/${engine.player.hpMax}`);

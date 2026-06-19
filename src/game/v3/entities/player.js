@@ -4,7 +4,10 @@ import { heightAt, clampToWorld } from '../world/terrain.js';
 
 export function createPlayer() {
   return {
-    name: 'Безымянная ошибка',
+    name: 'Безымянный ссыльный',
+    race: 'human',
+    gender: 'male',
+    background: 'lunar',
     hp: 105, hpMax: 105,
     st: 105, stMax: 105,
     ph: 90, phMax: 90,
@@ -31,8 +34,15 @@ export function createPlayerRig(scene) {
 export function movePlayer({ rig, input, yaw, dt, player = null, speedWalk = 6.2, speedRun = 10.6 }) {
   const axis = input.axis();
   const motion = player?.motion || { vx: 0, vz: 0, bob: 0 };
+  const runtime = player?.characterRuntime || {};
+  if (runtime.rooted) {
+    motion.vx = THREE.MathUtils.damp(motion.vx, 0, 24, dt);
+    motion.vz = THREE.MathUtils.damp(motion.vz, 0, 24, dt);
+    if (player) player.motion = motion;
+    return false;
+  }
   const hasInput = !!(axis.x || axis.z);
-  const speed = input.sprinting() ? speedRun : speedWalk;
+  const speed = (input.sprinting() ? speedRun : speedWalk) * (runtime.moveSpeed || 1);
   const target = new THREE.Vector3(axis.x, 0, axis.z);
   if (target.lengthSq() > 0) target.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(speed);
 

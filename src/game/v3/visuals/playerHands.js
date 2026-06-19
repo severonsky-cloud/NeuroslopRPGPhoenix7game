@@ -22,6 +22,35 @@ const MATERIALS = {
   phase: material(0x8eeeff, 0.3, 0.08, 0x35cfff, 2.4),
 };
 
+function raceKey(character = {}) {
+  return character?.characterProfile?.race || character?.race || 'human';
+}
+
+function handMaterials(character = {}) {
+  const profile = character?.characterProfile || character || {};
+  const race = raceKey(profile);
+  const colors = {
+    human: { skin: 0xa86f50, glove: 0x24211d, sleeve: profile.primaryColor || 0x394238, accent: profile.accentColor || 0x171b18 },
+    deimur: { skin: 0x918681, glove: 0x34303a, sleeve: profile.primaryColor || 0x514d55, accent: profile.accentColor || 0x78dfff },
+    red: { skin: 0xb94b32, glove: 0x59241c, sleeve: profile.primaryColor || 0x6f3025, accent: profile.accentColor || 0xff6b28 },
+    blue: { skin: 0x6f9fc2, glove: 0x2a4c68, sleeve: profile.primaryColor || 0x385a7d, accent: profile.accentColor || 0x8feaff },
+    black: { skin: 0x241c2d, glove: 0x100d16, sleeve: profile.primaryColor || 0x17131f, accent: profile.accentColor || 0x794dff },
+    seniorReptiloid: { skin: 0x637d50, glove: 0x33412b, sleeve: profile.primaryColor || 0x394235, accent: profile.accentColor || 0xd47a3f },
+    juniorReptiloid: { skin: 0x78945d, glove: 0x3d4e32, sleeve: profile.primaryColor || 0x43503c, accent: profile.accentColor || 0xd5bd65 },
+    tsarbor: { skin: 0x70583a, glove: 0x473522, sleeve: profile.primaryColor || 0x304a34, accent: profile.accentColor || 0x4f8a48 },
+  }[race] || {};
+  const emissiveRace = ['deimur', 'red', 'blue', 'black'].includes(race);
+  return {
+    ...MATERIALS,
+    skin: material(colors.skin || 0xa86f50, race.includes('Reptiloid') ? 0.68 : 0.82),
+    glove: material(colors.glove || 0x24211d, 0.86),
+    gloveLight: material(colors.skin || colors.glove || 0x39342d, 0.8),
+    sleeve: material(new THREE.Color(colors.sleeve || 0x394238).getHex(), 0.94),
+    cuff: material(new THREE.Color(colors.accent || 0x171b18).getHex(), 0.62, 0.12, emissiveRace ? new THREE.Color(colors.accent).getHex() : 0x000000, emissiveRace ? 0.48 : 0),
+    racialAccent: material(new THREE.Color(colors.accent || 0xd8a64d).getHex(), 0.42, 0.08, emissiveRace ? new THREE.Color(colors.accent).getHex() : 0x000000, emissiveRace ? 0.8 : 0),
+  };
+}
+
 const MELEE_KINDS = ['blade', 'sword', 'rapier', 'axe', 'dagger'];
 
 function mesh(parent, geometry, mat, name, position, rotation = [0, 0, 0]) {
@@ -55,9 +84,9 @@ function rememberBase(node) {
   node.userData.baseRotation = node.rotation.clone();
 }
 
-function addFinger(hand, side, index, curled, phase) {
+function addFinger(hand, side, index, curled, phase, mats) {
   const spread = (index - 1.5) * 0.034;
-  const fingerMat = phase ? MATERIALS.skin : MATERIALS.gloveLight;
+  const fingerMat = phase ? mats.skin : mats.gloveLight;
   const length = index === 0 || index === 3 ? 0.085 : 0.1;
   const x = side * spread;
   const y = phase ? -0.005 : -0.017 - Math.abs(index - 1.5) * 0.003;
@@ -74,17 +103,21 @@ function addFinger(hand, side, index, curled, phase) {
   finger.scale.z = 0.86;
 }
 
-function createArm(side, kind) {
+function createArm(side, kind, character = {}) {
   const phase = kind === 'phase';
   const melee = MELEE_KINDS.includes(kind);
   const fist = kind === 'fists';
   const arm = new THREE.Group();
   arm.name = side < 0 ? 'left-first-person-arm' : 'right-first-person-arm';
+  const race = raceKey(character);
+  const mats = handMaterials(character);
 
-  box(arm, [0.15, 0.14, 0.42], MATERIALS.sleeve, `${arm.name}-sleeve`, [0, 0.012, 0.08]);
-  box(arm, [0.168, 0.16, 0.105], MATERIALS.cuff, `${arm.name}-cuff`, [0, 0, -0.17]);
+  const armScale = race === 'juniorReptiloid' ? 0.9 : race === 'tsarbor' ? 1.1 : 1;
+  box(arm, [0.15 * armScale, 0.14 * armScale, 0.42], mats.sleeve, `${arm.name}-sleeve`, [0, 0.012, 0.08]);
+  box(arm, [0.168 * armScale, 0.16 * armScale, 0.105], mats.cuff, `${arm.name}-cuff`, [0, 0, -0.17]);
 
-  const handMat = phase ? MATERIALS.skin : MATERIALS.glove;
+  const showRacialSkin = race !== 'human' || phase;
+  const handMat = showRacialSkin ? mats.skin : mats.glove;
   const palm = box(
     arm,
     [0.155, 0.092, 0.19],
@@ -101,7 +134,7 @@ function createArm(side, kind) {
   fingers.position.set(0, -0.004, -0.31);
   arm.add(fingers);
   for (let index = 0; index < 4; index += 1) {
-    addFinger(fingers, side, index, curled, phase);
+    addFinger(fingers, side, index, curled, phase, mats);
   }
 
   capsule(
@@ -118,12 +151,45 @@ function createArm(side, kind) {
     const sigil = mesh(
       arm,
       new THREE.TorusGeometry(0.052, 0.008, 6, 14),
-      MATERIALS.phase,
+      mats.phase,
       `${arm.name}-phase-sigil`,
       [0, 0.052, -0.315],
       [Math.PI / 2, 0, 0],
     );
     sigil.userData.phaseSigil = true;
+  }
+
+  if (['seniorReptiloid', 'juniorReptiloid'].includes(race)) {
+    for (let index = 0; index < 3; index += 1) {
+      capsule(
+        arm,
+        0.012,
+        race === 'juniorReptiloid' ? 0.075 : 0.06,
+        mats.racialAccent,
+        `${arm.name}-claw-${index}`,
+        [(index - 1) * 0.045, -0.035, -0.43],
+        [Math.PI / 2, 0, 0],
+      );
+    }
+  }
+  if (race === 'red') {
+    box(arm, [0.012, 0.018, 0.24], mats.racialAccent, `${arm.name}-ember-crack`, [side * 0.035, 0.052, -0.25], [0, 0, side * 0.18]);
+  }
+  if (race === 'blue') {
+    for (const offset of [-0.055, 0.055]) {
+      mesh(arm, new THREE.ConeGeometry(0.022, 0.12, 6), mats.racialAccent, `${arm.name}-ice-spur-${offset}`, [offset, 0.075, -0.18], [0, 0, offset * 3]);
+    }
+  }
+  if (race === 'black') {
+    mesh(arm, new THREE.TorusGeometry(0.09, 0.008, 6, 14), mats.racialAccent, `${arm.name}-null-ring`, [0, 0.06, -0.31], [Math.PI / 2, 0, 0]);
+  }
+  if (race === 'deimur') {
+    mesh(arm, new THREE.OctahedronGeometry(0.035, 0), mats.racialAccent, `${arm.name}-resonance-node`, [side * 0.04, 0.075, -0.2]);
+  }
+  if (race === 'tsarbor') {
+    for (let index = 0; index < 3; index += 1) {
+      box(arm, [0.13, 0.018, 0.045], mats.racialAccent, `${arm.name}-bark-ridge-${index}`, [0, 0.075, -0.2 - index * 0.075], [0, side * 0.08, 0]);
+    }
   }
 
   rememberBase(arm);
@@ -236,13 +302,14 @@ function moveArm(arm, target, dt) {
   arm.rotation.z = damp(arm.rotation.z, target.r[2], 18, dt);
 }
 
-export function createPlayerHands(kind = 'firearm', aimMode = false) {
+export function createPlayerHands(kind = 'firearm', aimMode = false, character = {}) {
   const root = new THREE.Group();
   root.name = 'v3l1-first-person-hands';
-  const leftArm = createArm(-1, kind);
-  const rightArm = createArm(1, kind);
+  const leftArm = createArm(-1, kind, character);
+  const rightArm = createArm(1, kind, character);
   root.add(leftArm, rightArm);
   root.userData.kind = kind;
+  root.userData.race = raceKey(character);
   root.userData.aimMode = Boolean(aimMode);
   root.userData.leftArm = leftArm;
   root.userData.rightArm = rightArm;

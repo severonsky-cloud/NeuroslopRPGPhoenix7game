@@ -64,17 +64,20 @@ export function createMonster(scene, data) {
   return obj;
 }
 
-export function updateMonsters(monsters, playerRig, dt) {
+export function updateMonsters(monsters, playerRig, dt, player = null) {
   for (const obj of monsters) {
     const m = obj.userData;
     if (!m.alive) continue;
     if (m.conditionalHostile && !m.provoked && !m.autoHostile) continue;
     const d = Math.hypot(playerRig.position.x - m.x, playerRig.position.z - m.z);
-    if (d < 16 && d > 1.6) {
+    const detectionRange = player?.characterRuntime?.nullVeil ? 5 : 16;
+    if (d < detectionRange && d > 1.6) {
       const dx = (playerRig.position.x - m.x) / d;
       const dz = (playerRig.position.z - m.z) / d;
-      m.x += dx * dt * (m.speed ?? 1.15);
-      m.z += dz * dt * (m.speed ?? 1.15);
+      const slow = m.slowT > 0 ? 0.38 : 1;
+      const fear = m.fearT > 0 ? -0.72 : 1;
+      m.x += dx * dt * (m.speed ?? 1.15) * slow * fear;
+      m.z += dz * dt * (m.speed ?? 1.15) * slow * fear;
       obj.position.set(m.x, heightAt(m.x, m.z), m.z);
       obj.lookAt(playerRig.position.x, playerRig.position.y + 1, playerRig.position.z);
     }

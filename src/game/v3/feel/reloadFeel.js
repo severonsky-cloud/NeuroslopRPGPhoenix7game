@@ -102,7 +102,7 @@ export class ReloadFeelSystem {
   start(weaponId, info = {}) {
     const p = this.profile(weaponId);
     this.weaponId = weaponId;
-    this.total = info.clearing ? 0.85 : p.total;
+    this.total = info.duration || (info.clearing ? 0.85 : p.total);
     this.elapsed = 0;
     this.active = true;
     this.lastStage = '';
