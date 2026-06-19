@@ -77,12 +77,14 @@ function addHumanRig(obj, color, role = 'civilian', occupation = '') {
       rig.add(eye);
     }
     const workColor = ['fisher', 'boatman', 'fisherElder'].includes(occupation)
-      ? 0x416565
+      ? 0x416565 // teal — water/fishing crews
       : ['interpreter', 'guide'].includes(occupation)
-        ? 0xb08b59
+        ? 0xb08b59 // tan — interpreters and road guides
         : ['farmer', 'farmerElder', 'agronomist'].includes(occupation)
-          ? 0x756b31
-          : 0x8f2f24;
+          ? 0x756b31 // olive — field hands
+          : ['worker', 'workerBoss', 'clayDryer', 'cableWorker'].includes(occupation)
+            ? 0x9a6a3c // clay-brown — labour crews
+            : 0x8f2f24; // default ember red
     const emberSash = box(0.54, 0.045, 0.34, workColor, { emissive: 0x3b0905, emissiveIntensity: 0.35 });
     emberSash.position.set(0, 1.17, -0.02);
     emberSash.rotation.z = -0.18;

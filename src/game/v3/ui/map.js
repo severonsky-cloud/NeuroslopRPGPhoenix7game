@@ -58,17 +58,23 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
   }).join('');
   const biomeSvg = biomes.map((biome) => {
     const p = project({ x: biome.center[0], z: biome.center[1] });
-    return `<g class="biome-mark"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="29"/><text x="${p.x.toFixed(1)}" y="${(p.y + 4).toFixed(1)}">${escapeHtml(biome.name)}</text></g>`;
+    const tx = p.x.toFixed(1);
+    const ty = (p.y + 4).toFixed(1);
+    return `<g class="biome-mark"><circle cx="${tx}" cy="${p.y.toFixed(1)}" r="29"/><text x="${tx}" y="${ty}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(biome.name)}</text></g>`;
   }).join('');
   const locationSvg = locations.map((location) => {
     const p = project(location);
-    return `<g class="location-mark"><rect x="${(p.x - 2.5).toFixed(1)}" y="${(p.y - 2.5).toFixed(1)}" width="5" height="5"/><text x="${(p.x + 6).toFixed(1)}" y="${(p.y + 3).toFixed(1)}">${escapeHtml(location.name)}</text></g>`;
+    const tx = (p.x + 6).toFixed(1);
+    const ty = (p.y + 3).toFixed(1);
+    return `<g class="location-mark"><rect x="${(p.x - 2.5).toFixed(1)}" y="${(p.y - 2.5).toFixed(1)}" width="5" height="5"/><text x="${tx}" y="${ty}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(location.name)}</text></g>`;
   }).join('');
-  const settlementSvg = settlements.map((settlement, index) => {
+  const settlementSvg = settlements.map((settlement) => {
     const p = project(settlement);
+    const tx = (p.x + 10).toFixed(1);
+    const ty = (p.y - 8).toFixed(1);
     return `<g class="settlement-node" data-settlement-map="${escapeHtml(settlement.id)}" tabindex="0" role="button" aria-label="${escapeHtml(settlement.name)}">
       <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="${riskColor(settlement.riskLevel)}"/>
-      <text x="${(p.x + 10).toFixed(1)}" y="${(p.y - 8 + (index % 2) * 17).toFixed(1)}">${escapeHtml(settlement.name)}</text>
+      <text x="${tx}" y="${ty}" data-map-text-x="${tx}" data-map-text-y="${ty}">${escapeHtml(settlement.name)}</text>
     </g>`;
   }).join('');
   const first = settlements[0];
@@ -76,23 +82,36 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
   return `
     <style>
       .phoenix-map{background:#b89562;color:#24170e;border:2px solid #54351f;padding:10px;box-shadow:inset 0 0 45px #6d4729;font-family:Georgia,serif}
-      .phoenix-map svg{display:block;width:100%;height:auto;background:radial-gradient(circle at 35% 25%,#d0b17a,#9e7447);border:1px solid #4d321e}
+      .phoenix-map{position:relative;overflow:hidden}
+      .phoenix-map svg{display:block;width:100%;height:auto;touch-action:none;cursor:grab;background:radial-gradient(circle at 35% 25%,#d0b17a,#9e7447);border:1px solid #4d321e}
+      .phoenix-map svg.map-dragging{cursor:grabbing}
       .phoenix-map .grid path{stroke:#5d4935;stroke-width:.55;opacity:.42}.phoenix-map .grid text{font-size:9px;fill:#4c3827}
       .phoenix-map .official-road{fill:none;stroke:#4b291a;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.88}
       .phoenix-map .minor-road{fill:none;stroke:#70513a;stroke-width:2;stroke-dasharray:7 5;opacity:.75}
       .phoenix-map .biome-mark circle{fill:#775b3e;opacity:.11;stroke:#5d452f;stroke-width:1}
-      .phoenix-map .biome-mark text{font-size:8px;text-anchor:middle;fill:#513923;opacity:.7}
-      .phoenix-map .location-mark rect{fill:#342116;opacity:.8}.phoenix-map .location-mark text{font-size:7px;fill:#45301f;opacity:.72}
+      .phoenix-map .biome-mark text{font-size:10px;text-anchor:middle;fill:#513923;opacity:.7}
+      .phoenix-map .location-mark rect{fill:#342116;opacity:.8}.phoenix-map .location-mark text{display:none;font-size:9px;fill:#45301f;opacity:.72}
       .phoenix-map .settlement-node{cursor:pointer}.phoenix-map .settlement-node circle{stroke:#21130c;stroke-width:2}
       .phoenix-map .settlement-node:hover circle,.phoenix-map .settlement-node:focus circle{stroke:#f4d48a;stroke-width:4}
-      .phoenix-map .settlement-node text{font-size:9px;font-weight:700;fill:#24170e;paint-order:stroke;stroke:#c8a875;stroke-width:2px}
+      .phoenix-map .settlement-node text{display:none;font-size:13px;font-weight:700;fill:#24170e;paint-order:stroke;stroke:#c8a875;stroke-width:2px}
+      .phoenix-map.map-show-settlements .settlement-node text,.phoenix-map .settlement-node.map-selected text{display:block}
+      .phoenix-map.map-show-locations .location-mark text{display:block}
       .phoenix-map .player-marker{fill:#f5df9d;stroke:#7f1f1b;stroke-width:3}
+      .map-controls{position:absolute;z-index:2;right:16px;top:16px;display:flex;gap:4px;align-items:center;background:rgba(54,34,19,.82);border:1px solid #321b0e;padding:5px}
+      .map-controls button{min-width:32px;margin:0;padding:5px 8px;background:#d0aa6f;color:#24170e;border:1px solid #51321d}
+      .map-zoom-value{min-width:44px;text-align:center;color:#f4ddb0;font:700 12px system-ui}
       .settlement-map-list button{margin:3px 3px 3px 0;background:#6f4528;color:#f4ddb0;border:1px solid #321b0e;padding:5px 7px}
     </style>
     <h2>Имперский дорожный план: Порт Рейчел — Форт Заря</h2>
     <p>Игрок: x ${player.x.toFixed(1)}, z ${player.z.toFixed(1)} · цвет узла показывает риск 1–5.</p>
-    <div class="phoenix-map">
-      <svg viewBox="0 0 ${width} ${height}" aria-label="Карта мира Phoenix7">
+    <div class="phoenix-map" id="phoenixWorldMap">
+      <div class="map-controls">
+        <button type="button" id="mapZoomOut" aria-label="Уменьшить карту">−</button>
+        <span class="map-zoom-value" id="mapZoomValue">1.0×</span>
+        <button type="button" id="mapZoomIn" aria-label="Увеличить карту">+</button>
+        <button type="button" id="mapZoomReset">Сброс</button>
+      </div>
+      <svg id="phoenixWorldMapSvg" viewBox="0 0 ${width} ${height}" data-map-width="${width}" data-map-height="${height}" aria-label="Карта мира Phoenix7">
         <g class="grid">${grid.join('')}</g>
         <g>${biomeSvg}</g>
         <g>${roadSvg}</g>
@@ -101,6 +120,7 @@ export function mapHtml({ locations = [], biomes = [], player, roads = [], settl
         <path class="player-marker" d="M${playerPoint.x.toFixed(1)} ${(playerPoint.y - 10).toFixed(1)}l8 17h-16z"/>
       </svg>
     </div>
+    <small>Колесо — масштаб · перетаскивание — движение · названия поселений появляются от 1.6×, малых мест — от 2.5×.</small>
     <div class="settlement-map-list">
       ${settlements.map((settlement) => `<button data-settlement-map="${escapeHtml(settlement.id)}">${escapeHtml(settlement.name)} · ${settlement.riskLevel}/5</button>`).join('')}
     </div>

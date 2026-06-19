@@ -27,6 +27,8 @@ const MATERIALS = {
   redCrop: makeMat(0x8f2f24, { roughness: 0.88, emissive: 0x2a0804, emissiveIntensity: 0.12 }),
   saltCrop: makeMat(0xb7a06c, { roughness: 0.86 }),
   black: makeMat(0x151214, { roughness: 0.82 }),
+  net: makeMat(0x23302c, { roughness: 0.95, opacity: 0.55, side: THREE.DoubleSide }),
+  cable: makeMat(0x161310, { roughness: 0.9, metalness: 0.1 }),
 };
 
 function mesh(geometry, material, name) {
@@ -186,6 +188,10 @@ function createSettlementVisual(settlement, pools, quality) {
     stiltHouse(landmark, settlement, 4, 3, 0.82);
     box(detail, settlement, 'ben-hao-boat', [3.4, 0.35, 1.0], [1, 0.24, -4.5], MATERIALS.wood, -0.28);
     box(detail, settlement, 'ben-hao-net-rack', [4.8, 0.08, 0.12], [-1, 2.0, 6], MATERIALS.wood);
+    for (const nx of [-2.4, 0.6]) {
+      const net = mesh(new THREE.PlaneGeometry(2.0, 1.7), MATERIALS.net, 'ben-hao-drying-net');
+      addLocal(detail, net, settlement, nx, 6, 1.1);
+    }
     box(detail, settlement, 'ben-hao-water-patch', [10, 0.025, 5], [-1, 0.02, -7], MATERIALS.water);
     for (let i = 0; i < 6; i += 1) addInstance(pools, 'barrels', settlement.x - 4 + i * 1.5, settlement.z + 6, [0.75, 0.75, 0.75]);
   } else if (settlement.id === 'richelieu-post') {
@@ -197,6 +203,9 @@ function createSettlementVisual(settlement, pools, quality) {
   } else if (settlement.id === 'lang-do') {
     scaffold(landmark, settlement, -3, 0);
     tent(landmark, settlement, 5, 2, 0.9);
+    for (const [sx, sy] of [[-4.6, 1.18], [-3.0, 1.18], [-1.4, 1.18], [-3.0, 2.38]]) {
+      box(detail, settlement, 'lang-do-drying-slab', [0.9, 0.5, 0.06], [sx, sy, 0.12], MATERIALS.clay, -0.2);
+    }
     for (let i = 0; i < 16; i += 1) addInstance(pools, 'clayBlocks', settlement.x - 8 + (i % 8) * 2.0, settlement.z + 6 + Math.floor(i / 8) * 1.4, [0.9, 0.55, 0.65]);
     for (let i = 0; i < 5; i += 1) addInstance(pools, 'barrels', settlement.x + 6, settlement.z - 4 + i * 1.3, [0.72, 0.72, 0.72]);
   } else if (settlement.id === 'tau-verona') {
@@ -205,6 +214,15 @@ function createSettlementVisual(settlement, pools, quality) {
     roof.scale.z = 0.72;
     box(detail, settlement, 'tau-awning-blue', [5.5, 0.12, 3.4], [4, 2.6, -1], makeMat(0x4d668c, { side: THREE.DoubleSide }), 0.18);
     box(detail, settlement, 'tau-awning-black', [4.8, 0.12, 3.0], [3, 2.35, 5], MATERIALS.black, -0.22);
+    // Trade tables under the awnings make the caravanserai read as a market.
+    box(detail, settlement, 'tau-trade-table', [1.9, 0.12, 0.95], [4, 0.92, -1], MATERIALS.wood);
+    box(detail, settlement, 'tau-trade-trestle', [1.6, 0.78, 0.12], [4, 0.45, -1], MATERIALS.woodDark);
+    box(detail, settlement, 'tau-trade-table', [1.7, 0.12, 0.9], [3, 0.86, 5], MATERIALS.wood);
+    box(detail, settlement, 'tau-trade-trestle', [1.5, 0.72, 0.12], [3, 0.42, 5], MATERIALS.woodDark);
+    // One parked caravan cart, off to the side away from the official road.
+    box(detail, settlement, 'tau-verona-cart-bed', [3.0, 0.4, 1.5], [8, 0.62, -5], MATERIALS.wood);
+    cylinder(detail, settlement, 'tau-verona-cart-wheel', 0.42, 0.14, [6.9, 0.42, -4.3], MATERIALS.woodDark, [0, 0, Math.PI / 2]);
+    cylinder(detail, settlement, 'tau-verona-cart-wheel', 0.42, 0.14, [9.1, 0.42, -4.3], MATERIALS.woodDark, [0, 0, Math.PI / 2]);
     campfire(detail, settlement, 0, 7, true);
     for (let i = 0; i < 12; i += 1) addInstance(pools, 'crates', settlement.x - 8 + (i % 6) * 2.2, settlement.z - 6 + Math.floor(i / 6) * 1.4, [0.85, 0.85, 0.85], i * 0.17);
   } else if (settlement.id === 'nam-hoa') {
@@ -224,6 +242,22 @@ function createSettlementVisual(settlement, pools, quality) {
     }
     tent(detail, settlement, -5, 3, 0.78);
     campfire(detail, settlement, -1, 5, false);
+    // Snapped cables sagging from near the broken mast top down to the ground.
+    const mastTop = new THREE.Vector3(0.9, 11.8, -0.6);
+    for (let i = 0; i < 3; i += 1) {
+      const ang = i * 2.1 + 0.5;
+      const ax = Math.cos(ang) * 6.5;
+      const az = Math.sin(ang) * 6.5;
+      const ay = heightAt(settlement.x + ax, settlement.z + az) - heightAt(settlement.x, settlement.z) + 0.1;
+      const ground = new THREE.Vector3(ax, ay, az);
+      const dir = new THREE.Vector3().subVectors(ground, mastTop);
+      const len = dir.length();
+      const cable = mesh(new THREE.CylinderGeometry(0.04, 0.04, len, 5), MATERIALS.cable, `tesla-cable-${i}`);
+      cable.position.copy(mastTop).add(ground).multiplyScalar(0.5);
+      cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      cable.castShadow = false;
+      detail.add(cable);
+    }
     for (let i = 0; i < 10; i += 1) addInstance(pools, 'rustPanels', settlement.x - 8 + (i % 5) * 3.0, settlement.z - 6 + Math.floor(i / 5) * 2.0, [1.3, 0.5, 0.7], i * 0.31);
   } else if (settlement.id === 'chi-cassini') {
     tent(landmark, settlement, -4, 2, 0.86);
@@ -245,6 +279,7 @@ function createSettlementVisual(settlement, pools, quality) {
     tent(landmark, settlement, 4, 3, 0.8, true);
     box(detail, settlement, 'arcole-firing-position', [9, 0.8, 1.2], [0, 0.4, -5], MATERIALS.clayDark, 0.2);
     for (let i = 0; i < 14; i += 1) addInstance(pools, 'crates', settlement.x - 9 + (i % 7) * 2.3, settlement.z + 7 + Math.floor(i / 7) * 1.5, [0.82, 0.82, 0.82], i * 0.11);
+    for (let i = 0; i < 4; i += 1) addInstance(pools, 'barrels', settlement.x + 6 + (i % 2) * 1.2, settlement.z + 2 + Math.floor(i / 2) * 1.3, [0.78, 0.78, 0.78]);
     for (let i = 0; i < 7; i += 1) addInstance(pools, 'flags', settlement.x - 7 + i * 2.3, settlement.z - 7, [0.95, 0.95, 0.95], 0.2);
   }
 
@@ -257,9 +292,15 @@ function createInstancedPool(scene, entries, geometry, material, name, density =
   instanced.name = name;
   instanced.castShadow = false;
   instanced.receiveShadow = true;
+  // These primitives are centred on their own origin, so the correct ground
+  // offset is half of the *actual* geometry height scaled by the y-scale.
+  // A fixed 0.5 assumed unit-tall geometry and left taller props (fence posts,
+  // crops) sunk into the terrain and flatter props (rust panels) floating.
+  const baseHalfHeight = (geometry.parameters?.height ?? 1) * 0.5;
   const dummy = new THREE.Object3D();
   keep.forEach((entry, index) => {
-    dummy.position.set(entry.x, heightAt(entry.x, entry.z) + (entry.scale?.[1] || 1) * 0.5, entry.z);
+    const scaleY = entry.scale?.[1] ?? 1;
+    dummy.position.set(entry.x, heightAt(entry.x, entry.z) + baseHalfHeight * scaleY, entry.z);
     dummy.scale.set(...(entry.scale || [1, 1, 1]));
     dummy.rotation.set(0, entry.rotationY || 0, 0);
     dummy.updateMatrix();
