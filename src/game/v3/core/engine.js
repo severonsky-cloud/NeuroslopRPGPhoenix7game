@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 import { createTerrainMesh, heightAt, biomeAt } from '../world/terrain.js';
 import { WorldChunks } from '../world/chunks.js';
 import { LOCATIONS, BIOMES, NPCS, MONSTERS } from '../data/worldData.js';
@@ -20,7 +20,7 @@ import { InventorySystem } from '../items/inventory.js';
 import { PhaseMagicSystem, PHASE_SPELLS } from '../magic/phaseMagic.js';
 import { BallisticSystem } from '../combat/ballistics.js';
 import { ARSENAL, AMMO_TYPES, attackProfile } from '../combat/arsenal.js';
-import { createWeaponViewModel } from '../items/weaponModels.js';
+import { createWeaponViewModel, updateWeaponViewModel } from '../items/weaponModels.js';
 
 export class PhoenixV3Engine {
   constructor(canvas) {
@@ -436,6 +436,12 @@ export class PhoenixV3Engine {
       const sway = this.aimMode ? 0.003 : 0.012;
       this.hands.position.x = Math.sin(performance.now() * 0.006) * sway;
       this.hands.position.y = Math.sin(this.player.motion?.bob || 0) * (this.aimMode ? 0.002 : 0.008);
+      updateWeaponViewModel(this.hands, {
+        dt,
+        motion: this.player.motion,
+        aimMode: this.aimMode,
+        paused: this.paused,
+      });
     }
   }
 

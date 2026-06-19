@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 import { PLAYER_START } from '../data/worldData.js';
 import { heightAt, clampToWorld } from '../world/terrain.js';
 

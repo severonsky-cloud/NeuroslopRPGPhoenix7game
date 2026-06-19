@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 
 export const BIOME_ATMOSPHERE = {
   ocean: { fog: 0x4c6d73, density: 0.0042, sky: 0x7f6b55, hemi: 0xffd8a0, ground: 0x20343b },

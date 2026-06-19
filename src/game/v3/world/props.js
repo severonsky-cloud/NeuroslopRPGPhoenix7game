@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js';
+import * as THREE from '../vendor/three.module.js';
 import { heightAt } from './terrain.js';
 
 export function makeMat(color, options = {}) {
@@ -18,8 +18,9 @@ export function makeMat(color, options = {}) {
 }
 
 export const Materials = {
-  road: makeMat(0x5b4025, { roughness: 0.94, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2, side: THREE.DoubleSide }),
-  roadEdge: makeMat(0x3f2a18, { roughness: 0.98, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, side: THREE.DoubleSide }),
+  road: makeMat(0x68452a, { roughness: 0.98, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2, side: THREE.DoubleSide }),
+  roadEdge: makeMat(0x472d1c, { roughness: 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, side: THREE.DoubleSide }),
+  roadShoulder: makeMat(0x7b4a2d, { roughness: 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, side: THREE.DoubleSide }),
   wood: makeMat(0x3f2718),
   dark: makeMat(0x120c08),
   clayWall: makeMat(0x6b5534),
@@ -73,30 +74,45 @@ export function placeRoadSegment(scene, a, b, width = 5.0) {
   const edgeVertices = [];
   const edgeUvs = [];
   const edgeIndices = [];
+  const shoulderVertices = [];
+  const shoulderUvs = [];
+  const shoulderIndices = [];
 
   let prevLeft = null, prevRight = null, prevEdgeL0 = null, prevEdgeL1 = null, prevEdgeR0 = null, prevEdgeR1 = null;
+  let prevShoulderL0 = null, prevShoulderL1 = null, prevShoulderR0 = null, prevShoulderR1 = null;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const p = roadSample(a, b, t);
-    const crown = Math.sin(t * Math.PI) * 0.018;
+    const crown = Math.sin(t * Math.PI) * 0.006;
     const left = { x: p.x + nx * half, z: p.z + nz * half };
     const right = { x: p.x - nx * half, z: p.z - nz * half };
-    left.y = heightAt(left.x, left.z) + 0.035 + crown;
-    right.y = heightAt(right.x, right.z) + 0.035 + crown;
+    left.y = heightAt(left.x, left.z) + 0.008 + crown;
+    right.y = heightAt(right.x, right.z) + 0.008 + crown;
 
     const edgeL0 = { x: p.x + nx * half, z: p.z + nz * half };
     const edgeL1 = { x: p.x + nx * (half - edgeInset), z: p.z + nz * (half - edgeInset) };
     const edgeR0 = { x: p.x - nx * half, z: p.z - nz * half };
     const edgeR1 = { x: p.x - nx * (half - edgeInset), z: p.z - nz * (half - edgeInset) };
-    for (const q of [edgeL0, edgeL1, edgeR0, edgeR1]) q.y = heightAt(q.x, q.z) + 0.045;
+    for (const q of [edgeL0, edgeL1, edgeR0, edgeR1]) q.y = heightAt(q.x, q.z) + 0.014;
+
+    const shoulderWidth = 0.78;
+    const shoulderL0 = { x: p.x + nx * (half + shoulderWidth), z: p.z + nz * (half + shoulderWidth) };
+    const shoulderL1 = { x: p.x + nx * half, z: p.z + nz * half };
+    const shoulderR0 = { x: p.x - nx * half, z: p.z - nz * half };
+    const shoulderR1 = { x: p.x - nx * (half + shoulderWidth), z: p.z - nz * (half + shoulderWidth) };
+    for (const q of [shoulderL0, shoulderL1, shoulderR0, shoulderR1]) q.y = heightAt(q.x, q.z) + 0.006;
 
     if (prevLeft) {
       pushRoadQuad(vertices, uvs, indices, prevLeft, prevRight, left, right);
       pushRoadQuad(edgeVertices, edgeUvs, edgeIndices, prevEdgeL0, prevEdgeL1, edgeL0, edgeL1);
       pushRoadQuad(edgeVertices, edgeUvs, edgeIndices, prevEdgeR1, prevEdgeR0, edgeR1, edgeR0);
+      pushRoadQuad(shoulderVertices, shoulderUvs, shoulderIndices, prevShoulderL0, prevShoulderL1, shoulderL0, shoulderL1);
+      pushRoadQuad(shoulderVertices, shoulderUvs, shoulderIndices, prevShoulderR0, prevShoulderR1, shoulderR0, shoulderR1);
     }
     prevLeft = left; prevRight = right;
     prevEdgeL0 = edgeL0; prevEdgeL1 = edgeL1; prevEdgeR0 = edgeR0; prevEdgeR1 = edgeR1;
+    prevShoulderL0 = shoulderL0; prevShoulderL1 = shoulderL1;
+    prevShoulderR0 = shoulderR0; prevShoulderR1 = shoulderR1;
   }
 
   const geo = new THREE.BufferGeometry();
@@ -118,6 +134,16 @@ export function placeRoadSegment(scene, a, b, width = 5.0) {
   edgeMesh.name = 'road_embedded_edges';
   edgeMesh.receiveShadow = true;
   scene.add(edgeMesh);
+
+  const shoulderGeo = new THREE.BufferGeometry();
+  shoulderGeo.setAttribute('position', new THREE.Float32BufferAttribute(shoulderVertices, 3));
+  shoulderGeo.setAttribute('uv', new THREE.Float32BufferAttribute(shoulderUvs, 2));
+  shoulderGeo.setIndex(shoulderIndices);
+  shoulderGeo.computeVertexNormals();
+  const shoulderMesh = new THREE.Mesh(shoulderGeo, Materials.roadShoulder);
+  shoulderMesh.name = 'road-grounded-dirt-shoulders';
+  shoulderMesh.receiveShadow = true;
+  scene.add(shoulderMesh);
   return mesh;
 }
 

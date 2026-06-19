@@ -1,4 +1,4 @@
-import { FortZaryaEncounter } from '../encounters/fortZaryaEncounter.js?v=random_event_1';
+import { FortZaryaEncounter } from '../encounters/fortZaryaEncounter.js';
 
 export function installFortEncounterExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__fortEncounterExtensionInstalled) return;
@@ -18,7 +18,14 @@ export function installFortEncounterExtensions(PhoenixV3Engine) {
     if (this.mode !== 'boot' && !this.paused) {
       this.fortEncounter?.update(dt);
       const bottom = document.getElementById('bottom');
-      if (bottom && this.fortEncounter) bottom.textContent = this.fortEncounter.statusText();
+      if (bottom && this.fortEncounter) {
+        const fortStatus = this.fortEncounter.statusText();
+        const weapon = this.player?.weapon;
+        const firearmStatus = this.firearms?.statusText?.(weapon);
+        bottom.textContent = firearmStatus
+          ? `R reload/clear jam · B alt · V aim · ${firearmStatus} · ${fortStatus}`
+          : fortStatus;
+      }
     }
   };
 
