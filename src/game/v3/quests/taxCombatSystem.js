@@ -11,7 +11,13 @@ import {
   TAX_REWARDS,
   TAX_STAGES,
 } from '../data/taxQuestData.js';
-import { heightAt } from '../world/terrain.js';
+import { heightAt, biomeAt } from '../world/terrain.js';
+
+// Shock-flee window after the assassination, and the wild biomes the post patrol
+// won't chase into (reaching one ends the flee immediately).
+const SHOCK_DURATION = 60;
+const SAFE_BIOMES = ['tsarbor', 'ice'];
+const SAFE_BIOME_NAMES = { tsarbor: 'Лес царборцев', ice: 'Ледяной шельф' };
 
 function distXZ(a, b) {
   return Math.hypot(a.x - b.x, a.z - b.z);
@@ -147,10 +153,10 @@ export class TaxCombatSystem {
       stage: TAX_STAGES.ASSASSINATION_ESCAPE,
       route: 'assassination',
       status: 'active',
-      vars: { cinematic: false, shockRemaining: 120 },
+      vars: { cinematic: false, shockRemaining: SHOCK_DURATION },
     });
-    this.engine.player.characterRuntime.rooted = false;
-    this.shockTimer = 120;
+    if (this.engine.player.characterRuntime) this.engine.player.characterRuntime.rooted = false;
+    this.shockTimer = SHOCK_DURATION;
     this.spawnCombatant({ id: 'tax-assassination-voss', name: 'Капрал Восс', x: -65, z: 82, hp: 72 }, 'imperial_lmg');
     this.spawnCombatant({ id: 'tax-assassination-guard-a', name: 'Стрелок поста', x: -71, z: 81 }, 'imperial_rifle');
     this.spawnCombatant({ id: 'tax-assassination-guard-b', name: 'Дорожный караульный', x: -63, z: 75 }, 'imperial_rifle');
@@ -161,7 +167,7 @@ export class TaxCombatSystem {
 
   resumeAssassinationEscape() {
     if (this.questActors.length) return;
-    this.shockTimer = Math.max(0, Number(this.quest().vars.shockRemaining) || 120);
+    this.shockTimer = Math.max(0, Number(this.quest().vars.shockRemaining) || SHOCK_DURATION);
     this.hideLifeAgent('marcel-dumont', true);
     this.hideLifeAgent('corporal-voss', true);
     this.spawnCombatant({ id: 'tax-assassination-voss', name: 'Капрал Восс', x: -65, z: 82, hp: 72 }, 'imperial_lmg');
@@ -179,14 +185,19 @@ export class TaxCombatSystem {
     }
     const quest = this.quest();
     if (quest.stage !== TAX_STAGES.ASSASSINATION_ESCAPE) return;
-    this.shockTimer = Math.max(0, (this.shockTimer || 120) - dt);
+    this.shockTimer = Math.max(0, (this.shockTimer || SHOCK_DURATION) - dt);
     this.shockSaveT += dt;
     if (this.shockSaveT >= 1) {
       this.shockSaveT = 0;
       this.engine.worldState.patchQuest(TAX_QUEST_ID, { vars: { shockRemaining: this.shockTimer } });
     }
     const distance = distXZ(this.engine.rig.position, TAX_POSITIONS.post);
-    if (this.shockTimer <= 0 && distance > 70) {
+    const biome = biomeAt(this.engine.rig.position.x, this.engine.rig.position.z);
+    const safeBiome = SAFE_BIOMES.includes(biome);
+    this.updateShockVignette(safeBiome);
+    // Escape: outrun the post (timer runs out AND clear of it) OR slip into a wild
+    // biome the patrol won't follow into (Лес царборцев / Ледяной шельф).
+    if (safeBiome || (this.shockTimer <= 0 && distance > 70)) {
       this.engine.worldState.patchQuest(TAX_QUEST_ID, {
         stage: TAX_STAGES.ASSASSINATION_GERDA,
         route: 'assassination',
@@ -194,9 +205,35 @@ export class TaxCombatSystem {
       });
       this.removeQuestActors();
       this.restoreLifeAgent('corporal-voss');
-      this.engine.hud.setObjective('Ты скрылся. Найди Герду в Форте Заря.');
-      this.engine.log.unshift('Налог и глина: погоня отстала. Герда должна услышать твою версию.');
+      this.clearShockVignette();
+      const where = safeBiome ? SAFE_BIOME_NAMES[biome] : null;
+      this.engine.hud.setObjective(where
+        ? `Погоня отстала в дикой зоне (${where}). Найди Герду в Форте Заря.`
+        : 'Ты скрылся. Найди Герду в Форте Заря.');
+      this.engine.log.unshift(where
+        ? `Налог и глина: ты ушёл в ${where} — пост не сунется сюда. Герда должна услышать твою версию.`
+        : 'Налог и глина: погоня отстала. Герда должна услышать твою версию.');
     }
+  }
+
+  // Red panic vignette during the flee — intensifies as the timer drains.
+  updateShockVignette(safeBiome) {
+    let el = document.getElementById('phxShockVignette');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'phxShockVignette';
+      el.style.cssText = 'position:fixed;inset:0;z-index:11;pointer-events:none;transition:box-shadow .12s';
+      document.body.appendChild(el);
+    }
+    const urgency = 1 - Math.min(1, this.shockTimer / SHOCK_DURATION);
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() * (0.004 + urgency * 0.012));
+    const intensity = safeBiome ? 0 : (0.16 + urgency * 0.5) * (0.6 + 0.4 * pulse);
+    el.style.boxShadow = `inset 0 0 ${Math.round(120 + urgency * 120)}px ${Math.round(28 + urgency * 42)}px rgba(190,24,24,${intensity.toFixed(3)})`;
+  }
+
+  clearShockVignette() {
+    const el = document.getElementById('phxShockVignette');
+    if (el) el.style.boxShadow = 'inset 0 0 160px 40px rgba(190,24,24,0)';
   }
 
   captureCheckpoint() {
@@ -465,6 +502,7 @@ export class TaxCombatSystem {
     this.assassination = null;
     this.standoff = null;
     this.shockTimer = 0;
+    this.clearShockVignette();
     if (this.engine.player.characterRuntime) this.engine.player.characterRuntime.rooted = false;
     for (const id of [...this.postHidden.keys()]) this.restoreLifeAgent(id);
     for (const id of ['marcel-dumont', 'corporal-voss', 'nyen-lo', 'red_rural_caravan']) {
