@@ -13,6 +13,7 @@ import { installCharacterExtensions } from './core/engineCharacterExtensions.js?
 import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30n1_living_world_daynight_1';
 import { installPoiExtensions } from './core/enginePoiExtensions.js?v=30n2_exploration_1';
 import { installDemoHooksExtensions } from './core/engineDemoHooksExtensions.js?v=30n3_demo_hooks_1';
+import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b_quest_dialogue_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -28,6 +29,7 @@ installCharacterExtensions(PhoenixV3Engine);
 installDayNightExtensions(PhoenixV3Engine);
 installPoiExtensions(PhoenixV3Engine);
 installDemoHooksExtensions(PhoenixV3Engine);
+installDialogueExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
