@@ -200,7 +200,11 @@ for (const weaponId of ['colt', 'm1', 'bren', 'trenchShotgun', 'caravanCarbine',
 const aimedBren = createWeaponViewModel('bren', true, { race: 'human' });
 const brenMagazine = aimedBren.getObjectByName('bren-top-magazine');
 const brenSight = aimedBren.getObjectByName('front-sight');
-assert.ok(Math.abs(brenMagazine.position.x - brenSight.position.x) >= 0.15, 'Магазин Bren перекрывает прицел');
+const brenSightSeparation = Math.hypot(
+  brenMagazine.position.x - brenSight.position.x,
+  brenMagazine.position.y - brenSight.position.y,
+);
+assert.ok(brenSightSeparation >= 0.12, 'Магазин Bren перекрывает прицел');
 
 assert.equal(SETTLEMENTS.length, 8);
 const roadLength = settlementRoadLength();

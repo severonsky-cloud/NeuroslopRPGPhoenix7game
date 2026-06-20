@@ -68,8 +68,10 @@ export function applyCharacterProfile(engine, rawProfile, { rebuild = true } = {
     rooted: false,
   };
   player.weapon = engine.inventory.activeWeaponId();
+  player.__worldRewardCreditsApplied = 0;
   engine.characterProfile = profile;
   engine.characterProfileReady = true;
+  engine.worldState?.applyPersistentRewards?.(engine);
 
   if (rebuild) {
     engine.setPlayerBodyRace?.(profile);
@@ -139,6 +141,10 @@ export function installCharacterExtensions(PhoenixV3Engine) {
       existingProfile: newGame ? null : stored,
       onConfirm: (profile) => {
         this.characterCreator = null;
+        if (newGame) {
+          this.worldState?.reset?.();
+          this.taxQuestSystem?.resetRuntime?.();
+        }
         const saved = saveCharacterProfile(profile);
         applyCharacterProfile(this, saved);
         this.rig.position.set(PLAYER_START.x, heightAt(PLAYER_START.x, PLAYER_START.z), PLAYER_START.z);

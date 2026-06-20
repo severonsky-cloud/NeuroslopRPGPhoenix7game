@@ -2,6 +2,7 @@ import { WORLD_BOUNDS, LOCATIONS, BIOMES, ROADS } from '../data/worldData.js';
 import { SETTLEMENTS } from '../data/settlementsData.js';
 import { SettlementWorldSystem } from '../world/settlements.js';
 import { journalHtml, mapHtml, settlementDetailsHtml } from '../ui/map.js';
+import { questJournalEntries } from '../data/questData.js';
 
 function bindSettlementMap(engine) {
   const details = document.getElementById('settlementMapDetails');
@@ -169,6 +170,7 @@ export function installSettlementExtensions(PhoenixV3Engine) {
       settlements: SETTLEMENTS,
       bounds: WORLD_BOUNDS,
       player: { x: this.rig.position.x, z: this.rig.position.z },
+      pois: this.poiSystem?.mapMarkers() || [],
     }));
     bindSettlementMap(this);
   };
@@ -176,7 +178,12 @@ export function installSettlementExtensions(PhoenixV3Engine) {
   PhoenixV3Engine.prototype.openJournal = function openSettlementJournal() {
     this.paused = true;
     const lifeEvents = this.livingWorld?.eventLog || [];
-    this.hud.openPanel(journalHtml([...lifeEvents, ...this.log], SETTLEMENTS));
+    this.hud.openPanel(journalHtml(
+      [...lifeEvents, ...this.log],
+      SETTLEMENTS,
+      this.poiSystem?.discoveries() || [],
+      this.worldState ? questJournalEntries(this.worldState) : [],
+    ));
     document.getElementById('closeMapBtn')?.addEventListener('click', () => this.closePausePanel());
   };
 

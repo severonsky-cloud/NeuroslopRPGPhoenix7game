@@ -3,6 +3,7 @@ import { LIFE_AGENTS, FACTIONS } from '../data/lifeData.js';
 import { resolveSettlementDialogue } from '../data/settlementsData.js';
 import { heightAt } from './terrain.js';
 import { makeMat, labelSprite } from './props.js';
+import { worldClock } from './dayNight.js';
 
 function createAgentModel(agent) {
   const faction = FACTIONS[agent.faction] || { color: 0xffffff, name: 'Unknown' };
@@ -57,6 +58,7 @@ export class LivingWorldSystem {
     this.agents = [];
     this.eventLog = [];
     this.time = 0;
+    this._daySegment = null;
   }
 
   build() {
@@ -76,6 +78,9 @@ export class LivingWorldSystem {
       speed: agent.speed ?? (agent.role === 'caravan' ? 0.75 : agent.role === 'patrol' ? 1.1 : 0.95),
       factionName: FACTIONS[agent.faction]?.name || agent.faction,
       state: agent.role === 'worker' ? 'working' : agent.role === 'raidPatrol' ? 'raiding' : 'travelling',
+      // Settlement residents get a home anchor so they can drift home and idle at night.
+      homeAnchor: agent.settlementId ? { x: agent.x, z: agent.z } : null,
+      scheduleState: agent.settlementId ? 'working' : null,
       label,
     };
     label.userData.lifeAgent = obj;
@@ -91,6 +96,8 @@ export class LivingWorldSystem {
 
   update(dt, playerRig) {
     this.time += dt;
+    this.tickWorldClockEvents();
+    const resting = worldClock.nightFactor > 0.55;
     for (const obj of this.agents) {
       const u = obj.userData;
       const playerDistance = Math.hypot(u.x - playerRig.position.x, u.z - playerRig.position.z);
@@ -102,22 +109,58 @@ export class LivingWorldSystem {
         if (u.label) u.label.visible = !culled;
         if (culled) continue;
       }
-      if (u.route && u.route.length) {
-        const target = u.route[u.routeIndex % u.route.length];
-        const d = Math.hypot(target.x - u.x, target.z - u.z);
-        if (d < 0.75) {
-          u.routeIndex++;
-          this.onRoutePoint(u);
-        } else {
-          u.x += (target.x - u.x) / d * dt * u.speed;
-          u.z += (target.z - u.z) / d * dt * u.speed;
+
+      if (u.homeAnchor && resting) {
+        // Night: drift back to the home anchor and idle there at reduced pace.
+        u.scheduleState = 'resting';
+        const home = u.homeAnchor;
+        const dh = Math.hypot(home.x - u.x, home.z - u.z);
+        if (dh > 0.8) {
+          const sp = (u.speed || 0.9) * 0.45;
+          u.x += (home.x - u.x) / dh * dt * sp;
+          u.z += (home.z - u.z) / dh * dt * sp;
           obj.position.set(u.x, heightAt(u.x, u.z), u.z);
-          obj.lookAt(target.x, heightAt(target.x, target.z) + 1, target.z);
+          obj.lookAt(home.x, heightAt(home.x, home.z) + 1, home.z);
+        }
+      } else {
+        if (u.homeAnchor) u.scheduleState = 'working';
+        if (u.questHold) {
+          obj.position.set(u.x, heightAt(u.x, u.z), u.z);
+        } else if (u.route && u.route.length) {
+          const target = u.route[u.routeIndex % u.route.length];
+          const d = Math.hypot(target.x - u.x, target.z - u.z);
+          if (d < 0.75) {
+            u.routeIndex++;
+            this.onRoutePoint(u);
+          } else {
+            u.x += (target.x - u.x) / d * dt * u.speed;
+            u.z += (target.z - u.z) / d * dt * u.speed;
+            obj.position.set(u.x, heightAt(u.x, u.z), u.z);
+            obj.lookAt(target.x, heightAt(target.x, target.z) + 1, target.z);
+          }
         }
       }
 
       const nearPlayer = playerDistance < 22;
       if (nearPlayer && Math.random() < dt * 0.015) this.ambientLine(u);
+    }
+  }
+
+  tickWorldClockEvents() {
+    const seg = worldClock.segment;
+    if (seg === this._daySegment) return;
+    const first = this._daySegment == null;
+    this._daySegment = seg;
+    if (first) return; // don't fire on the very first frame
+    const lines = {
+      dawn: 'Рассвет: соляной караван выходит на официальный тракт.',
+      day: 'День: общины тракта возвращаются к работе.',
+      dusk: 'Сумерки: дозоры на тракте меняют смену.',
+      night: 'Ночь: в поселениях зажигают костры, жители расходятся по домам.',
+    };
+    if (lines[seg]) {
+      this.eventLog.unshift(lines[seg]);
+      if (this.eventLog.length > 12) this.eventLog.pop();
     }
   }
 
@@ -154,6 +197,8 @@ export class LivingWorldSystem {
     const u = agent.userData;
     const player = this.playerProvider?.() || {};
     const text = resolveSettlementDialogue(u, player);
-    return `<h2>${u.name}</h2><p>${text}</p><p><b>Фракция:</b> ${u.factionName}</p><p><b>Роль:</b> ${u.role}</p><p><b>Состояние:</b> ${u.state}</p><p><button id="closeMapBtn">Закрыть</button></p>`;
+    const schedule = u.scheduleState === 'resting' ? 'ночной отдых' : u.scheduleState === 'working' ? 'дневная работа' : '—';
+    const scheduleLine = u.homeAnchor ? `<p><b>Распорядок:</b> ${schedule} · ${worldClock.clockText}</p>` : '';
+    return `<h2>${u.name}</h2><p>${text}</p><p><b>Фракция:</b> ${u.factionName}</p><p><b>Роль:</b> ${u.role}</p><p><b>Состояние:</b> ${u.state}</p>${scheduleLine}<p><button id="closeMapBtn">Закрыть</button></p>`;
   }
 }

@@ -78,10 +78,11 @@ export class GunFeelSystem {
   shot(weaponId, result) {
     const f = FEEL[weaponId] || FEEL.caravanCarbine;
     const control = this.engine.player.characterRuntime?.firearmSpread || 1;
-    this.recoilX += f.kick * control * (0.82 + Math.random() * 0.36);
-    this.recoilY += (Math.random() - 0.5) * f.side * control;
+    // Clamp accumulation so holding full-auto can't pile recoil past sane limits.
+    this.recoilX = Math.min(0.5, this.recoilX + f.kick * control * (0.82 + Math.random() * 0.36));
+    this.recoilY = THREE.MathUtils.clamp(this.recoilY + (Math.random() - 0.5) * f.side * control, -0.3, 0.3);
     this.weaponBack = Math.max(this.weaponBack, f.weaponBack);
-    this.weaponRot += (Math.random() - 0.5) * 0.18;
+    this.weaponRot = THREE.MathUtils.clamp(this.weaponRot + (Math.random() - 0.5) * 0.18, -0.5, 0.5);
     this.shakeT = Math.max(this.shakeT, 0.13);
     this.flashT = Math.max(this.flashT, f.flash);
     this.screenFlash.style.opacity = String(Math.min(0.45, f.flash * 1.5));
@@ -160,8 +161,12 @@ export class GunFeelSystem {
 
   update(dt) {
     const cam = this.engine.camera;
-    cam.rotation.x = this.engine.pitch - this.recoilX;
-    cam.rotation.y = this.recoilY;
+    // Camera orientation is authored here every frame. Bound the pitch and force
+    // roll to exactly 0 so sustained auto-fire (Bren) or any stray transform can
+    // never leave the view tilted or stuck looking over the top.
+    cam.rotation.x = THREE.MathUtils.clamp(this.engine.pitch - this.recoilX, -1.45, 1.45);
+    cam.rotation.y = THREE.MathUtils.clamp(this.recoilY, -0.35, 0.35);
+    cam.rotation.z = 0;
     this.recoilX = lerp(this.recoilX, 0, Math.min(1, dt * 9));
     this.recoilY = lerp(this.recoilY, 0, Math.min(1, dt * 8));
 

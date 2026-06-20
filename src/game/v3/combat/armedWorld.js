@@ -96,39 +96,38 @@ export class ArmedWorldSystem {
 
   build() {
     const lifeAgents = this.engine.livingWorld?.agents || [];
-    for (const obj of lifeAgents) {
-      const u = obj.userData;
-      const loadout = loadoutForAgent(u);
-      const profile = NPC_WEAPON_PROFILES[loadout] || NPC_WEAPON_PROFILES.peasant_tool;
-      u.weaponProfileId = loadout;
-      u.weaponProfile = profile;
-      u.armed = true;
-      u.combatCooldown = Math.random() * 0.6;
-      u.windupT = 0;
-      u.target = null;
-      u.combatState = 'routine';
-      u.ammoNpc = profile.kind === 'firearm' ? 20 + Math.floor(Math.random() * 20) : 0;
-      addWeaponMesh(obj, profile);
-    }
+    for (const obj of lifeAgents) this.configureActor(obj);
     for (const obj of this.engine.monsters || []) {
-      const u = obj.userData;
-      let profile = null;
-      if (u.id?.includes('zhuzher')) profile = NPC_WEAPON_PROFILES.smg_zhuzher;
-      if (u.archetype === 'black') profile = NPC_WEAPON_PROFILES.black_rifle;
-      if (u.archetype === 'glass' || u.archetype === 'phase') profile = NPC_WEAPON_PROFILES.elemental_gun;
-      if (!profile && u.archetype === 'brute') profile = NPC_WEAPON_PROFILES.tsarbor_club;
-      if (profile) {
-        u.weaponProfile = profile;
-        u.weaponProfileId = Object.keys(NPC_WEAPON_PROFILES).find(k => NPC_WEAPON_PROFILES[k] === profile);
-        u.armed = true;
-        u.combatCooldown = Math.random() * 0.8;
-        u.windupT = 0;
-        u.target = null;
-        u.ammoNpc = profile.kind === 'firearm' ? 18 : 0;
-        addWeaponMesh(obj, profile);
-      }
+      this.configureActor(obj);
     }
     this.started = true;
+  }
+
+  configureActor(obj, forcedLoadout = null) {
+    if (!obj?.userData) return obj;
+    const u = obj.userData;
+    let loadout = forcedLoadout;
+    if (!forcedLoadout && u.type === 'monster') {
+      if (u.id?.includes('zhuzher')) loadout = 'smg_zhuzher';
+      else if (u.archetype === 'black') loadout = 'black_rifle';
+      else if (u.archetype === 'glass' || u.archetype === 'phase') loadout = 'elemental_gun';
+      else if (u.faction === 'empire') loadout = u.role === 'guard' ? 'imperial_lmg' : 'imperial_rifle';
+      else if (u.archetype === 'brute') loadout = 'tsarbor_club';
+    } else if (!forcedLoadout) {
+      loadout = loadoutForAgent(u);
+    }
+    const profile = NPC_WEAPON_PROFILES[loadout];
+    if (!profile) return obj;
+    u.weaponProfileId = loadout;
+    u.weaponProfile = profile;
+    u.armed = true;
+    u.combatCooldown = Math.random() * 0.6;
+    u.windupT = 0;
+    u.target = null;
+    u.combatState = 'routine';
+    u.ammoNpc = profile.kind === 'firearm' ? 20 + Math.floor(Math.random() * 20) : 0;
+    addWeaponMesh(obj, profile);
+    return obj;
   }
 
   update(dt) {
