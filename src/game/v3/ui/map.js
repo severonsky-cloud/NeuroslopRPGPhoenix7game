@@ -162,9 +162,20 @@ export function settlementDetailsHtml(settlement) {
   `;
 }
 
-export function journalHtml(lines = [], settlements = [], discoveries = []) {
+export function journalHtml(lines = [], settlements = [], discoveries = [], quests = []) {
   return `
     <h2>Журнал v3</h2>
+    ${quests.length ? `
+      <h3>Квесты</h3>
+      ${quests.map((quest) => `
+        <div class="line">
+          <b>${quest.done ? '✓' : '❗'} ${escapeHtml(quest.name)}</b>
+          ${quest.route ? ` · ${escapeHtml(quest.route)}` : ''}<br>
+          ${escapeHtml(quest.current)}
+          ${quest.log.length > 1 ? `<details><summary>История</summary>${quest.log.map((entry) => `<div>${escapeHtml(entry)}</div>`).join('')}</details>` : ''}
+        </div>
+      `).join('')}
+    ` : ''}
     ${lines.map((line) => `<div class="line">${line}</div>`).join('') || '<p>Пока пусто.</p>'}
     ${discoveries.length ? `
       <h3>Находки тракта (${discoveries.length})</h3>

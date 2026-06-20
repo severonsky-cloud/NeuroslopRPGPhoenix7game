@@ -124,7 +124,9 @@ export class LivingWorldSystem {
         }
       } else {
         if (u.homeAnchor) u.scheduleState = 'working';
-        if (u.route && u.route.length) {
+        if (u.questHold) {
+          obj.position.set(u.x, heightAt(u.x, u.z), u.z);
+        } else if (u.route && u.route.length) {
           const target = u.route[u.routeIndex % u.route.length];
           const d = Math.hypot(target.x - u.x, target.z - u.z);
           if (d < 0.75) {

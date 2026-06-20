@@ -10,6 +10,7 @@ export function installDialogueExtensions(PhoenixV3Engine) {
   PhoenixV3Engine.prototype.buildScene = function buildSceneWithDialogue() {
     const result = originalBuildScene.call(this);
     if (!this.worldState) this.worldState = new WorldState();
+    this.worldState.applyPersistentRewards(this);
     this.log.unshift('v3M2B: квестовый движок и диалоги-темы (Морровинд-стиль) подключены.');
     return result;
   };
@@ -19,11 +20,21 @@ export function installDialogueExtensions(PhoenixV3Engine) {
   const originalInteract = PhoenixV3Engine.prototype.interact;
   PhoenixV3Engine.prototype.interact = function interactWithDialogue() {
     if (this.paused || this.mode === 'boot') return;
-    const agent = this.livingWorld?.findNear?.(this.rig) || null;
-    const npc = agent
-      ? null
-      : (this.npcs || []).find((n) => Math.hypot(n.userData.x - this.rig.position.x, n.userData.z - this.rig.position.z) < 2.4) || null;
-    const id = agent?.userData?.id || npc?.userData?.id;
+    const candidates = [
+      ...(this.livingWorld?.agents || []).filter((agent) => !agent.userData.settlementCulled),
+      ...(this.npcs || []),
+    ]
+      .map((actor) => ({
+        actor,
+        id: actor.userData?.id,
+        distance: Math.hypot(
+          (actor.userData?.x ?? actor.position.x) - this.rig.position.x,
+          (actor.userData?.z ?? actor.position.z) - this.rig.position.z,
+        ),
+      }))
+      .filter((entry) => DIALOGUE[entry.id] && entry.distance < 2.8)
+      .sort((a, b) => a.distance - b.distance);
+    const id = candidates[0]?.id;
     if (id && DIALOGUE[id]) {
       this.paused = true;
       this.rpg?.useSkill?.('speech', 0.5);
@@ -33,18 +44,15 @@ export function installDialogueExtensions(PhoenixV3Engine) {
     return originalInteract.call(this);
   };
 
-  // A new game must also reset the world state (flags + quests), otherwise a
-  // finished quest stays finished and scripted intros never replay.
+  // Persistent rewards are re-applied when continuing an existing profile.
+  // New Game itself is reset only from the creator's onConfirm callback so
+  // cancelling the creator cannot destroy the current world state.
   const originalRequestGameStart = PhoenixV3Engine.prototype.requestGameStart;
   if (originalRequestGameStart) {
     PhoenixV3Engine.prototype.requestGameStart = function requestGameStartWithWorldReset(options = {}) {
-      if (options && options.newGame && this.worldState) {
-        this.worldState.reset();
-        this.taxScene = null;
-        this.taxMarkers = null;
-        this.taxShockTimer = 0;
-      }
-      return originalRequestGameStart.call(this, options);
+      const result = originalRequestGameStart.call(this, options);
+      if (result && !options?.newGame) this.worldState?.applyPersistentRewards?.(this);
+      return result;
     };
   }
 

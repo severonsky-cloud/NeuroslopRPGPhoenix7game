@@ -18,6 +18,14 @@ export const ITEM_DEFS = {
   roadCuirass: { id: 'roadCuirass', name: 'Кираса Красной дороги', type: 'armor', slot: 'chest', armor: 5, weight: 7 },
   saltBoots: { id: 'saltBoots', name: 'Соляные сапоги', type: 'armor', slot: 'boots', armor: 1, weight: 1.8 },
   phaseCharm: { id: 'phaseCharm', name: 'Фазовый амулет', type: 'trinket', slot: 'amulet', armor: 0, phaseBonus: 8, weight: 0.2 },
+  evidenceCamera: { id: 'evidenceCamera', name: 'Старая камера Рины', type: 'quest', slot: 'quest', weight: 0.8 },
+  extortionPhoto: { id: 'extortionPhoto', name: 'Снимок поборов у поста', type: 'quest', slot: 'quest', weight: 0.1 },
+  dumontLedger: { id: 'dumontLedger', name: 'Ведомость поборов Дюмона', type: 'quest', slot: 'quest', weight: 0.4 },
+  imperialWitnessSeal: { id: 'imperialWitnessSeal', name: 'Имперская печать свидетеля', type: 'quest', slot: 'quest', weight: 0.1 },
+  resonanceEvidenceShard: { id: 'resonanceEvidenceShard', name: 'Резонансный слепок улики', type: 'quest', slot: 'quest', weight: 0.2 },
+  signedNyenTestimony: { id: 'signedNyenTestimony', name: 'Подписанное свидетельство Ньен Ло', type: 'quest', slot: 'quest', weight: 0.1 },
+  dumontBadge: { id: 'dumontBadge', name: 'Знак лейтенанта Дюмона', type: 'quest', slot: 'quest', weight: 0.2 },
+  richelieuServiceCarbine: { id: 'richelieuServiceCarbine', name: 'Служебный карабин Ришелье', type: 'weapon', slot: 'hand', weaponId: 'caravanCarbine', weight: 3.4 },
 };
 
 export function makeInventoryState() {
@@ -120,6 +128,20 @@ export class InventorySystem {
   addAmmo(type, amount) {
     if (!AMMO_TYPES[type]) return false;
     this.player.inventoryState.ammo[type] = (this.player.inventoryState.ammo[type] || 0) + amount;
+    return true;
+  }
+
+  addItem(itemId) {
+    if (!ITEM_DEFS[itemId] || this.player.inventoryState.items.includes(itemId)) return false;
+    this.player.inventoryState.items.push(itemId);
+    return true;
+  }
+
+  removeItem(itemId) {
+    const items = this.player.inventoryState.items;
+    const index = items.indexOf(itemId);
+    if (index < 0) return false;
+    items.splice(index, 1);
     return true;
   }
 

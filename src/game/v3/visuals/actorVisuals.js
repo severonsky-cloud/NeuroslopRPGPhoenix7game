@@ -116,6 +116,9 @@ function addElementalRig(obj, color, black = false) {
 }
 
 function roleFor(u) {
+  if (u.race === 'blue') return 'blueElemental';
+  if (u.race === 'seniorReptiloid') return 'seniorReptiloid';
+  if (u.race === 'deimur') return 'deimur';
   if (u.faction === 'empire') return u.role === 'guard' ? 'guard' : 'empire';
   if (u.faction === 'knights') return 'knight';
   if (u.faction === 'errorOrder' || u.faction === 'soundOrder') return 'order';
@@ -163,7 +166,28 @@ export class ActorVisualSystem {
     if (role === 'blueElemental') addElementalRig(obj, 0x4d78b8, false);
     else if (role === 'blackElemental' || u.archetype === 'black') addElementalRig(obj, 0x111018, true);
     else if (u.archetype === 'glass' || u.archetype === 'phase') addElementalRig(obj, 0x6fc8c0, false);
-    else addHumanRig(obj, color, role, u.role);
+    else {
+      const rig = addHumanRig(obj, role === 'seniorReptiloid' ? 0x5f7148 : color, role, u.role);
+      if (role === 'deimur') {
+        rig.scale.set(1.12, 1.16, 1.12);
+        const crown = new THREE.Mesh(
+          new THREE.TorusGeometry(0.29, 0.035, 7, 18),
+          mat(0x9ee8ff, { emissive: 0x426a92, emissiveIntensity: 0.8 }),
+        );
+        crown.position.y = 2.02;
+        crown.rotation.x = Math.PI / 2;
+        rig.add(crown);
+      }
+      if (role === 'seniorReptiloid') {
+        const frill = new THREE.Mesh(
+          new THREE.ConeGeometry(0.55, 0.42, 8, 1, true),
+          mat(0x7d4e36, { side: THREE.DoubleSide }),
+        );
+        frill.position.y = 1.75;
+        frill.rotation.x = Math.PI;
+        rig.add(frill);
+      }
+    }
 
     u.visualRig?.traverse?.((node) => {
       node.userData.actorBasePosition = node.position.clone();
