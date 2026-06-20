@@ -13,8 +13,8 @@ import { installCharacterExtensions } from './core/engineCharacterExtensions.js?
 import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30n1_living_world_daynight_1';
 import { installPoiExtensions } from './core/enginePoiExtensions.js?v=30n2_exploration_1';
 import { installDemoHooksExtensions } from './core/engineDemoHooksExtensions.js?v=30n3_demo_hooks_1';
-import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b_quest_dialogue_1';
-import { installTaxQuestExtensions } from './core/engineTaxQuestExtensions.js?v=30m2b_tax_quest_1';
+import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b_quest_dialogue_2';
+import { installTaxQuestExtensions } from './core/engineTaxQuestExtensions.js?v=30m2b_tax_quest_3';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);

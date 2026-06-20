@@ -33,6 +33,21 @@ export function installDialogueExtensions(PhoenixV3Engine) {
     return originalInteract.call(this);
   };
 
+  // A new game must also reset the world state (flags + quests), otherwise a
+  // finished quest stays finished and scripted intros never replay.
+  const originalRequestGameStart = PhoenixV3Engine.prototype.requestGameStart;
+  if (originalRequestGameStart) {
+    PhoenixV3Engine.prototype.requestGameStart = function requestGameStartWithWorldReset(options = {}) {
+      if (options && options.newGame && this.worldState) {
+        this.worldState.reset();
+        this.taxScene = null;
+        this.taxMarkers = null;
+        this.taxShockTimer = 0;
+      }
+      return originalRequestGameStart.call(this, options);
+    };
+  }
+
   PhoenixV3Engine.prototype.getQuestDiagnostics = function getQuestDiagnostics() {
     return {
       worldState: !!this.worldState,
