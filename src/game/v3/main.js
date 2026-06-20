@@ -14,6 +14,7 @@ import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=
 import { installPoiExtensions } from './core/enginePoiExtensions.js?v=30n2_exploration_1';
 import { installDemoHooksExtensions } from './core/engineDemoHooksExtensions.js?v=30n3_demo_hooks_1';
 import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b_quest_dialogue_1';
+import { installTaxQuestExtensions } from './core/engineTaxQuestExtensions.js?v=30m2b_tax_quest_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -30,6 +31,7 @@ installDayNightExtensions(PhoenixV3Engine);
 installPoiExtensions(PhoenixV3Engine);
 installDemoHooksExtensions(PhoenixV3Engine);
 installDialogueExtensions(PhoenixV3Engine);
+installTaxQuestExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
