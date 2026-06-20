@@ -465,7 +465,7 @@ export class TaxCombatSystem {
     this.assassination = null;
     this.standoff = null;
     this.shockTimer = 0;
-    this.engine.player.characterRuntime.rooted = false;
+    if (this.engine.player.characterRuntime) this.engine.player.characterRuntime.rooted = false;
     for (const id of [...this.postHidden.keys()]) this.restoreLifeAgent(id);
     for (const id of ['marcel-dumont', 'corporal-voss', 'nyen-lo', 'red_rural_caravan']) {
       const actor = this.lifeAgent(id);
