@@ -1,15 +1,16 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30m2a_character_creation_1';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_character_creation_1';
-import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_character_creation_1';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_character_creation_1';
-import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_character_creation_1';
-import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_character_creation_1';
-import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_character_creation_1';
-import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_character_creation_1';
-import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_character_creation_1';
-import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_character_creation_1';
-import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_character_creation_1';
-import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_character_creation_1';
+import { PhoenixV3Engine } from './core/engine.js?v=30m2a_n1_daynight_integration_1';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n1_daynight_integration_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -22,6 +23,7 @@ installPlayerHandsExtensions(PhoenixV3Engine);
 installPlayerBodyExtensions(PhoenixV3Engine);
 installAtmosphereExtensions(PhoenixV3Engine);
 installCharacterExtensions(PhoenixV3Engine);
+installDayNightExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
@@ -37,4 +39,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3M2A Character Creation: profiles, eight races, racial hands and Q abilities ready');
+console.log('Phoenix7 v3M2A + v3N1: character creation, settlements, day-night schedule and night sky ready');
