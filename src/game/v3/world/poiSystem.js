@@ -184,8 +184,11 @@ export class PoiWorldSystem {
   discover(entry) {
     entry.discovered = true;
     this.discoveredList.push(entry.data);
-    this.engine.hud?.setObjective?.(`Открыто: ${entry.data.name}`);
-    this.engine.log?.unshift?.(`Находка: ${entry.data.name}. ${entry.data.lore}`);
+    // Small exploration reward so finding a site feels worthwhile.
+    const reward = 10;
+    if (this.engine.player) this.engine.player.credits = (this.engine.player.credits || 0) + reward;
+    this.engine.hud?.setObjective?.(`Открыто: ${entry.data.name}  ·  +${reward} кр`);
+    this.engine.log?.unshift?.(`Находка: ${entry.data.name} (+${reward} кр). ${entry.data.lore}`);
     const events = this.engine.livingWorld?.eventLog;
     if (events) {
       events.unshift(`Открыта точка интереса: ${entry.data.name}.`);
