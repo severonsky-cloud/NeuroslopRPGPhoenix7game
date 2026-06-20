@@ -125,27 +125,30 @@ function buildM1(root, aimMode, mats, weapon) {
 }
 
 function buildBren(root, aimMode, mats) {
-  const x = aimMode ? 0.04 : 0.16;
-  const y = aimMode ? -0.32 : -0.35;
-  const receiverZ = -0.74;
-  const magazineSize = aimMode ? [0.2, 0.36, 0.16] : [0.24, 0.42, 0.18];
-  const magazinePosition = aimMode
-    ? [x - 0.22, y + 0.31, receiverZ - 0.08]
-    : [x, y + 0.31, receiverZ - 0.08];
-  const magazineRotation = aimMode ? [0.08, 0, -0.18] : [0.08, 0, 0.04];
-  box(root, [0.22, 0.24, 0.55], mats.gunmetal, 'bren-heavy-receiver', [x, y, receiverZ]);
-  box(root, [0.2, 0.19, 0.46], mats.wood, 'bren-stock', [x, y - 0.045, receiverZ + 0.48], [-0.04, 0, 0]);
-  box(root, [0.19, 0.16, 0.44], mats.woodLight, 'bren-foregrip', [x, y - 0.03, receiverZ - 0.43]);
-  cylinder(root, 0.034, 0.88, mats.blueSteel, 'bren-heavy-barrel', [x, y + 0.02, receiverZ - 1.02], 'z', 12);
-  cylinder(root, 0.058, 0.32, mats.dark, 'bren-barrel-jacket', [x, y + 0.02, receiverZ - 0.74], 'z', 12);
-  const magazine = remember(box(root, magazineSize, mats.gunmetal, 'bren-top-magazine', magazinePosition, magazineRotation));
-  box(root, [0.15, 0.05, 0.38], mats.dark, 'bren-carry-handle', [x + 0.18, y + 0.16, receiverZ - 0.16], [0, 0, -0.42]);
-  const bipodLeft = box(root, [0.025, 0.48, 0.025], mats.gunmetal, 'bren-bipod-left', [x - 0.13, y - 0.2, receiverZ - 1.12], [0, 0, -0.22]);
-  const bipodRight = box(root, [0.025, 0.48, 0.025], mats.gunmetal, 'bren-bipod-right', [x + 0.13, y - 0.2, receiverZ - 1.12], [0, 0, 0.22]);
-  bipodLeft.rotation.x = bipodRight.rotation.x = 0.16;
-  addSight(root, x, y + 0.14, receiverZ - 1.36, mats);
+  // Hip pose sits lower and further right so the gun reads clearly without
+  // covering the centre of the screen; aim pose centres it over the sights.
+  const x = aimMode ? 0.02 : 0.22;
+  const y = aimMode ? -0.30 : -0.42;
+  const receiverZ = -0.72;
+  // Compact receiver + clean wood furniture.
+  box(root, [0.16, 0.185, 0.5], mats.gunmetal, 'bren-heavy-receiver', [x, y, receiverZ]);
+  box(root, [0.155, 0.16, 0.4], mats.wood, 'bren-stock', [x, y - 0.03, receiverZ + 0.44], [-0.04, 0, 0]);
+  box(root, [0.14, 0.13, 0.34], mats.woodLight, 'bren-foregrip', [x, y - 0.03, receiverZ - 0.34]);
+  box(root, [0.07, 0.17, 0.08], mats.dark, 'bren-pistol-grip', [x, y - 0.135, receiverZ + 0.14], [0.32, 0, 0]);
+  // Shorter visible barrel + ribbed jacket.
+  cylinder(root, 0.027, 0.58, mats.blueSteel, 'bren-heavy-barrel', [x, y + 0.025, receiverZ - 0.74], 'z', 12);
+  cylinder(root, 0.045, 0.26, mats.dark, 'bren-barrel-jacket', [x, y + 0.025, receiverZ - 0.56], 'z', 12);
+  // Iconic top magazine — smaller, gently curved, nudged left so it never blocks the sight line.
+  const magazineSize = aimMode ? [0.13, 0.24, 0.11] : [0.15, 0.3, 0.12];
+  const magazine = remember(box(root, magazineSize, mats.gunmetal, 'bren-top-magazine', [x - 0.04, y + 0.25, receiverZ - 0.05], [0.14, 0, aimMode ? -0.14 : 0.06]));
+  box(root, [0.04, 0.04, 0.24], mats.dark, 'bren-carry-handle', [x + 0.11, y + 0.13, receiverZ - 0.1], [0, 0, -0.32]);
+  // Trim folded bipod tucked under the front, low profile.
+  const bipodLeft = box(root, [0.02, 0.3, 0.02], mats.gunmetal, 'bren-bipod-left', [x - 0.08, y - 0.15, receiverZ - 0.82], [0.2, 0, -0.24]);
+  const bipodRight = box(root, [0.02, 0.3, 0.02], mats.gunmetal, 'bren-bipod-right', [x + 0.08, y - 0.15, receiverZ - 0.82], [0.2, 0, 0.24]);
+  bipodLeft.rotation.x = bipodRight.rotation.x = 0.2;
+  addSight(root, x, y + 0.125, receiverZ - 0.86, mats);
   return {
-    muzzleAnchor: muzzleAnchor(root, x, y + 0.02, receiverZ - 1.47),
+    muzzleAnchor: muzzleAnchor(root, x, y + 0.025, receiverZ - 1.02),
     parts: { magazine },
   };
 }
