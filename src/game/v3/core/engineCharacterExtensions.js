@@ -69,6 +69,7 @@ export function applyCharacterProfile(engine, rawProfile, { rebuild = true } = {
   };
   player.weapon = engine.inventory.activeWeaponId();
   player.__worldRewardCreditsApplied = 0;
+  player.__worldRewardAmmoApplied = {};
   engine.characterProfile = profile;
   engine.characterProfileReady = true;
   engine.worldState?.applyPersistentRewards?.(engine);

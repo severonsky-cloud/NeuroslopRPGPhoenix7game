@@ -9,6 +9,7 @@ import {
 import { normalizePlayerCulture } from '../data/settlementsData.js';
 import { TaxEvidenceSystem } from './taxEvidenceSystem.js';
 import { TaxCombatSystem } from './taxCombatSystem.js';
+import { TaxRebelSystem } from './taxRebelSystem.js';
 
 function ensureSubtitleElement() {
   let element = document.getElementById('phxSubtitle');
@@ -99,6 +100,7 @@ export class TaxQuestSystem {
     this.markers = [];
     this.evidence = new TaxEvidenceSystem(engine);
     this.combat = new TaxCombatSystem(engine);
+    this.rebels = new TaxRebelSystem(engine, this.subtitle);
     if (this.quest().stage === TAX_STAGES.OFFERED) this.spawnMarkers();
     if (this.quest().stage === TAX_STAGES.ASSASSINATION_SCENE) this.combat.startAssassination();
     if (this.quest().stage === TAX_STAGES.ARREST_SCENE && this.quest().vars.arrestOutcome) {
@@ -309,6 +311,8 @@ export class TaxQuestSystem {
 
   bannerText() {
     const quest = this.quest();
+    const rebelText = this.rebels.bannerText();
+    if (rebelText) return rebelText;
     const distance = Math.round(distXZ(this.engine.rig.position, TAX_POSITIONS.post));
     switch (quest.stage) {
       case TAX_STAGES.OFFERED: return '❗ Налог и глина — выбери путь в разговоре с Дюмоном';
@@ -330,7 +334,7 @@ export class TaxQuestSystem {
   }
 
   interact() {
-    return this.evidence.interact();
+    return this.rebels.interact() || this.evidence.interact();
   }
 
   update(dt) {
@@ -346,6 +350,7 @@ export class TaxQuestSystem {
     this.updateArrestScene(dt);
     this.evidence.update(dt);
     this.combat.update(dt);
+    this.rebels.update(dt);
     this.updateMarkers();
     if (quest.stage !== TAX_STAGES.OFFERED && quest.stage !== TAX_STAGES.STANDOFF_READY) this.clearMarkers();
     const text = this.scene || this.arrestScene ? '' : this.bannerText();
@@ -361,16 +366,18 @@ export class TaxQuestSystem {
     this.banner.style.opacity = '0';
     this.evidence.resetRuntime();
     this.combat.resetRuntime();
+    this.rebels.resetRuntime();
   }
 
   setDebugStage(stage, route = null) {
-    const status = [TAX_STAGES.ASSASSINATION_DONE, TAX_STAGES.STANDOFF_DONE, TAX_STAGES.ARREST_DONE].includes(stage)
+    const status = [TAX_STAGES.ASSASSINATION_DONE, TAX_STAGES.STANDOFF_DONE, TAX_STAGES.ARREST_DONE, TAX_STAGES.REBELS_DONE].includes(stage)
       ? 'complete'
       : 'active';
     this.engine.worldState.patchQuest(TAX_QUEST_ID, { stage, route, status, outcome: null });
     this.resetRuntime();
     if (stage === TAX_STAGES.OFFERED) this.spawnMarkers();
     if (stage === TAX_STAGES.ARREST_MARCH) this.combat.spawnArrestSquad();
+    this.rebels.setDebugStage(stage);
     return this.diagnostics();
   }
 
@@ -387,6 +394,7 @@ export class TaxQuestSystem {
       markers: this.markers.map((entry) => entry.id),
       evidence: this.evidence.diagnostics(),
       combat: this.combat.diagnostics(),
+      rebels: this.rebels.diagnostics(),
       questItems: { ...this.engine.worldState.data.questItems },
       rewards: Object.keys(this.engine.worldState.data.rewards),
       reputation: JSON.parse(JSON.stringify(this.engine.worldState.data.reputation)),

@@ -26,6 +26,8 @@ export const ITEM_DEFS = {
   signedNyenTestimony: { id: 'signedNyenTestimony', name: 'Подписанное свидетельство Ньен Ло', type: 'quest', slot: 'quest', weight: 0.1 },
   dumontBadge: { id: 'dumontBadge', name: 'Знак лейтенанта Дюмона', type: 'quest', slot: 'quest', weight: 0.2 },
   richelieuServiceCarbine: { id: 'richelieuServiceCarbine', name: 'Служебный карабин Ришелье', type: 'weapon', slot: 'hand', weaponId: 'caravanCarbine', weight: 3.4 },
+  rebelCourierNagant: { id: 'rebelCourierNagant', name: 'Наган связного', type: 'weapon', slot: 'hand', weaponId: 'colt', weight: 1.1 },
+  rebelSawedOff: { id: 'rebelSawedOff', name: 'Обрез подполья', type: 'weapon', slot: 'hand', weaponId: 'trenchShotgun', weight: 3.2 },
 };
 
 export function makeInventoryState() {

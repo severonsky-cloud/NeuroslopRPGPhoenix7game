@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>Phoenix7 v3M2B.1 — Compatibility</title>
+  <title>Phoenix7 v3M2B.2 — Compatibility</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080604;color:#f3dca8;font-family:system-ui}
     #game{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -28,9 +28,9 @@
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3M2B.1 Compatibility</h1>
-      <p>Совместимый вход V3K: creator, поселения и расширенный квест «Налог и глина».</p>
-      <p><b>Проверка:</b> Start → сцена у Поста → Q → F2 поселения → M карта → J журнал.</p>
+      <h1>Phoenix7 v3M2B.2 Compatibility</h1>
+      <p>Совместимый вход V3K: creator, поселения и ночная ветка «Налога и глины».</p>
+      <p><b>Проверка:</b> Start → Пост → Ньен → связной → Q → M карта → J журнал.</p>
       <button id="startBtn">Создать персонажа</button>
       <button id="newGameBtn" hidden>Новая игра</button>
       <button id="mapBtn">Map</button>
@@ -46,13 +46,13 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">v3M2B.1 · E quest interactions · T time · F2 settlements · F8 body · F9/F10/F11 quality</div>
+    <div id="bottom">v3M2B.2 · E quest/rebel actions · T time · F2 settlements · F3 tax debug · F8 body · F9/F10/F11 quality</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30m2b1_tax_clay_expansion_1').catch(err => {
+    import('./src/game/v3/main.js?v=30m2b2_rebels_night_1').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });

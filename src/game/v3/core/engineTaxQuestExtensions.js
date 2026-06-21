@@ -1,4 +1,6 @@
 import { TaxQuestSystem } from '../quests/taxQuestSystem.js';
+import { TAX_POSITIONS } from '../data/taxQuestData.js';
+import { heightAt } from '../world/terrain.js';
 
 export function installTaxQuestExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__taxQuestInstalled) return;
@@ -8,8 +10,32 @@ export function installTaxQuestExtensions(PhoenixV3Engine) {
   PhoenixV3Engine.prototype.buildScene = function buildSceneWithTaxQuest() {
     const result = originalBuildScene.call(this);
     this.taxQuestSystem = new TaxQuestSystem(this);
-    this.log.unshift('v3M2B.1: расследование, арест, казнь и оборона в квесте «Налог и глина».');
+    this.taxQuestDebugPointIndex = 0;
+    this.log.unshift('v3M2B.2: расследование, арест, казнь, оборона и ночное похищение в квесте «Налог и глина».');
     return result;
+  };
+
+  const originalOnAction = PhoenixV3Engine.prototype.onAction;
+  PhoenixV3Engine.prototype.onAction = function onActionWithTaxQuestDebug(code, event) {
+    if (code === 'F3') {
+      event?.preventDefault?.();
+      this.teleportTaxQuestDebugNext();
+      return;
+    }
+    return originalOnAction.call(this, code, event);
+  };
+
+  PhoenixV3Engine.prototype.teleportTaxQuestDebugNext = function teleportTaxQuestDebugNext() {
+    const points = [
+      { ...TAX_POSITIONS.rebelCamp, name: 'костёр повстанцев' },
+      { ...TAX_POSITIONS.rebelCheckpoint, name: 'checkpoint ночной операции' },
+      { ...TAX_POSITIONS.rebelSwitch, name: 'рубильник Поста Ришелье' },
+      { ...TAX_POSITIONS.post, name: 'центр Поста Ришелье' },
+    ];
+    const point = points[this.taxQuestDebugPointIndex++ % points.length];
+    this.rig.position.set(point.x, heightAt(point.x, point.z), point.z);
+    this.hud.setObjective(`F3 tax debug: ${point.name}`);
+    return point;
   };
 
   const originalInteract = PhoenixV3Engine.prototype.interact;

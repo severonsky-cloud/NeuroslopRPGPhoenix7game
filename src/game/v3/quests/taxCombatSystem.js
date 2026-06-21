@@ -450,7 +450,9 @@ export class TaxCombatSystem {
 
   normalizeInterruptedCombat() {
     const quest = this.quest();
-    if (quest.stage === TAX_STAGES.STANDOFF_COMBAT || quest.status === 'combat') {
+    const interruptedStandoff = quest.stage === TAX_STAGES.STANDOFF_COMBAT
+      || (quest.route === 'standoff' && quest.status === 'combat');
+    if (interruptedStandoff) {
       this.engine.worldState.patchQuest(TAX_QUEST_ID, {
         stage: TAX_STAGES.OFFERED,
         route: null,
@@ -471,7 +473,9 @@ export class TaxCombatSystem {
 
   applyPersistentWorld() {
     const quest = this.quest();
-    if (this.engine.worldState.getFlag('dumont_dead') || this.engine.worldState.getFlag('dumont_arrested')) {
+    if (this.engine.worldState.getFlag('dumont_dead')
+      || this.engine.worldState.getFlag('dumont_arrested')
+      || this.engine.worldState.getFlag('dumont_abducted')) {
       this.hideLifeAgent('marcel-dumont', true);
     }
     if (quest.outcome === 'standoff' || this.engine.worldState.getFlag('dumont_defeated_standoff')) {

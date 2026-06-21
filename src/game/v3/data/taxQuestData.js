@@ -17,6 +17,15 @@ export const TAX_STAGES = Object.freeze({
   ARREST_CHOICE: 45,
   ARREST_SCENE: 46,
   ARREST_DONE: 49,
+  REBELS_CODE: 60,
+  REBELS_CONTACT: 61,
+  REBELS_CAMP: 62,
+  REBELS_APPROACH: 63,
+  REBELS_INFILTRATION: 64,
+  REBELS_CLEAN: 65,
+  REBELS_COMBAT: 66,
+  REBELS_EXTRACTION: 67,
+  REBELS_DONE: 69,
 });
 
 export const TAX_POSITIONS = Object.freeze({
@@ -25,6 +34,17 @@ export const TAX_POSITIONS = Object.freeze({
   ledger: { x: -75.4, z: 81.8 },
   checkpoint: { x: -77, z: 72 },
   gerda: { x: 152, z: 182 },
+  rebelCamp: { x: -8, z: 76 },
+  rebelSwitch: { x: -75.8, z: 84.2 },
+  rebelCheckpoint: { x: -79.2, z: 86.4 },
+  rebelExtraction: { x: -92, z: 93 },
+});
+
+export const TAX_ROUTE_RANGES = Object.freeze({
+  assassination: { min: 20, max: 29 },
+  standoff: { min: 30, max: 39 },
+  investigation: { min: 40, max: 49 },
+  rebels: { min: 60, max: 69 },
 });
 
 export const TAX_SCENE_LINES = Object.freeze([
@@ -93,6 +113,25 @@ export const TAX_REWARDS = Object.freeze({
     items: ['richelieuServiceCarbine'],
     reputation: [
       { scope: 'factions', id: 'redPeasants', delta: 2 },
+      { scope: 'locations', id: 'richelieu-post', delta: -2 },
+    ],
+  },
+  rebels_clean: {
+    credits: 80,
+    items: ['rebelCourierNagant'],
+    ammo: { revolver: 12 },
+    reputation: [
+      { scope: 'factions', id: 'rebels', delta: 3 },
+      { scope: 'factions', id: 'redPeasants', delta: 2 },
+    ],
+  },
+  rebels_bloody: {
+    credits: 40,
+    items: ['rebelSawedOff'],
+    ammo: { scatter: 6 },
+    reputation: [
+      { scope: 'factions', id: 'rebels', delta: 2 },
+      { scope: 'factions', id: 'redPeasants', delta: 1 },
       { scope: 'locations', id: 'richelieu-post', delta: -2 },
     ],
   },
