@@ -15,6 +15,7 @@ import { installPoiExtensions } from './core/enginePoiExtensions.js?v=30m2b1_tax
 import { installDemoHooksExtensions } from './core/engineDemoHooksExtensions.js?v=30m2b1_tax_clay_expansion_1';
 import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b1_tax_clay_expansion_1';
 import { installTaxQuestExtensions } from './core/engineTaxQuestExtensions.js?v=30m2b1_tax_clay_expansion_1';
+import { installLivingExtortionExtensions } from './core/engineLivingExtortionExtensions.js?v=30m2c_living_extortion_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -32,6 +33,7 @@ installPoiExtensions(PhoenixV3Engine);
 installDemoHooksExtensions(PhoenixV3Engine);
 installDialogueExtensions(PhoenixV3Engine);
 installTaxQuestExtensions(PhoenixV3Engine);
+installLivingExtortionExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
