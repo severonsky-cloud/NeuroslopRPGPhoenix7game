@@ -1,4 +1,4 @@
-import { TAX_STAGES } from './taxQuestData.js';
+import { TAX_ROUTE_RANGES, TAX_STAGES } from './taxQuestData.js';
 
 export const QUESTS = {
   tax_and_clay: {
@@ -21,14 +21,24 @@ export const QUESTS = {
       [TAX_STAGES.ARREST_CHOICE]: 'Дюмон окружён. Выбери, как оформить его арест.',
       [TAX_STAGES.ARREST_SCENE]: 'Арест начался. Дюмон вынужден отвечать перед свидетелями.',
       [TAX_STAGES.ARREST_DONE]: 'Дюмон арестован. Ньен Ло и Восс временно управляют Постом Ришелье.',
+      [TAX_STAGES.REBELS_CODE]: 'Ньен Ло передала кодовую фразу. Найди связного повстанцев на Красной дороге.',
+      [TAX_STAGES.REBELS_CONTACT]: 'Связной узнал код. Подтверди, что готов участвовать в ночной операции.',
+      [TAX_STAGES.REBELS_CAMP]: 'Повстанцы ждут у дорожного костра. Дождись ночи и начинай операцию.',
+      [TAX_STAGES.REBELS_APPROACH]: 'Два повстанца идут за тобой к Посту Ришелье.',
+      [TAX_STAGES.REBELS_INFILTRATION]: 'Проберись к рубильнику за постом и отключи свет, не попав в поле зрения охраны.',
+      [TAX_STAGES.REBELS_CLEAN]: 'Свет погас. Повстанцы выводят Дюмона из офиса без открытого боя.',
+      [TAX_STAGES.REBELS_COMBAT]: 'Тревога поднята. Прикрой похищение Дюмона и продержись до отхода группы.',
+      [TAX_STAGES.REBELS_EXTRACTION]: 'Дюмона уводят с поста. Прикрой последние секунды отхода.',
+      [TAX_STAGES.REBELS_DONE]: 'Дюмон исчез. Ньен Ло и Восс временно удерживают пост, но никто не говорит, куда увели лейтенанта.',
     },
   },
 };
 
-function reachedStages(quest, stage) {
+function reachedStages(quest, stage, route) {
   const stages = Object.keys(quest.stages).map(Number).sort((a, b) => a - b);
-  const routeBase = stage >= 40 ? 40 : stage >= 30 ? 30 : stage >= 20 ? 20 : 10;
-  return stages.filter((entry) => entry === 10 || (entry >= routeBase && entry <= stage));
+  const range = TAX_ROUTE_RANGES[route];
+  if (!range) return stages.filter((entry) => entry === 10 && entry <= stage);
+  return stages.filter((entry) => entry === 10 || (entry >= range.min && entry <= range.max && entry <= stage));
 }
 
 export function questJournalEntries(worldState) {
@@ -36,7 +46,7 @@ export function questJournalEntries(worldState) {
     .map(({ id, stage, route, status, outcome }) => {
       const quest = QUESTS[id];
       if (!quest) return null;
-      const reached = reachedStages(quest, stage);
+      const reached = reachedStages(quest, stage, route);
       const current = reached.at(-1);
       return {
         id,

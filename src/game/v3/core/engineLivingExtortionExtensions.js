@@ -46,8 +46,11 @@ export function installLivingExtortionExtensions(PhoenixV3Engine) {
 
     // Only an ongoing nuisance: intro seen, officer still extorting, no route committed.
     if (!ws.getFlag('witnessed_extortion')) return;
-    if (ws.getFlag('dumont_dead') || ws.getFlag('dumont_arrested')) return;
-    if (ws.questStage('tax_and_clay') > 10) return;
+    if (ws.getFlag('dumont_dead') || ws.getFlag('dumont_arrested') || ws.getFlag('dumont_abducted')) return;
+    const quest = ws.questState('tax_and_clay');
+    const operationActive = quest.status === 'combat'
+      || [20, 31, 44, 45, 46, 63, 64, 65, 66, 67].includes(quest.stage);
+    if (operationActive) return;
 
     this._extThrottle = (this._extThrottle || 0) - dt;
     if (this._extThrottle > 0) return;

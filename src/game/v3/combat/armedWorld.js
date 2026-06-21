@@ -181,6 +181,7 @@ export class ArmedWorldSystem {
 
   pickTarget(obj, all, playerPos) {
     const u = obj.userData;
+    if (u.questCombatNeutral) return null;
     const profile = u.weaponProfile;
     const dp = obj.position.distanceTo(playerPos);
     const veiled = Boolean(this.engine.player.characterRuntime?.nullVeil);
@@ -189,7 +190,7 @@ export class ArmedWorldSystem {
     let best = null;
     let bestD = Infinity;
     for (const other of all) {
-      if (other === obj || other.userData.alive === false || other.userData.settlementCulled) continue;
+      if (other === obj || other.userData.alive === false || other.userData.settlementCulled || other.userData.questCombatNeutral) continue;
       if (!hostility(u, other.userData)) continue;
       const d = dist2(obj, other);
       if (d < bestD && d < 34 * 34) { best = other; bestD = d; }

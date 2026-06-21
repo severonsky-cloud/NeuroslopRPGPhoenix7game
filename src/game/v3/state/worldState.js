@@ -179,6 +179,11 @@ export class WorldState {
     const normalized = {
       credits: Number(reward.credits) || 0,
       items: [...new Set(reward.items || [])],
+      ammo: Object.fromEntries(
+        Object.entries(reward.ammo || {})
+          .map(([type, amount]) => [type, Math.max(0, Number(amount) || 0)])
+          .filter(([, amount]) => amount > 0),
+      ),
       reputation: (reward.reputation || []).map((entry) => ({
         scope: entry.scope,
         id: entry.id,
@@ -198,7 +203,7 @@ export class WorldState {
 
   applyPersistentRewards(engine) {
     const player = engine?.player;
-    if (!player) return { credits: 0, items: [] };
+    if (!player) return { credits: 0, items: [], ammo: {} };
     const totalCredits = Object.values(this.data.rewards)
       .reduce((sum, reward) => sum + (Number(reward.credits) || 0), 0);
     const applied = Number(player.__worldRewardCreditsApplied) || 0;
@@ -212,7 +217,25 @@ export class WorldState {
     if (Array.isArray(inventoryItems)) {
       for (const id of items) if (!inventoryItems.includes(id)) inventoryItems.push(id);
     }
-    return { credits: totalCredits, items };
+
+    const totalAmmo = {};
+    for (const reward of Object.values(this.data.rewards)) {
+      for (const [type, amount] of Object.entries(reward.ammo || {})) {
+        totalAmmo[type] = (totalAmmo[type] || 0) + (Number(amount) || 0);
+      }
+    }
+    const inventoryAmmo = player.inventoryState?.ammo;
+    if (inventoryAmmo && typeof inventoryAmmo === 'object') {
+      if (!player.__worldRewardAmmoApplied) player.__worldRewardAmmoApplied = {};
+      for (const [type, total] of Object.entries(totalAmmo)) {
+        const applied = Number(player.__worldRewardAmmoApplied[type]) || 0;
+        if (total !== applied) {
+          inventoryAmmo[type] = (Number(inventoryAmmo[type]) || 0) + total - applied;
+          player.__worldRewardAmmoApplied[type] = total;
+        }
+      }
+    }
+    return { credits: totalCredits, items, ammo: totalAmmo };
   }
 
   activeQuests() {
