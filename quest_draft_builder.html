@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phoenix7 — Сборщик квестовых драфтов</title>
+<style>
+  :root{--bg:#13100c;--panel:#1c1813;--panel2:#241e17;--line:#3c2f1f;--gold:#d8a64d;--ink:#f3e6c4;--mut:#b09a72;--accent:#9fd2ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:#0f0c08;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  header h1{font:800 16px Georgia,serif;color:var(--gold);margin:0 12px 0 0}
+  header .sp{flex:1}
+  button{background:#3a2a18;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:7px 11px;cursor:pointer;font:600 13px system-ui}
+  button:hover{border-color:var(--gold)}
+  button.primary{background:var(--gold);color:#1a1206;border-color:#7a5012;font-weight:800}
+  button.ghost{background:transparent}
+  button.danger{background:#3a1410;border-color:#5c2018}
+  main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;padding:14px;max-width:1500px;margin:0 auto}
+  @media(max-width:980px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:12px}
+  .card h2{font:800 14px Georgia,serif;color:var(--gold);margin:0 0 10px;letter-spacing:.3px}
+  label{display:block;font:700 11px system-ui;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 3px}
+  input,textarea,select{width:100%;background:#0f0c08;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:7px 9px;font:14px/1.45 system-ui}
+  textarea{resize:vertical;min-height:54px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+  .branch{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:5px;padding:10px;margin-bottom:10px;background:var(--panel2)}
+  .branch.violent{border-left-color:#c0452d}.branch.criminal{border-left-color:#b07a2a}.branch.peaceful{border-left-color:#6fae5a}
+  .branch .bh{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .npc{display:flex;gap:6px;margin-bottom:6px}.npc input{flex:1}
+  .mut{color:var(--mut)}.small{font-size:12px}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tabs button{flex:0 0 auto}
+  .tabs button.on{background:var(--gold);color:#1a1206;font-weight:800}
+  pre{white-space:pre-wrap;word-break:break-word;background:#0c0a07;border:1px solid var(--line);border-radius:5px;padding:12px;max-height:64vh;overflow:auto;font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#e7dcc0}
+  details summary{cursor:pointer;color:var(--accent);font-weight:700;margin:6px 0}
+  details .ref{font-size:12.5px;color:var(--mut)}
+  details .ref code{color:#ffd28a;background:#0f0c08;padding:1px 4px;border-radius:3px}
+  .pill{font:700 10px system-ui;text-transform:uppercase;letter-spacing:.6px;padding:2px 7px;border-radius:10px;border:1px solid var(--line);color:var(--mut)}
+  .saved{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚔ Phoenix7 — Сборщик квестовых драфтов</h1>
+  <span class="saved" id="savedAt"></span>
+  <span class="sp"></span>
+  <button class="ghost" id="btnNew">＋ Новый</button>
+  <button class="ghost" id="btnSave">💾 Сохранить как…</button>
+  <button class="ghost" id="btnLoad">📂 Загрузить</button>
+  <button class="ghost" id="btnExport">⤓ Экспорт JSON</button>
+  <button class="ghost" id="btnImport">⤒ Импорт JSON</button>
+  <input type="file" id="fileImport" accept="application/json" style="display:none">
+</header>
+
+<main>
+  <div>
+    <div class="card">
+      <h2>Шапка квеста</h2>
+      <div class="row">
+        <div><label>ID (slug)</label><input id="f_id" placeholder="tax_and_clay"></div>
+        <div><label>Название</label><input id="f_title" placeholder="Налог и глина"></div>
+      </div>
+      <div class="row">
+        <div><label>Где / кто выдаёт</label><input id="f_location" placeholder="Пост Ришелье"></div>
+        <div><label>NPC-выдатель</label><input id="f_giver" placeholder="Лейтенант Дюмон"></div>
+      </div>
+      <label>Моральный стержень / о чём квест</label>
+      <textarea id="f_moral" placeholder="Незаконные поборы офицера vs законная десятина; красные общины — к Империи или к независимости…"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Действующие лица <span class="mut small">(NPC, которых затрагивает квест)</span></h2>
+      <div id="npcs"></div>
+      <button class="ghost" id="btnAddNpc">＋ NPC</button>
+    </div>
+
+    <div class="card">
+      <h2>Завязка <span class="mut small">(что игрок наблюдает в живом мире + расовые микро-моменты)</span></h2>
+      <textarea id="f_intro" placeholder="Караван КЭК платит офицеру у поста. При первом наблюдении у каждой расы — короткий внутренний момент (Чёрный: шёпот антиматерии…)"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Ветки и исходы</h2>
+      <div id="branches"></div>
+      <div class="row">
+        <button class="ghost" id="btnAddBranch">＋ Ветка</button>
+        <button class="ghost" id="btnSeed">⚙ Заполнить примером (Налог и глина)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Глобально</h2>
+      <div class="row">
+        <div><label>Таймеры / тайминги</label><textarea id="g_timers" placeholder="шок 1 мин; оборона 90с; «на следующий день»…"></textarea></div>
+        <div><label>Флаги / quest-items</label><textarea id="g_flags" placeholder="witnessed_extortion, dumont_dead, evidenceCamera…"></textarea></div>
+      </div>
+      <div class="row">
+        <div><label>Награды</label><textarea id="g_rewards" placeholder="кредиты, лут, услуги артели, репутация…"></textarea></div>
+        <div><label>Репутация / последствия мира</label><textarea id="g_rep" placeholder="Красные ↔ Империя/независимость; страх крестьян; гарнизон заменён…"></textarea></div>
+      </div>
+      <label>Заметки автору / нейронке</label>
+      <textarea id="g_notes" placeholder="что Тир-1, что позже; что обязательно проверить; чего не делать"></textarea>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="tabs">
+        <button id="tabDraft" class="on">📄 Черновик (Markdown)</button>
+        <button id="tabPrompt">🤖 Промпт для нейронки</button>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <button class="primary" id="btnCopy">📋 Скопировать</button>
+        <button class="ghost" id="btnDownload">⤓ Скачать .md</button>
+        <span class="pill" id="counter"></span>
+      </div>
+      <pre id="out"></pre>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Шпаргалка движка Phoenix7 (для точных условий/эффектов)</summary>
+        <div class="ref">
+          <p><b>Условия реплик (when):</b> <code>race</code>/<code>notRace</code>, <code>background</code>, <code>gender</code>, <code>flag</code>/<code>notFlag</code>, <code>quest:{id:'&gt;=N'}</code>, <code>skillAbove:{phase:20}</code>, <code>hasItem</code>, <code>any</code>/<code>all</code>, <code>chance</code>.</p>
+          <p><b>Эффекты выбора:</b> <code>setFlag</code>, <code>quest</code>(stage), <code>questPatch</code>(route/stage/status/outcome), <code>questItem</code>, <code>reward</code>, <code>reputation</code>, <code>credits</code>, <code>journal</code>.</p>
+          <p><b>Стадии:</b> Тир-1 занял 10/20/30/40/45/49 → новым веткам бери 60/70/80. <b>Время:</b> <code>worldClock.nightFactor&gt;0.55</code> = ночь.</p>
+          <p><b>Мир:</b> <code>spawnCombatant</code>, <code>removeLifeAgent</code>, <code>restoreLifeAgent</code>, <code>hideLifeAgent</code>. Координаты: пост <code>(-69,77)</code>, Форт <code>(142,176)</code>.</p>
+          <p><b>Роли:</b> нейронка строит машину (стадии/флаги/сцены/маршруты), автор пишет тексты реплик. Не переписывать engine.js — extensions через main.js.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+const esc = (s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const GROUPS = [['violent','Насильственная'],['criminal','Преступная'],['peaceful','Мирная'],['other','Другое']];
+const FIELDS = ['f_id','f_title','f_location','f_giver','f_moral','f_intro','g_timers','g_flags','g_rewards','g_rep','g_notes'];
+const STORE='phoenix7_quest_drafts';
+let state = blank();
+
+function blank(){ return { meta:{}, npcs:[{id:'',name:'',role:'',where:''}], branches:[] }; }
+function blankBranch(){ return {group:'violent',name:'',trigger:'',steps:'',deaths:'',reversible:'',reward:'',variations:'',stages:''}; }
+
+// ---------- render dynamic lists ----------
+function renderNpcs(){
+  const box=$('npcs'); box.innerHTML='';
+  state.npcs.forEach((n,i)=>{
+    const d=document.createElement('div'); d.className='npc';
+    d.innerHTML=`<input placeholder="id (marcel-dumont)" value="${esc(n.id)}" data-k=id>
+      <input placeholder="Имя" value="${esc(n.name)}" data-k=name>
+      <input placeholder="Роль" value="${esc(n.role)}" data-k=role>
+      <input placeholder="Где" value="${esc(n.where)}" data-k=where>
+      <button class="danger" title="Удалить">✕</button>`;
+    d.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{n[inp.dataset.k]=inp.value;sync();}));
+    d.querySelector('button').addEventListener('click',()=>{state.npcs.splice(i,1);renderNpcs();sync();});
+    box.appendChild(d);
+  });
+}
+function renderBranches(){
+  const box=$('branches'); box.innerHTML='';
+  state.branches.forEach((b,i)=>{
+    const d=document.createElement('div'); d.className='branch '+b.group;
+    const opts=GROUPS.map(g=>`<option value="${g[0]}" ${b.group===g[0]?'selected':''}>${g[1]}</option>`).join('');
+    d.innerHTML=`<div class="bh"><select style="flex:0 0 170px" data-k=group>${opts}</select>
+      <input placeholder="Название ветки/исхода" value="${esc(b.name)}" data-k=name>
+      <button class="danger" title="Удалить ветку">✕</button></div>
+      <div class="row">
+        <div><label>Триггер (как начинается)</label><textarea data-k=trigger>${esc(b.trigger)}</textarea></div>
+        <div><label>Шаги</label><textarea data-k=steps>${esc(b.steps)}</textarea></div>
+      </div>
+      <div class="row">
+        <div><label>Кто может погибнуть</label><input value="${esc(b.deaths)}" data-k=deaths></div>
+        <div><label>Обратимость / последствия</label><input value="${esc(b.reversible)}" data-k=reversible></div>
+        <div><label>Стадии</label><input placeholder="60→69" value="${esc(b.stages)}" data-k=stages></div>
+      </div>
+      <div class="row">
+        <div><label>Награда</label><input value="${esc(b.reward)}" data-k=reward></div>
+        <div><label>Вариации по расе/предыстории/навыку</label><input value="${esc(b.variations)}" data-k=variations></div>
+      </div>`;
+    d.querySelectorAll('[data-k]').forEach(el=>{
+      const ev = el.tagName==='SELECT'?'change':'input';
+      el.addEventListener(ev,()=>{b[el.dataset.k]=el.value; if(el.dataset.k==='group')d.className='branch '+el.value; sync();});
+    });
+    d.querySelector('button.danger').addEventListener('click',()=>{state.branches.splice(i,1);renderBranches();sync();});
+    box.appendChild(d);
+  });
+}
+
+// ---------- collect / fill ----------
+function collect(){ state.meta={}; FIELDS.forEach(f=>state.meta[f]=$(f).value); }
+function fillFields(){ FIELDS.forEach(f=>$(f).value=(state.meta&&state.meta[f])||''); }
+
+// ---------- build outputs ----------
+function buildMarkdown(){
+  const m=state.meta||{};
+  const groupName=g=>(GROUPS.find(x=>x[0]===g)||['','—'])[1];
+  let s=`# Квест «${m.f_title||'(без названия)'}»  \n`;
+  s+=`**ID:** \`${m.f_id||'quest_id'}\` · **Выдаёт:** ${m.f_giver||'—'} (${m.f_location||'—'})\n\n`;
+  if(m.f_moral)s+=`## Моральный стержень\n${m.f_moral}\n\n`;
+  if(state.npcs.some(n=>n.name||n.id)){
+    s+=`## Действующие лица\n`;
+    state.npcs.forEach(n=>{ if(n.name||n.id) s+=`- **${n.name||n.id}** \`${n.id||''}\` — ${n.role||''}${n.where?` · ${n.where}`:''}\n`;});
+    s+=`\n`;
+  }
+  if(m.f_intro)s+=`## Завязка (наблюдаемая)\n${m.f_intro}\n\n`;
+  if(state.branches.length){
+    s+=`## Ветки и исходы\n`;
+    let cur='';
+    state.branches.forEach((b,i)=>{
+      if(b.group!==cur){cur=b.group; s+=`\n### ${groupName(b.group)}\n`;}
+      s+=`\n**${i+1}. ${b.name||'(ветка)'}**${b.stages?`  ·  стадии \`${b.stages}\``:''}\n`;
+      if(b.trigger)s+=`- Триггер: ${b.trigger}\n`;
+      if(b.steps)s+=`- Шаги: ${b.steps}\n`;
+      if(b.deaths)s+=`- Гибель: ${b.deaths}\n`;
+      if(b.reversible)s+=`- Обратимость/последствия: ${b.reversible}\n`;
+      if(b.variations)s+=`- Вариации (раса/предыстория/навык): ${b.variations}\n`;
+      if(b.reward)s+=`- Награда: ${b.reward}\n`;
+    });
+    s+=`\n`;
+  }
+  const g=[['g_timers','Таймеры'],['g_flags','Флаги / quest-items'],['g_rewards','Награды'],['g_rep','Репутация / последствия мира'],['g_notes','Заметки']];
+  if(g.some(x=>m[x[0]])){ s+=`## Глобально\n`; g.forEach(x=>{ if(m[x[0]]) s+=`- **${x[1]}:** ${m[x[0]]}\n`;}); }
+  return s.trim()+'\n';
+}
+
+function buildPrompt(){
+  const md=buildMarkdown();
+  return `Ты — игровой инженер в проекте Phoenix7 (браузерная 3D-RPG, ветка claude/v3-integration-build). Тебе дан ДРАФТ квеста от автора. Собери его в игру по правилам движка.
+
+# ПРАВИЛА
+- РАЗДЕЛЕНИЕ РОЛЕЙ: ты строишь МАШИНУ (стадии, флаги, маршруты, сцены, спавны, награды, условия), автор пишет ТЕКСТЫ реплик. Где текста нет — оставь понятные слоты-заглушки с пометкой «АВТОР».
+- Подключай новые системы как extensions через src/game/v3/main.js. НЕ переписывай engine.js целиком.
+- Каждая крупная ветка — отдельный коммит/PR. После сборки: npm.cmd run build и npm.cmd run test:v3m2b, проверь консоль.
+
+# API ДВИЖКА (использовать это, не выдумывать своё)
+- world-state v2 (state/worldState.js): setQuestStage(id,n), patchQuest(id,{route,stage,status,outcome,vars}), addQuestItem/removeQuestItem/hasQuestItem, grantRewardOnce(key,reward), changeReputation(scope,id,delta), getFlag/setFlag.
+- dialogue-эффекты (dialogue/dialogueData.js + dialogueEngine.js): setFlag, quest, questPatch, questItem, reward, reputation, credits, journal. Условия when: race/notRace, background, gender, flag/notFlag, quest:{id:'>=N'}, skillAbove, hasItem, any/all, chance.
+- мир/бой (quests/taxCombatSystem.js): spawnCombatant({id,name,x,z,hp},profile), hideLifeAgent(id), removeLifeAgent(id), restoreLifeAgent(id), lifeAgent(id).
+- время (world/dayNight.js): worldClock.nightFactor (>0.55 = ночь).
+- Координаты: пост (-69,77), Форт (142,176). Стадии Тир-1 заняты 10/20/30/40/45/49 — новым веткам бери 60/70/80…
+
+# ГРАНИЦЫ
+Не менять координаты Форта/поселений, формат профиля v1, поведение оружия/рук от первого лица, старые launcher'ы, v3k.html.
+
+# ЗАДАЧА
+1) Предложи раскладку: route-ы, стадии, флаги, quest-items, события мира на каждую ветку драфта.
+2) Дай код данных/систем (extension-файлы), готовый к вставке, со слотами под тексты автора.
+3) Кратко: что проверить вручную и что осталось на следующий проход.
+
+# ДРАФТ КВЕСТА
+${md}`;
+}
+
+// ---------- output / tabs ----------
+let tab='draft';
+function renderOut(){
+  const txt = tab==='draft'?buildMarkdown():buildPrompt();
+  $('out').textContent=txt;
+  $('counter').textContent=txt.length.toLocaleString('ru')+' симв.';
+}
+$('tabDraft').onclick=()=>{tab='draft';$('tabDraft').classList.add('on');$('tabPrompt').classList.remove('on');renderOut();};
+$('tabPrompt').onclick=()=>{tab='prompt';$('tabPrompt').classList.add('on');$('tabDraft').classList.remove('on');renderOut();};
+
+// ---------- persistence ----------
+function sync(){ collect(); renderOut(); localStorage.setItem(STORE+'_current',JSON.stringify(state)); $('savedAt').textContent='● черновик сохранён локально '+new Date().toLocaleTimeString('ru'); }
+FIELDS.forEach(f=>$(f).addEventListener('input',sync));
+
+function saveNamed(){
+  const name=prompt('Название черновика:', state.meta.f_title||'квест'); if(!name)return;
+  const all=JSON.parse(localStorage.getItem(STORE)||'{}'); collect(); all[name]=state;
+  localStorage.setItem(STORE,JSON.stringify(all)); alert('Сохранено: '+name);
+}
+function loadNamed(){
+  const all=JSON.parse(localStorage.getItem(STORE)||'{}'); const keys=Object.keys(all);
+  if(!keys.length){alert('Нет сохранённых черновиков.');return;}
+  const name=prompt('Загрузить (введи имя):\n\n'+keys.join('\n')); if(!name||!all[name])return;
+  state=normalize(all[name]); fillFields(); renderNpcs(); renderBranches(); renderOut();
+}
+function normalize(s){ s=s||blank(); s.meta=s.meta||{}; s.npcs=s.npcs&&s.npcs.length?s.npcs:[{id:'',name:'',role:'',where:''}]; s.branches=s.branches||[]; return s; }
+
+$('btnSave').onclick=saveNamed;
+$('btnLoad').onclick=loadNamed;
+$('btnNew').onclick=()=>{ if(!confirm('Начать новый черновик? Текущий несохранённый будет очищен.'))return; state=blank(); fillFields(); renderNpcs(); renderBranches(); renderOut(); };
+$('btnAddNpc').onclick=()=>{state.npcs.push({id:'',name:'',role:'',where:''});renderNpcs();sync();};
+$('btnAddBranch').onclick=()=>{state.branches.push(blankBranch());renderBranches();sync();};
+$('btnCopy').onclick=async()=>{ try{await navigator.clipboard.writeText($('out').textContent); $('btnCopy').textContent='✓ Скопировано';setTimeout(()=>$('btnCopy').textContent='📋 Скопировать',1200);}catch(e){alert('Не удалось скопировать — выдели текст вручную.');}};
+$('btnDownload').onclick=()=>{ const blob=new Blob([$('out').textContent],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(state.meta.f_id||'quest')+(tab==='prompt'?'_prompt':'_draft')+'.md'; a.click(); };
+$('btnExport').onclick=()=>{ collect(); const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(state.meta.f_id||'quest')+'.json'; a.click(); };
+$('btnImport').onclick=()=>$('fileImport').click();
+$('fileImport').onchange=(e)=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{state=normalize(JSON.parse(r.result));fillFields();renderNpcs();renderBranches();renderOut();}catch(err){alert('Не похоже на JSON драфта.');}}; r.readAsText(f); };
+
+$('btnSeed').onclick=()=>{
+  state={
+    meta:{f_id:'tax_and_clay',f_title:'Налог и глина',f_location:'Пост Ришелье',f_giver:'Лейтенант Дюмон',
+      f_moral:'Офицер незаконно обирает караван КЭК (НЕ законная десятина). Красные общины могут двигаться к Империи или к независимости.',
+      f_intro:'Караван КЭК платит Дюмону у поста. Первое наблюдение даёт расовый микро-момент (Чёрный: шёпот антиматерии «не убивай его…»).',
+      g_timers:'шок 1 мин; оборона 90с; «на следующий день» для ареста',
+      g_flags:'witnessed_extortion, dumont_dead, dumont_arrested, evidenceCamera',
+      g_rewards:'кредиты, лут, услуги артели (lang_do_services_unlocked)',
+      g_rep:'Красные ↔ Империя/независимость; страх крестьян (фаза); гарнизон заменён',
+      g_notes:'Тир-1 (казнь/расследование/оборона) готов. Тир-2: повстанцы ночью, мобилизация, фаза. Тир-3: вымогательство/киборг/синдикат.'},
+    npcs:[{id:'marcel-dumont',name:'Лейтенант Дюмон',role:'офицер-вымогатель',where:'Пост Ришелье (-69,77)'},
+      {id:'gerda',name:'Герда',role:'эскалация/арест',where:'Форт Заря'},
+      {id:'nyen-lo',name:'Ньен Ло',role:'переводчица/повстанцы',where:'Пост'},
+      {id:'mei-hoan',name:'Мэй Хоан',role:'глава артели',where:'Ланг-До'}],
+    branches:[
+      {group:'peaceful',name:'Повстанцы ночью',trigger:'передать послание повстанцам у Ньен Ло',steps:'ночью вырубить свет на посту → похищение офицера',deaths:'нет',reversible:'офицер исчезает',reward:'награда «Центра» + репутация rebels',variations:'',stages:'60→69'},
+      {group:'peaceful',name:'Мобилизация крестьян',trigger:'обучить общину (гейт по навыку/расе)',steps:'крестьяне прогоняют офицера → его добивают жужжеры',deaths:'офицер (от жужжеров)',reversible:'услуги артели открыты',reward:'lang_do_services_unlocked',variations:'реплики зависят от стиля игры',stages:'70→79'},
+      {group:'violent',name:'Фазовый путь',trigger:'фаза-реплика в хабе Дюмона',steps:'призыв фазовых призраков → офицер бежит',deaths:'офицер',reversible:'крестьяне боятся игрока',reward:'справедливость, страх (репутация -)',variations:'race black/deimur или skill phase',stages:'80→89'}
+    ]
+  };
+  fillFields(); renderNpcs(); renderBranches(); renderOut();
+};
+
+// ---------- boot ----------
+(function init(){
+  const cur=localStorage.getItem(STORE+'_current');
+  if(cur){ try{state=normalize(JSON.parse(cur));}catch(e){} }
+  fillFields(); renderNpcs(); renderBranches(); renderOut();
+})();
+</script>
+</body>
+</html>
