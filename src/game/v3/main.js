@@ -16,6 +16,7 @@ import { installDemoHooksExtensions } from './core/engineDemoHooksExtensions.js?
 import { installDialogueExtensions } from './core/engineDialogueExtensions.js?v=30m2b2_rebels_night_1';
 import { installTaxQuestExtensions } from './core/engineTaxQuestExtensions.js?v=30m2b2_rebels_night_1';
 import { installLivingExtortionExtensions } from './core/engineLivingExtortionExtensions.js?v=30m2b2_rebels_night_1';
+import { installMechanicHintsExtensions } from './core/engineMechanicHintsExtensions.js?v=30m2c_mechanic_hints_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -34,6 +35,7 @@ installDemoHooksExtensions(PhoenixV3Engine);
 installDialogueExtensions(PhoenixV3Engine);
 installTaxQuestExtensions(PhoenixV3Engine);
 installLivingExtortionExtensions(PhoenixV3Engine);
+installMechanicHintsExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
