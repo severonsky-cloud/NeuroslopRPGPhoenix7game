@@ -40,21 +40,23 @@ const SLOTS = Object.freeze({
   shotgun: ['receiver', 'barrel', 'magazine', 'stock', 'sight', 'internal'],
   lmg: ['receiver', 'barrel', 'magazineOrBelt', 'bipod', 'stock', 'sight', 'internal'],
   atLauncher: ['receiver', 'sight', 'charge'],
-  atRifle: ['receiver', 'barrel', 'magazine', 'sight', 'bipod'],
-  thrown: ['charge', 'enchant'],
+  atRifle: ['receiver', 'barrel', 'magazine', 'bipod', 'stock', 'sight', 'internal'],
+  thrown: ['body', 'fuse', 'throwArc'],
 });
 
-function firearm({ id, name, archetype, icon, damage, range, stamina, cooldown, ammoType, clipSize, muzzleVelocity, gravity, spread, recoil, automatic = false, pellets = 1, bayonet = false, reqStr = 0, reloadSeconds, jamBase, conditionWear, country, year, role, slots, extra = {} }) {
-  const attacks = {};
-  if (!['pistolAuto', 'pistolRevolver', 'thrownExplosive', 'atLauncher'].includes(archetype)) {
-    attacks.butt = { name: 'удар прикладом', type: 'butt', damageMul: archetype.startsWith('lmg') ? 0.72 : 0.55, range: 1.75, arc: 0.9, impact: archetype.startsWith('lmg') ? 'heavyBlunt' : 'blunt' };
-  }
-  if (bayonet) attacks.bayonet = { name: 'удар штыком', type: 'bayonet', damageMul: 0.82, range: 3.2, arc: 0.5, staminaMul: 1.45, impact: 'pierce' };
-  return { id, name, archetype, icon, damage, range, stamina, cooldown, ammoType, clipSize, muzzleVelocity, gravity, spread, recoil, sight: true, automatic, pellets, bayonet, reqStr, reloadSeconds, jamBase, conditionWear, country, year, role, slots, ww2: true, attacks, ...extra };
+function firearm(base) {
+  return {
+    sight: true,
+    ww2: true,
+    attacks: {
+      butt: { name: 'удар прикладом', type: 'butt', damageMul: 0.45, range: 1.55, arc: 0.85, impact: 'blunt' },
+    },
+    ...base,
+  };
 }
 
 export const WW2_ARSENAL = {
-  m1911a1: firearm({ id: 'm1911a1', name: 'Colt M1911A1', archetype: 'pistolAuto', icon: '⌐', damage: 32, range: 44, stamina: 4, cooldown: 0.34, ammoType: 'pistol45', clipSize: 7, muzzleVelocity: 62, gravity: 0.045, spread: 0.024, recoil: 0.27, reloadSeconds: 1.35, jamBase: 0.03, conditionWear: 0.0032, country: 'USA', year: 1924, role: 'мощный пистолет с сильной отдачей', slots: SLOTS.pistol }),
+  m1911a1: firearm({ id: 'm1911a1', name: 'M1911A1', archetype: 'pistolAuto', icon: '⌐', damage: 30, range: 48, stamina: 3, cooldown: 0.32, ammoType: 'pistol45', clipSize: 7, muzzleVelocity: 64, gravity: 0.045, spread: 0.022, recoil: 0.23, reloadSeconds: 1.35, jamBase: 0.035, conditionWear: 0.0035, country: 'USA', year: 1926, role: 'тяжёлый армейский пистолет', slots: SLOTS.pistol }),
   lugerP08: firearm({ id: 'lugerP08', name: 'Luger P08', archetype: 'pistolAuto', icon: '⌐', damage: 25, range: 50, stamina: 3, cooldown: 0.3, ammoType: 'pistol9', clipSize: 8, muzzleVelocity: 68, gravity: 0.042, spread: 0.017, recoil: 0.19, reloadSeconds: 1.4, jamBase: 0.045, conditionWear: 0.0037, country: 'Germany', year: 1908, role: 'точный, но капризный пистолет', slots: SLOTS.pistol }),
   tt33: firearm({ id: 'tt33', name: 'Tokarev TT-33', archetype: 'pistolAuto', icon: '⌐', damage: 28, range: 52, stamina: 3, cooldown: 0.31, ammoType: 'pistol762', clipSize: 8, muzzleVelocity: 76, gravity: 0.038, spread: 0.02, recoil: 0.21, reloadSeconds: 1.25, jamBase: 0.032, conditionWear: 0.0032, country: 'USSR', year: 1933, role: 'быстрый и пробивной пистолет', slots: SLOTS.pistol }),
   webleyMkVI: firearm({ id: 'webleyMkVI', name: 'Webley Mk VI', archetype: 'pistolRevolver', icon: '◉', damage: 31, range: 42, stamina: 4, cooldown: 0.42, ammoType: 'revolver', clipSize: 6, muzzleVelocity: 58, gravity: 0.05, spread: 0.026, recoil: 0.24, reloadSeconds: 1.7, jamBase: 0.014, conditionWear: 0.0022, country: 'Britain', year: 1915, role: 'надёжный револьвер с медленной перезарядкой', slots: SLOTS.pistol }),
@@ -79,7 +81,7 @@ export const WW2_ARSENAL = {
   molotovProto: firearm({ id: 'molotovProto', name: 'Molotov Cocktail (fire proto)', archetype: 'thrownExplosive', icon: '●', damage: 38, range: 20, stamina: 9, cooldown: 1.05, ammoType: 'thrown', clipSize: 1, muzzleVelocity: 28, gravity: 0.18, spread: 0.075, recoil: 0.06, reloadSeconds: 1.0, jamBase: 0, conditionWear: 0, country: 'universal', year: 1939, role: 'тест зажигательного броска: damage over time будет отдельным шагом', slots: SLOTS.thrown, extra: { thrown: true, firePatchSeconds: 5, blastRadius: 2.2 } }),
 };
 
-export const WW2_ITEM_DEFS = Object.fromEntries(Object.values(WW2_ARSENAL).map((weapon) => [weapon.id, { id: weapon.id, name: weapon.name, type: 'weapon', slot: 'hand', weaponId: weapon.id, weight: weapon.archetype === 'atRifle' ? 16 : weapon.archetype === 'atLauncher' ? 8 : weapon.archetype.startsWith('lmg') ? 10 : weapon.archetype.startsWith('shotgun') ? 4.2 : weapon.archetype === 'smg' ? 3.8 : weapon.archetype.startsWith('rifle') ? 4.1 : weapon.archetype.startsWith('pistol') ? 1.1 : 0.7 }]));
+export const WW2_ITEM_DEFS = Object.fromEntries(Object.values(WW2_ARSENAL).map((weapon) => [weapon.id, { id: weapon.id, name: weapon.name, type: 'weapon', slot: 'hand', weaponId: weapon.id, weight: weapon.archetype === 'atRifle' ? 16 : weapon.archetype === 'atLauncher' ? 8 : weapon.archetype === 'lmgBelt' ? 11.5 : weapon.archetype === 'lmgMag' ? 10 : weapon.archetype === 'smg' ? 4 : 3 }]));
 
 export const WW2_TEST_LOADOUT_ITEMS = Object.freeze(Object.keys(WW2_ITEM_DEFS));
 
@@ -89,6 +91,7 @@ export const WW2_TEST_ENEMIES = Object.freeze([
   { id: 'dummyRaider', name: 'Raider dummy', hp: 80, distance: 18, armor: 0 },
   { id: 'clayBrute', name: 'Clay brute dummy', hp: 180, distance: 42, armor: 6 },
   { id: 'armoredCrawler', name: 'Armored crawler dummy', hp: 130, distance: 74, armor: 12 },
+  { id: 'vehicleDummy', name: 'Vehicle armor dummy', hp: 220, distance: 58, armor: 10, vehicle: true, vehicleArmor: 10 },
 ]);
 
 export function ww2WeaponIds() { return Object.keys(WW2_ARSENAL); }
