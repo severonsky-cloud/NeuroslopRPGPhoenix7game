@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>Phoenix7 v3M2A — Character Creation</title>
+  <title>Phoenix7 v3N2 — Living Ecosystem</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080604;color:#f3dca8;font-family:system-ui}
     #game{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -28,10 +28,11 @@
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <h1>Phoenix7 v3M2A</h1>
-      <p>Создание ссыльного: восемь рас, восемь предысторий, расовые тела, руки и способности.</p>
-      <p><b>Проверка:</b> создать персонажа → Start → Q способность → F2 поселения → M карта → J журнал.</p>
-      <button id="startBtn">Создать персонажа</button>
+      <h1>Phoenix7 v3N2</h1>
+      <p><b>Текущий билд:</b> character creation + оружие + день/ночь + живой тракт.</p>
+      <p><b>Новый тест:</b> Start → F1 до Красной дороги/Форта Заря → J журнал → ищи караваны, патрули и засады.</p>
+      <p><b>Если после обновления видно старую версию:</b> нажми Ctrl+F5.</p>
+      <button id="startBtn">Создать персонажа / Start</button>
       <button id="newGameBtn" hidden>Новая игра</button>
       <button id="mapBtn">Map</button>
     </div>
@@ -46,13 +47,13 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">v3M2A · Q racial ability · F2 settlements · F8 body debug · F9/F10/F11 quality</div>
+    <div id="bottom">v3N2 · F1 teleport · J journal · M map · 1-7 weapons · V aim · B alt attack · T time speed</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30m2a_character_creation_1').catch(err => {
+    import('./src/game/v3/main.js?v=30m2a_n2_living_ecosystem_2').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });
