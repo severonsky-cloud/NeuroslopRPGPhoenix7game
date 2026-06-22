@@ -1,4 +1,5 @@
 import { ARSENAL, AMMO_TYPES } from '../combat/arsenal.js';
+import { WW2_DEFAULT_AMMO, WW2_ITEM_DEFS, WW2_TEST_LOADOUT_ITEMS } from '../combat/ww2ArsenalData.js';
 import { backgroundDefinition } from '../data/characterData.js';
 import { itemIconHtml } from './weaponModels.js';
 
@@ -14,6 +15,7 @@ export const ITEM_DEFS = {
   bren: { id: 'bren', name: 'Брен', type: 'weapon', slot: 'hand', weaponId: 'bren', weight: 10.1 },
   trenchShotgun: { id: 'trenchShotgun', name: 'Окопный дробовик', type: 'weapon', slot: 'hand', weaponId: 'trenchShotgun', weight: 4.1 },
   caravanCarbine: { id: 'caravanCarbine', name: 'Караванный карабин', type: 'weapon', slot: 'hand', weaponId: 'caravanCarbine', weight: 3.4 },
+  ...WW2_ITEM_DEFS,
   clayHelmet: { id: 'clayHelmet', name: 'Шлем красной глины', type: 'armor', slot: 'head', armor: 2, weight: 2 },
   roadCuirass: { id: 'roadCuirass', name: 'Кираса Красной дороги', type: 'armor', slot: 'chest', armor: 5, weight: 7 },
   saltBoots: { id: 'saltBoots', name: 'Соляные сапоги', type: 'armor', slot: 'boots', armor: 1, weight: 1.8 },
@@ -22,8 +24,8 @@ export const ITEM_DEFS = {
 
 export function makeInventoryState() {
   return {
-    items: ['fists', 'phaseHand', 'bastard', 'rapier', 'boardingAxe', 'glassDagger', 'colt1917', 'm1garand', 'bren', 'trenchShotgun', 'caravanCarbine', 'clayHelmet', 'roadCuirass', 'saltBoots', 'phaseCharm'],
-    ammo: { revolver: 18, rifle: 24, lmg: 45, scatter: 10, phaseCell: 2 },
+    items: [...new Set(['fists', 'phaseHand', 'bastard', 'rapier', 'boardingAxe', 'glassDagger', 'colt1917', 'm1garand', 'bren', 'trenchShotgun', 'caravanCarbine', ...WW2_TEST_LOADOUT_ITEMS, 'clayHelmet', 'roadCuirass', 'saltBoots', 'phaseCharm'])],
+    ammo: { revolver: 18, rifle: 24, lmg: 45, scatter: 10, phaseCell: 2, ...WW2_DEFAULT_AMMO },
     equipment: {
       head: null,
       chest: null,
@@ -45,15 +47,10 @@ export function makeCharacterInventoryState(backgroundId = 'lunar') {
   const firstWeapon = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon') || 'fists';
   const firearm = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon' && ARSENAL[ITEM_DEFS[id]?.weaponId]?.ammoType);
   const melee = background.items.find((id) => ITEM_DEFS[id]?.type === 'weapon' && !ARSENAL[ITEM_DEFS[id]?.weaponId]?.ammoType);
+  const ammo = Object.fromEntries(Object.keys(AMMO_TYPES).map((type) => [type, background.ammo[type] || 0]));
   return {
     items: uniqueItems,
-    ammo: {
-      revolver: background.ammo.revolver || 0,
-      rifle: background.ammo.rifle || 0,
-      lmg: background.ammo.lmg || 0,
-      scatter: background.ammo.scatter || 0,
-      phaseCell: background.ammo.phaseCell || 0,
-    },
+    ammo,
     equipment: {
       head: background.items.includes('clayHelmet') ? 'clayHelmet' : null,
       chest: background.items.includes('roadCuirass') ? 'roadCuirass' : null,
@@ -133,12 +130,20 @@ export class InventorySystem {
     return true;
   }
 
+  grantWw2TestKit() {
+    const before = this.player.inventoryState.items.length;
+    this.player.inventoryState.items = [...new Set([...this.player.inventoryState.items, ...WW2_TEST_LOADOUT_ITEMS])];
+    for (const [type, amount] of Object.entries(WW2_DEFAULT_AMMO)) this.addAmmo(type, amount);
+    return this.player.inventoryState.items.length - before;
+  }
+
   lootAmmoBundle(table = 'road') {
     const pools = {
-      road: [['revolver', 2, 6], ['rifle', 2, 8]],
-      raider: [['rifle', 4, 10], ['lmg', 6, 16], ['scatter', 2, 5]],
-      elemental: [['phaseCell', 1, 2], ['rifle', 1, 4]],
-      bandit: [['revolver', 3, 8], ['scatter', 1, 4]],
+      road: [['revolver', 2, 6], ['rifle', 2, 8], ['pistol9', 4, 12]],
+      raider: [['rifle', 4, 10], ['lmg', 6, 16], ['scatter', 2, 5], ['pistol762', 6, 18]],
+      elemental: [['phaseCell', 1, 2], ['rifle', 1, 4], ['rifle792', 2, 6]],
+      bandit: [['revolver', 3, 8], ['scatter', 1, 4], ['pistol45', 3, 9]],
+      ww2: [['pistol9', 8, 24], ['rifle792', 6, 18], ['rifle762r', 6, 18], ['scatter', 2, 8], ['rocketAT', 1, 2]],
     };
     const out = [];
     for (const [type, min, max] of pools[table] || pools.road) {
@@ -177,7 +182,7 @@ export class InventorySystem {
     } else if (it?.slot === 'spellHand') {
       actions = `<br><button data-equip-armor="${id}" data-slot="spellHand">В фазовую руку</button>`;
     }
-    return `<div class="line">${icon} <b>${it?.name || id}</b> — ${it?.type || 'item'} · ${it?.slot || '-'}${w?.ammoType ? ` · ammo ${AMMO_TYPES[w.ammoType].name}` : ''}${actions}</div>`;
+    return `<div class="line">${icon} <b>${it?.name || id}</b> — ${it?.type || 'item'} · ${it?.slot || '-'}${w?.ammoType ? ` · ammo ${AMMO_TYPES[w.ammoType].name}` : ''}${w?.ww2 ? ' · WW2' : ''}${actions}</div>`;
   }
 
   html() {
