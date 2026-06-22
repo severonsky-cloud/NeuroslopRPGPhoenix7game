@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phoenix7 v3P2 WW2 Arsenal Micro Build</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #15120f; color: #f0dfc3; }
+    body { margin: 0; padding: 24px; background: radial-gradient(circle at top, #312216, #11100e 62%); }
+    main { max-width: 1120px; margin: 0 auto; display: grid; gap: 16px; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); }
+    header, section { background: rgba(28, 23, 18, .92); border: 1px solid #5c4632; box-shadow: 0 12px 40px #0007; border-radius: 14px; padding: 16px; }
+    header { grid-column: 1 / -1; }
+    h1, h2 { margin: 0 0 8px; }
+    select, button { background: #2b241d; color: #f8e5bf; border: 1px solid #8d6b44; border-radius: 9px; padding: 9px 11px; font: inherit; }
+    button { cursor: pointer; margin: 4px 6px 4px 0; }
+    button:hover { background: #3b3026; }
+    .statGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .stat, .enemy, .logLine { background: #191612; border: 1px solid #443524; border-radius: 10px; padding: 9px; }
+    .enemy { cursor: pointer; }
+    .enemy.active { outline: 2px solid #d6a757; }
+    .bar { height: 11px; background: #3a211d; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+    .fill { height: 100%; background: linear-gradient(90deg, #b84634, #e2b35e); width: 100%; }
+    .arena { min-height: 240px; position: relative; overflow: hidden; background: linear-gradient(#34281e, #18130f); border-radius: 12px; border: 1px solid #493521; }
+    .lane { position: absolute; left: 18px; right: 18px; height: 1px; background: #6b543688; }
+    .dummy { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 52px; border-radius: 12px 12px 6px 6px; background: #9b6b49; box-shadow: 0 0 0 3px #1d1712, 0 18px 34px #0008; }
+    .dummy.dead { opacity: .32; transform: translate(-50%, -50%) rotate(86deg); }
+    .shot { position: absolute; left: 8%; top: 74%; height: 2px; background: #ffd48a; transform-origin: left center; pointer-events: none; box-shadow: 0 0 8px #ffd48a; }
+    .log { max-height: 320px; overflow: auto; display: grid; gap: 6px; }
+    .muted { color: #bca98d; }
+    .ok { color: #cde69a; }
+    .bad { color: #ff9f86; }
+    @media (max-width: 840px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Phoenix7 v3P2 — WW2 Arsenal Micro Build</h1>
+      <p class="muted">Автономный тест без полной карты: выбираешь ствол из нового ростера, стреляешь по манекенам, проверяешь магазин, патроны, урон, разброс, дробь, ракеты и перезарядку.</p>
+      <p class="muted">Запуск: <code>npm run dev</code>, затем открыть <code>/tools/v3p2_ww2_micro_build.html</code>.</p>
+    </header>
+
+    <section>
+      <h2>Оружие</h2>
+      <select id="weaponSelect"></select>
+      <div id="weaponStats" class="statGrid" style="margin-top: 12px;"></div>
+      <div style="margin-top: 12px;">
+        <button id="shootBtn">Выстрел / бросок</button>
+        <button id="reloadBtn">Перезарядить</button>
+        <button id="ammoBtn">+ тестовые патроны</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Цели</h2>
+      <div id="enemyList" style="display: grid; gap: 8px;"></div>
+      <button id="resetBtn">Сбросить врагов</button>
+    </section>
+
+    <section>
+      <h2>Арена</h2>
+      <div id="arena" class="arena"></div>
+    </section>
+
+    <section>
+      <h2>Лог боя</h2>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { ARSENAL, AMMO_TYPES } from '../src/game/v3/combat/arsenal.js';
+    import { FirearmStateSystem } from '../src/game/v3/combat/firearmState.js';
+    import { WW2_ARSENAL, WW2_DEFAULT_AMMO, WW2_TEST_ENEMIES } from '../src/game/v3/combat/ww2ArsenalData.js';
+
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const byId = (id) => document.getElementById(id);
+    const player = {
+      inventoryState: {
+        ammo: { revolver: 30, scatter: 18, ...WW2_DEFAULT_AMMO },
+      },
+      characterRuntime: { reloadDuration: 1 },
+    };
+    const firearms = new FirearmStateSystem(player, null);
+    let enemies = [];
+    let activeEnemyIndex = 0;
+
+    function resetEnemies() {
+      enemies = WW2_TEST_ENEMIES.map((enemy) => ({ ...enemy, hpMax: enemy.hp, alive: true }));
+      activeEnemyIndex = 0;
+      render();
+      log('Манекены восстановлены.', 'ok');
+    }
+
+    function activeWeapon() {
+      return ARSENAL[byId('weaponSelect').value];
+    }
+
+    function activeEnemy() {
+      return enemies[activeEnemyIndex] || enemies[0];
+    }
+
+    function hitChance(weapon, enemy) {
+      const distanceFactor = enemy.distance / Math.max(1, weapon.range || 1);
+      const spreadPenalty = (weapon.spread || 0) * (weapon.pellets ? 2.4 : 4.2);
+      const recoilPenalty = (weapon.recoil || 0) * 0.12;
+      const heavyBonus = weapon.archetype === 'atRifle' || weapon.archetype === 'atLauncher' ? 0.12 : 0;
+      return clamp(0.95 - distanceFactor * 0.42 - spreadPenalty - recoilPenalty + heavyBonus, 0.08, 0.97);
+    }
+
+    function shoot() {
+      const weapon = activeWeapon();
+      const enemy = activeEnemy();
+      if (!enemy?.alive) { log('Эта цель уже лежит. Выбери другую или сбрось врагов.', 'bad'); return; }
+      const fired = firearms.tryFire(weapon.id, 0, 1);
+      if (!fired.ok) { log(`${weapon.name}: ${fired.reason}. Нажми перезарядку.`, 'bad'); render(); return; }
+
+      const pellets = weapon.pellets || 1;
+      let hits = 0;
+      let total = 0;
+      const chance = hitChance(weapon, enemy);
+      for (let i = 0; i < pellets; i += 1) {
+        if (Math.random() <= chance) {
+          hits += 1;
+          const pelletScale = pellets > 1 ? 0.7 : 1;
+          const armorStop = Math.max(0, enemy.armor - (weapon.archetype === 'atRifle' || weapon.archetype === 'atLauncher' ? 18 : 0));
+          total += Math.max(1, Math.round(weapon.damage * pelletScale - armorStop));
+        }
+      }
+      if (weapon.blastRadius && hits > 0) total = Math.round(total * 1.35);
+      enemy.hp = Math.max(0, enemy.hp - total);
+      if (enemy.hp <= 0) enemy.alive = false;
+      log(hits > 0
+        ? `${weapon.name}: попаданий ${hits}/${pellets}, урон ${total}. ${enemy.name}: ${enemy.hp}/${enemy.hpMax}`
+        : `${weapon.name}: промах по ${enemy.name}. Шанс был ${Math.round(chance * 100)}%.`, hits > 0 ? 'ok' : 'bad');
+      render();
+      traceShot(enemy, hits > 0);
+    }
+
+    function reload() {
+      const weapon = activeWeapon();
+      const start = firearms.startReload(weapon.id);
+      if (!start.ok) { log(`${weapon.name}: ${start.reason}`, 'bad'); render(); return; }
+      firearms.update(999);
+      log(`${weapon.name}: перезаряжено. ${firearms.statusText(weapon.id)}`, 'ok');
+      render();
+    }
+
+    function grantAmmo() {
+      for (const [type, amount] of Object.entries(WW2_DEFAULT_AMMO)) {
+        player.inventoryState.ammo[type] = (player.inventoryState.ammo[type] || 0) + amount;
+      }
+      player.inventoryState.ammo.revolver = (player.inventoryState.ammo.revolver || 0) + 24;
+      player.inventoryState.ammo.scatter = (player.inventoryState.ammo.scatter || 0) + 18;
+      log('Тестовые патроны пополнены.', 'ok');
+      render();
+    }
+
+    function traceShot(enemy, hit) {
+      const arena = byId('arena');
+      const line = document.createElement('div');
+      line.className = 'shot';
+      const targetX = 8 + clamp(enemy.distance / 120, 0.12, 0.9) * 84;
+      const targetY = 74 - clamp(enemy.distance / 120, 0, 1) * 46 + (hit ? 0 : (Math.random() - 0.5) * 18);
+      const dx = targetX - 8;
+      const dy = targetY - 74;
+      line.style.width = `${Math.hypot(dx, dy)}%`;
+      line.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+      arena.appendChild(line);
+      setTimeout(() => line.remove(), 120);
+    }
+
+    function log(message, type = '') {
+      const row = document.createElement('div');
+      row.className = `logLine ${type}`;
+      row.textContent = message;
+      byId('log').prepend(row);
+    }
+
+    function renderWeaponStats() {
+      const weapon = activeWeapon();
+      const status = firearms.statusText(weapon.id);
+      const ammo = AMMO_TYPES[weapon.ammoType];
+      const stats = [
+        ['Роль', weapon.role || '—'],
+        ['Калибр', ammo?.name || weapon.ammoType],
+        ['Магазин', status],
+        ['Урон', `${weapon.damage}${weapon.pellets ? ` × pellets ${weapon.pellets}` : ''}`],
+        ['Дистанция', weapon.range],
+        ['Разброс', weapon.spread],
+        ['Отдача', weapon.recoil],
+        ['Архетип', weapon.archetype],
+      ];
+      byId('weaponStats').innerHTML = stats.map(([k, v]) => `<div class="stat"><b>${k}</b><br>${v}</div>`).join('');
+    }
+
+    function renderEnemies() {
+      byId('enemyList').innerHTML = enemies.map((enemy, index) => `
+        <div class="enemy ${index === activeEnemyIndex ? 'active' : ''}" data-enemy="${index}">
+          <b>${enemy.name}</b> · ${enemy.distance}m · armor ${enemy.armor}<br>
+          <span class="muted">${enemy.alive ? `${enemy.hp}/${enemy.hpMax} HP` : 'dead'}</span>
+          <div class="bar"><div class="fill" style="width:${100 * enemy.hp / enemy.hpMax}%"></div></div>
+        </div>`).join('');
+      document.querySelectorAll('[data-enemy]').forEach((node) => node.addEventListener('click', () => {
+        activeEnemyIndex = Number(node.dataset.enemy);
+        render();
+      }));
+    }
+
+    function renderArena() {
+      const arena = byId('arena');
+      arena.innerHTML = '<div class="lane" style="top:74%"></div><div class="lane" style="top:50%"></div><div class="lane" style="top:28%"></div>';
+      for (const enemy of enemies) {
+        const dummy = document.createElement('div');
+        dummy.className = `dummy ${enemy.alive ? '' : 'dead'}`;
+        dummy.title = enemy.name;
+        dummy.style.left = `${8 + clamp(enemy.distance / 120, 0.12, 0.9) * 84}%`;
+        dummy.style.top = `${74 - clamp(enemy.distance / 120, 0, 1) * 46}%`;
+        arena.appendChild(dummy);
+      }
+    }
+
+    function render() {
+      renderWeaponStats();
+      renderEnemies();
+      renderArena();
+    }
+
+    byId('weaponSelect').innerHTML = Object.values(WW2_ARSENAL)
+      .map((weapon) => `<option value="${weapon.id}">${weapon.icon} ${weapon.name}</option>`)
+      .join('');
+    byId('weaponSelect').addEventListener('change', render);
+    byId('shootBtn').addEventListener('click', shoot);
+    byId('reloadBtn').addEventListener('click', reload);
+    byId('ammoBtn').addEventListener('click', grantAmmo);
+    byId('resetBtn').addEventListener('click', resetEnemies);
+    resetEnemies();
+    log('Micro build готов. Выбери оружие и стреляй по целям.', 'ok');
+  </script>
+</body>
+</html>
