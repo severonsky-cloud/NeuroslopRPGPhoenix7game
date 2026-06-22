@@ -63,20 +63,38 @@ export class CombatAudio {
   }
 
   fire(kind = 'rifle') {
-    if (!this.gate(`fire_${kind}`, kind === 'smg' ? 30 : 90)) return;
+    const gates = { smg: 28, lmg: 24, pistol: 75, revolver: 95, shotgun: 120, rocket: 260, rifle: 90 };
+    if (!this.gate(`fire_${kind}`, gates[kind] || 90)) return;
     if (kind === 'smg') {
-      this.noise({ dur: 0.045, gain: 0.07, filter: 1300 });
-      this.tone({ freq: 110, dur: 0.05, type: 'square', gain: 0.035, slide: -50 });
+      this.noise({ dur: 0.045, gain: 0.07, filter: 1300, pan: -0.04 + Math.random() * 0.08 });
+      this.tone({ freq: 110, dur: 0.05, type: 'square', gain: 0.035, slide: -50, pan: 0.02 });
       return;
     }
     if (kind === 'lmg') {
-      this.noise({ dur: 0.07, gain: 0.09, filter: 950 });
-      this.tone({ freq: 82, dur: 0.09, type: 'sawtooth', gain: 0.045, slide: -38 });
+      this.noise({ dur: 0.065, gain: 0.095, filter: 900, pan: -0.05 + Math.random() * 0.1 });
+      this.tone({ freq: 78, dur: 0.08, type: 'sawtooth', gain: 0.048, slide: -36 });
+      this.tone({ freq: 180, dur: 0.032, type: 'square', gain: 0.018, slide: -80 });
+      return;
+    }
+    if (kind === 'pistol') {
+      this.noise({ dur: 0.05, gain: 0.058, filter: 1450, pan: 0.03 });
+      this.tone({ freq: 170, dur: 0.045, type: 'square', gain: 0.03, slide: -70 });
       return;
     }
     if (kind === 'revolver' || kind === 'nagant') {
-      this.noise({ dur: 0.055, gain: 0.065, filter: 1500 });
+      this.noise({ dur: 0.06, gain: 0.07, filter: 1500 });
       this.tone({ freq: 145, dur: 0.06, type: 'square', gain: 0.035, slide: -65 });
+      return;
+    }
+    if (kind === 'shotgun') {
+      this.noise({ dur: 0.11, gain: 0.115, filter: 760 });
+      this.tone({ freq: 70, dur: 0.1, type: 'sawtooth', gain: 0.055, slide: -38 });
+      return;
+    }
+    if (kind === 'rocket') {
+      this.noise({ dur: 0.22, gain: 0.13, filter: 520 });
+      this.tone({ freq: 55, dur: 0.18, type: 'sawtooth', gain: 0.06, slide: -24 });
+      setTimeout(() => this.noise({ dur: 0.08, gain: 0.06, filter: 1200 }), 55);
       return;
     }
     this.noise({ dur: 0.065, gain: 0.08, filter: 1150 });
@@ -91,8 +109,9 @@ export class CombatAudio {
 
   reload(kind = 'rifle') {
     if (!this.gate(`reload_${kind}`, 160)) return;
-    this.tone({ freq: 350, dur: 0.05, type: 'triangle', gain: 0.025, slide: -80 });
-    setTimeout(() => this.tone({ freq: 260, dur: 0.04, type: 'triangle', gain: 0.022, slide: 70 }), 110);
+    const pitch = kind === 'lmg' ? 270 : kind === 'pistol' ? 420 : kind === 'rocket' ? 180 : 350;
+    this.tone({ freq: pitch, dur: 0.05, type: 'triangle', gain: 0.025, slide: -80 });
+    setTimeout(() => this.tone({ freq: pitch * 0.72, dur: 0.04, type: 'triangle', gain: 0.022, slide: 70 }), 110);
   }
 
   melee(kind = 'blade') {
