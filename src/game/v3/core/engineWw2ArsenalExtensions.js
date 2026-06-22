@@ -95,6 +95,11 @@ function statusFor(engine, weaponId) {
   return `${loaded}/${weapon.clipSize} · запас ${reserve}`;
 }
 
+function modeFor(engine, weaponId) {
+  const mode = engine.currentFireMode?.(weaponId) || 'semi';
+  return mode === 'auto' ? 'AUTO' : mode === 'burst' ? 'BURST×3' : 'SEMI';
+}
+
 export function installWw2ArsenalExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__ww2ArsenalExtensionInstalled) return;
   PhoenixV3Engine.__ww2ArsenalExtensionInstalled = true;
@@ -119,10 +124,11 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
     this.aimMode = false;
     this.camera.fov = 72;
     this.camera.updateProjectionMatrix();
+    this.burstFireState = { weaponId: null, remaining: 0 };
     this.buildViewModel();
     this.updateCrosshair();
     this.firearms?.state?.(weaponId);
-    this.hud.setObjective(`WW2 live: ${ARSENAL[weaponId].name} · ${statusFor(this, weaponId)} · V прицел · R перезарядка`);
+    this.hud.setObjective(`WW2 live: ${ARSENAL[weaponId].name} · ${modeFor(this, weaponId)} · ${statusFor(this, weaponId)} · H режим · V прицел · R перезарядка`);
     return true;
   };
 
@@ -157,7 +163,7 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
       this.ww2LiveNodes.push(label);
     });
 
-    this.hud.setObjective('WW2 live: манекены выставлены перед игроком. Цифры 1–0 меняют оружие, T — сбросить цели.');
+    this.hud.setObjective('WW2 live: манекены выставлены. Цифры 1–0 оружие, H режим огня, удерживай ЛКМ в AUTO.');
   };
 
   PhoenixV3Engine.prototype.openWw2ArsenalPanel = function openWw2ArsenalPanel() {
@@ -172,6 +178,7 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
     this.hud.openPanel(`<h2>WW2 live arsenal</h2>
       <p>Это уже не микробилд: оружие выдаётся в основной 3D игре, стреляет по живым объектам баллистикой, отображается в руках и попадает по манекенам.</p>
       <div class="line"><b>Быстрые клавиши:</b> ${quick}</div>
+      <div class="line"><b>H</b> — режим огня SEMI / BURST×3 / AUTO. В AUTO удерживай ЛКМ.</div>
       <div class="line"><button id="ww2RestockBtn">Выдать весь WW2 набор + патроны</button> <button id="ww2TargetsBtn">Поставить манекены перед игроком</button></div>
       ${rows}
       <p><button id="closeMapBtn">Закрыть</button></p>`);
@@ -196,7 +203,7 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
     this.grantWw2LiveKit();
     if (!WW2_ARSENAL[this.player.weapon]) this.equipWw2Weapon('mp40');
     if (!this.ww2LiveNodes?.length) this.spawnWw2LiveTargets();
-    this.hud.setObjective('WW2 live включён: 1–0 оружие · U меню арсенала · G патроны · T манекены · V прицел · R перезарядка.');
+    this.hud.setObjective('WW2 live включён: 1–0 оружие · H режим огня · удерживай ЛКМ в AUTO · U арсенал · G патроны · T цели · V прицел · R перезарядка.');
   };
 
   const originalStart = PhoenixV3Engine.prototype.start;
@@ -229,7 +236,7 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
       const bottom = document.getElementById('bottom');
       const weaponId = this.player?.weapon;
       const weapon = ARSENAL[weaponId];
-      if (bottom) bottom.textContent = `WW2 LIVE · 1–0 оружие · U арсенал · G патроны · T цели · R reload · V aim · ${weapon?.name || weaponId} ${statusFor(this, weaponId)}`;
+      if (bottom) bottom.textContent = `WW2 LIVE · 1–0 оружие · H ${modeFor(this, weaponId)} · удерживай ЛКМ в AUTO · U арсенал · G патроны · T цели · R reload · V aim · ${weapon?.name || weaponId} ${statusFor(this, weaponId)}`;
     }
   };
 }
