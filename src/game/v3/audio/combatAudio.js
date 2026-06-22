@@ -101,6 +101,15 @@ export class CombatAudio {
     this.tone({ freq: 95, dur: 0.08, type: 'square', gain: 0.04, slide: -45 });
   }
 
+  explosion(kind = 'blast') {
+    if (!this.gate(`explosion_${kind}`, kind === 'small' ? 180 : 260)) return;
+    const heavy = kind !== 'small';
+    this.noise({ dur: heavy ? 0.34 : 0.2, gain: heavy ? 0.16 : 0.1, filter: heavy ? 220 : 420 });
+    this.tone({ freq: heavy ? 42 : 70, dur: heavy ? 0.28 : 0.16, type: 'sawtooth', gain: heavy ? 0.07 : 0.045, slide: heavy ? -16 : -24 });
+    setTimeout(() => this.noise({ dur: heavy ? 0.16 : 0.09, gain: heavy ? 0.065 : 0.045, filter: 1200 }), 45);
+    setTimeout(() => this.tone({ freq: heavy ? 96 : 140, dur: 0.08, type: 'triangle', gain: 0.025, slide: -40 }), 95);
+  }
+
   jam() {
     if (!this.gate('jam', 180)) return;
     this.tone({ freq: 520, dur: 0.035, type: 'square', gain: 0.035, slide: -120 });
