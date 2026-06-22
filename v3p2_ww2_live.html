@@ -30,7 +30,7 @@
     <div class="card">
       <h1>Phoenix7 v3P2 — WW2 Live Arsenal</h1>
       <p>Это запуск не микробилда, а основной 3D игры с выданным WW2 арсеналом, манекенами и быстрым переключением оружия.</p>
-      <div class="keys"><b>Внутри игры:</b> 1–0 — быстро менять оружие · U — меню всего WW2 арсенала · G — выдать патроны · T — поставить цели · R — перезарядка · V — прицел.</div>
+      <div class="keys"><b>Внутри игры:</b> 1–0 — быстро менять оружие · H — режим огня SEMI/BURST/AUTO · удерживать ЛКМ — очередь в AUTO · U — меню арсенала · G — патроны · T — цели · R — перезарядка · V — прицел.</div>
       <p class="muted">Нажми «Старт WW2 live». Если браузер просит клик для захвата мыши — это нормально.</p>
       <button id="startBtn">Старт WW2 live</button>
       <button id="newGameBtn" hidden>Новая игра</button>
@@ -47,7 +47,7 @@
       </div>
     </div>
     <div id="prompt"></div>
-    <div id="bottom">WW2 LIVE · 1–0 weapons · U arsenal · G ammo · T targets · R reload · V aim</div>
+    <div id="bottom">WW2 LIVE · 1–0 weapons · H fire mode · hold LMB in AUTO · U arsenal · G ammo · T targets · R reload · V aim</div>
   </div>
   <div id="panel"></div>
   <div id="error"></div>
@@ -72,7 +72,7 @@
   </script>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=v3p2_ww2_live_1').catch(err => {
+    import('./src/game/v3/main.js?v=v3p2_ww2_live_2').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });
