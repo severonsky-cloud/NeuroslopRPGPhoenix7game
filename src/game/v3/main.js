@@ -1,17 +1,18 @@
-import { PhoenixV3Engine } from './core/engine.js?v=v3p2_vehicle_models_1';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=v3p2_vehicle_models_1';
+import { PhoenixV3Engine } from './core/engine.js?v=v3p2_visible_vehicles_1';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=v3p2_visible_vehicles_1';
 import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n1_daynight_integration_1';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=v3p2_vehicle_models_1';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=v3p2_visible_vehicles_1';
 import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n1_daynight_integration_1';
-import { installFeelExtensions } from './core/engineFeelExtensions.js?v=v3p2_vehicle_models_1';
+import { installFeelExtensions } from './core/engineFeelExtensions.js?v=v3p2_visible_vehicles_1';
 import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n1_daynight_integration_1';
-import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=v3p2_vehicle_models_1';
+import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=v3p2_visible_vehicles_1';
+import { installWw2VehicleExtensions } from './core/engineWw2VehicleExtensions.js?v=v3p2_visible_vehicles_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -26,6 +27,7 @@ installAtmosphereExtensions(PhoenixV3Engine);
 installCharacterExtensions(PhoenixV3Engine);
 installDayNightExtensions(PhoenixV3Engine);
 installWw2ArsenalExtensions(PhoenixV3Engine);
+installWw2VehicleExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
