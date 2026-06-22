@@ -11,6 +11,7 @@ import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.j
 import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n1_daynight_integration_1';
 import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n1_daynight_integration_1';
+import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=v3p2_ww2_live_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -24,6 +25,7 @@ installPlayerBodyExtensions(PhoenixV3Engine);
 installAtmosphereExtensions(PhoenixV3Engine);
 installCharacterExtensions(PhoenixV3Engine);
 installDayNightExtensions(PhoenixV3Engine);
+installWw2ArsenalExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
@@ -39,4 +41,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3M2A + v3N1: character creation, settlements, day-night schedule and night sky ready');
+console.log('Phoenix7 v3M2A + v3N1 + v3P2 WW2 live arsenal ready');
