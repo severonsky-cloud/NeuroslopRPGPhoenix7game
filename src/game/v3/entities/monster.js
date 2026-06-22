@@ -2,7 +2,77 @@ import * as THREE from '../vendor/three.module.js';
 import { heightAt } from '../world/terrain.js';
 import { makeMat, Materials } from '../world/props.js';
 
+function makeVehicleModel(kind, color) {
+  const g = new THREE.Group();
+  const hull = makeMat(color ?? 0x4f4638, { roughness: 0.82, metalness: 0.12 });
+  const dark = makeMat(0x15120f, { roughness: 0.88, metalness: 0.18 });
+  const metal = makeMat(0x777064, { roughness: 0.65, metalness: 0.28 });
+  const accent = makeMat(0xb78b4a, { roughness: 0.55, metalness: 0.08 });
+
+  if (kind === 'walkerVehicle') {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.82, 1.25), hull);
+    body.position.y = 1.28;
+    const turret = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.44, 0.74), metal);
+    turret.position.y = 1.92;
+    const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.35, 8), metal);
+    gun.rotation.x = Math.PI / 2;
+    gun.position.set(0, 1.92, -0.94);
+    g.add(body, turret, gun);
+    for (let i = 0; i < 4; i += 1) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.05, 6), dark);
+      leg.position.set(i < 2 ? -0.68 : 0.68, 0.62, i % 2 ? -0.46 : 0.46);
+      leg.rotation.x = i % 2 ? 0.28 : -0.28;
+      g.add(leg);
+    }
+    return g;
+  }
+
+  const soft = kind === 'softVehicle';
+  const armored = kind === 'armoredVehicle';
+  const length = armored ? 2.55 : soft ? 2.7 : 2.1;
+  const width = armored ? 1.25 : 1.08;
+  const height = armored ? 0.78 : soft ? 0.86 : 0.62;
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(length, height, width), hull);
+  body.position.y = 0.92;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(armored ? 0.95 : 0.72, armored ? 0.58 : 0.54, width * 0.78), armored ? metal : hull);
+  cabin.position.set(armored ? -0.28 : -0.42, 1.44, 0);
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.38, width * 0.7), dark);
+  nose.position.set(length * 0.38, 1.12, 0);
+  g.add(body, cabin, nose);
+
+  const wheelCount = armored ? 6 : 4;
+  for (let i = 0; i < wheelCount; i += 1) {
+    const side = i % 2 ? 1 : -1;
+    const axle = Math.floor(i / 2);
+    const x = -length * 0.34 + axle * (length * 0.32);
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.18, 12), dark);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(x, 0.48, side * (width * 0.58));
+    g.add(wheel);
+  }
+
+  if (armored || kind === 'lightVehicle') {
+    const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.28, 0.22, 10), metal);
+    mount.position.set(0.42, 1.58, 0);
+    const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, armored ? 1.2 : 0.95, 8), metal);
+    gun.rotation.x = Math.PI / 2;
+    gun.position.set(0.42, 1.58, -0.64);
+    g.add(mount, gun);
+  }
+
+  if (soft) {
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.92, 12), accent);
+    tank.rotation.z = Math.PI / 2;
+    tank.position.set(0.36, 1.47, 0);
+    g.add(tank);
+  }
+  return g;
+}
+
 function makeMonsterModel(kind, color) {
+  if (kind === 'lightVehicle' || kind === 'armoredVehicle' || kind === 'softVehicle' || kind === 'walkerVehicle') return makeVehicleModel(kind, color);
+
   const g = new THREE.Group();
   const main = kind === 'black' ? Materials.black : makeMat(color ?? 0xb84634);
   const bone = makeMat(0xd3b07a);
@@ -70,8 +140,8 @@ export function updateMonsters(monsters, playerRig, dt, player = null) {
     if (!m.alive) continue;
     if (m.conditionalHostile && !m.provoked && !m.autoHostile) continue;
     const d = Math.hypot(playerRig.position.x - m.x, playerRig.position.z - m.z);
-    const detectionRange = player?.characterRuntime?.nullVeil ? 5 : 16;
-    if (d < detectionRange && d > 1.6) {
+    const detectionRange = player?.characterRuntime?.nullVeil ? 5 : (m.vehicle ? 24 : 16);
+    if (d < detectionRange && d > (m.vehicle ? 5.5 : 1.6)) {
       const dx = (playerRig.position.x - m.x) / d;
       const dz = (playerRig.position.z - m.z) / d;
       const slow = m.slowT > 0 ? 0.38 : 1;
