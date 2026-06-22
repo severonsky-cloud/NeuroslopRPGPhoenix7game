@@ -47,7 +47,75 @@ function removeNode(scene, node) {
   });
 }
 
-function makeRangeDummy(name, hp, armor, color = 0x9b6b49) {
+function vehicleBox(w, h, d, mat, x, y, z) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function vehicleWheel(x, z, dark) {
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.26, 16), dark);
+  wheel.rotation.z = Math.PI / 2;
+  wheel.position.set(x, 0.5, z);
+  wheel.castShadow = true;
+  return wheel;
+}
+
+function makeVehicleRangeDummy(target, name, hp, armor, color = 0x5a4630) {
+  const root = new THREE.Group();
+  root.name = `ww2_live_vehicle_${name.replace(/\s+/g, '_')}`;
+  const hull = makeMat(color, { roughness: 0.82, metalness: 0.18 });
+  const dark = makeMat(0x15120f, { roughness: 0.9, metalness: 0.16 });
+  const metal = makeMat(0x777064, { roughness: 0.62, metalness: 0.32 });
+  const glass = makeMat(0x87b3bb, { roughness: 0.35, emissive: 0x12313a, emissiveIntensity: 0.15 });
+  const accent = makeMat(0xd0a75f, { roughness: 0.55, metalness: 0.08 });
+
+  const body = vehicleBox(5.8, 1.25, 2.25, hull, 0, 1.08, 0);
+  const cabin = vehicleBox(1.35, 0.9, 1.75, metal, -0.75, 2.05, 0);
+  const nose = vehicleBox(1.7, 0.62, 1.8, dark, 1.55, 1.38, 0);
+  const window = vehicleBox(0.68, 0.32, 1.82, glass, -0.42, 2.2, 0);
+  const turret = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.66, 0.28, 12), metal);
+  turret.position.set(0.9, 2.65, 0);
+  const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 2.15, 10), metal);
+  gun.rotation.x = Math.PI / 2;
+  gun.position.set(0.9, 2.65, -1.58);
+  const plate = vehicleBox(1.25, 0.22, 2.34, accent, -2.55, 1.72, 0);
+  root.add(body, cabin, nose, window, turret, gun, plate);
+
+  [-2.0, -0.7, 0.7, 2.0].forEach((x) => {
+    root.add(vehicleWheel(x, -1.32, dark));
+    root.add(vehicleWheel(x, 1.32, dark));
+  });
+
+  root.userData = {
+    type: 'monster',
+    alive: true,
+    looted: true,
+    conditionalHostile: true,
+    autoHostile: false,
+    ww2LiveTarget: true,
+    name,
+    hp,
+    hpMax: hp,
+    armor,
+    archetype: 'armoredVehicle',
+    vehicle: true,
+    vehicleArmor: target.vehicleArmor || armor || 10,
+    speed: 0,
+    slowT: 0,
+    fearT: 0,
+  };
+  return root;
+}
+
+function makeRangeDummy(target, color = 0x9b6b49) {
+  const name = target.name;
+  const hp = target.hp;
+  const armor = target.armor || 0;
+  if (target.vehicle) return makeVehicleRangeDummy(target, name, hp, armor, color);
+
   const root = new THREE.Group();
   root.name = `ww2_live_target_${name.replace(/\s+/g, '_')}`;
   const clay = makeMat(color, { roughness: 0.9 });
@@ -142,13 +210,13 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
     const origin = this.rig.position.clone();
     const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw || 0).normalize();
     const right = new THREE.Vector3(dir.z, 0, -dir.x).normalize();
-    const colors = [0x9b6b49, 0x6d5b3e, 0x4f5d54];
+    const colors = [0x9b6b49, 0x6d5b3e, 0x4f5d54, 0x5a4630];
 
     WW2_TEST_ENEMIES.forEach((target, index) => {
-      const side = [-3.2, 0.8, 4.6][index] || 0;
+      const side = [-4.5, 0.8, 4.8, 0][index] || 0;
       const distance = target.distance || (18 + index * 18);
       const pos = origin.clone().addScaledVector(dir, distance).addScaledVector(right, side);
-      const dummy = makeRangeDummy(`${target.name} · ${distance}m`, target.hp, target.armor, colors[index] || 0x8a6b4a);
+      const dummy = makeRangeDummy({ ...target, name: `${target.name} · ${distance}m` }, colors[index] || 0x8a6b4a);
       dummy.position.set(pos.x, heightAt(pos.x, pos.z), pos.z);
       dummy.userData.x = pos.x;
       dummy.userData.z = pos.z;
@@ -157,13 +225,14 @@ export function installWw2ArsenalExtensions(PhoenixV3Engine) {
       this.monsters.push(dummy);
       this.ww2LiveNodes.push(dummy);
 
-      const label = labelSprite(this.scene, `${target.name} · HP ${target.hp} · armor ${target.armor}`, pos.x, pos.z, 3.1, 0.62);
+      const labelHeight = target.vehicle ? 4.2 : 3.1;
+      const label = labelSprite(this.scene, `${target.name} · HP ${target.hp} · armor ${target.armor}${target.vehicle ? ' · VEHICLE' : ''}`, pos.x, pos.z, labelHeight, 0.62);
       label.userData.ww2LiveTarget = true;
       this.labels.push(label);
       this.ww2LiveNodes.push(label);
     });
 
-    this.hud.setObjective('WW2 live: манекены выставлены. Цифры 1–0 оружие, H режим огня, удерживай ЛКМ в AUTO.');
+    this.hud.setObjective('WW2 live: цели выставлены. Большая техника тоже есть: по ней обычные пули дают искры, ПТ-оружие наносит урон.');
   };
 
   PhoenixV3Engine.prototype.openWw2ArsenalPanel = function openWw2ArsenalPanel() {
