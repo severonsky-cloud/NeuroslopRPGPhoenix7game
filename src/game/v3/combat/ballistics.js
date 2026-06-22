@@ -40,9 +40,30 @@ function isHeavyKinetic(weapon) {
   return weapon.archetype === 'atRifle' || weapon.recoil >= 0.7 || weapon.damage >= 75;
 }
 
+function isVehicleTarget(target) {
+  const u = target?.userData;
+  return Boolean(u?.vehicle || u?.vehicleArmor || String(u?.archetype || '').includes('Vehicle'));
+}
+
+function isAntiVehicleWeapon(weapon) {
+  return weapon.archetype === 'atLauncher' || weapon.archetype === 'atRifle' || weapon.archetype === 'thrownExplosive' || Boolean(weapon.extra?.blastRadius);
+}
+
+function vehicleDamageScale(weapon, target) {
+  const armor = target?.userData?.vehicleArmor || target?.userData?.armor || 0;
+  if (!isAntiVehicleWeapon(weapon)) return 0;
+  let scale = 1;
+  if (weapon.archetype === 'atLauncher') scale = 1.15;
+  else if (weapon.archetype === 'atRifle') scale = 0.72;
+  else if (weapon.id === 'mk2GrenadeProto') scale = 0.42;
+  else if (weapon.id === 'molotovProto') scale = target?.userData?.explosiveDeath ? 0.58 : 0.22;
+  scale *= Math.max(0.28, 1 - armor * 0.035);
+  return scale;
+}
+
 function markDead(target) {
   target.userData.alive = false;
-  target.scale.y = 0.28;
+  target.scale.y = target.userData?.vehicle ? 0.72 : 0.28;
 }
 
 function stylizedBreakup(scene, target, hitPoint, power = 1.0, color = 0xffb05f) {
@@ -50,18 +71,20 @@ function stylizedBreakup(scene, target, hitPoint, power = 1.0, color = 0xffb05f)
   target.userData.brokenByHeavyHit = true;
   target.visible = false;
   const chunks = [];
-  const root = target.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+  const vehicle = isVehicleTarget(target);
+  const root = target.position.clone().add(new THREE.Vector3(0, vehicle ? 0.9 : 1.0, 0));
   const direction = root.clone().sub(hitPoint).normalize();
   if (!Number.isFinite(direction.x)) direction.set(0, 0.4, 1).normalize();
-  for (let i = 0; i < 9; i += 1) {
-    const size = 0.14 + Math.random() * 0.28;
+  const count = vehicle ? 14 : 9;
+  for (let i = 0; i < count; i += 1) {
+    const size = (vehicle ? 0.22 : 0.14) + Math.random() * (vehicle ? 0.42 : 0.28);
     const chunk = new THREE.Mesh(
       new THREE.BoxGeometry(size * (0.7 + Math.random() * 0.9), size, size * (0.6 + Math.random() * 0.8)),
-      new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0x2a241d : color, roughness: 0.78, metalness: i % 4 === 0 ? 0.12 : 0 })
+      new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0x2a241d : color, roughness: 0.78, metalness: vehicle || i % 4 === 0 ? 0.24 : 0 })
     );
-    chunk.position.copy(root).add(new THREE.Vector3(randSpread(0.7), randSpread(0.7), randSpread(0.7)));
+    chunk.position.copy(root).add(new THREE.Vector3(randSpread(vehicle ? 1.3 : 0.7), randSpread(vehicle ? 0.9 : 0.7), randSpread(vehicle ? 1.1 : 0.7)));
     chunk.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-    chunk.userData.life = 1.05 + Math.random() * 0.55;
+    chunk.userData.life = (vehicle ? 1.55 : 1.05) + Math.random() * 0.65;
     chunk.userData.vel = new THREE.Vector3(
       randSpread(3.4 * power) + direction.x * 1.7 * power,
       1.2 + Math.random() * 3.0 * power,
@@ -140,24 +163,30 @@ export class BallisticSystem {
     for (const obj of monsters || []) {
       const m = obj.userData;
       if (!m?.alive) continue;
-      const center = obj.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+      const center = obj.position.clone().add(new THREE.Vector3(0, m.vehicle ? 1.25 : 1.0, 0));
       const d = center.distanceTo(point);
       if (d > radius) continue;
       const falloff = Math.max(0.12, 1 - d / radius);
       const directMul = obj === directTarget ? 0.35 : 0.75;
-      const dmg = Math.max(1, Math.round(weapon.damage * damageScale * falloff * directMul));
+      const targetScale = isVehicleTarget(obj) ? vehicleDamageScale(weapon, obj) : 1;
+      if (isVehicleTarget(obj) && targetScale <= 0) {
+        this.sparks.push(...makeImpact(this.scene, center, 0xc8c0a8, 10, 1.25));
+        splash.push({ target: obj, damage: 0, distance: d, armorBlocked: true });
+        continue;
+      }
+      const dmg = Math.max(1, Math.round(weapon.damage * damageScale * falloff * directMul * targetScale));
       m.hp -= dmg;
       if (m.conditionalHostile) m.provoked = true;
       obj.userData.staggerT = Math.max(obj.userData.staggerT || 0, 0.45 + falloff * 0.7);
       obj.rotation.z = randSpread(0.55) * falloff;
       const push = center.clone().sub(point).setY(0).normalize();
-      if (Number.isFinite(push.x)) obj.position.addScaledVector(push, Math.min(1.6, falloff * 1.1));
+      if (Number.isFinite(push.x)) obj.position.addScaledVector(push, Math.min(m.vehicle ? 0.45 : 1.6, falloff * 1.1));
       let broken = false;
       if (m.hp <= 0) {
         markDead(obj);
-        if (weapon.archetype === 'atLauncher' || weapon.extra?.blastRadius) {
+        if (weapon.archetype === 'atLauncher' || weapon.extra?.blastRadius || m.vehicle) {
           broken = true;
-          this.sparks.push(...stylizedBreakup(this.scene, obj, point, 0.8 + falloff, 0xff8f45));
+          this.sparks.push(...stylizedBreakup(this.scene, obj, point, 0.8 + falloff, m.vehicle ? 0xa08a70 : 0xff8f45));
         }
       }
       splash.push({ target: obj, damage: dmg, distance: d, broken });
@@ -184,7 +213,7 @@ export class BallisticSystem {
     for (const obj of monsters) {
       const m = obj.userData;
       if (!m.alive) continue;
-      const target = obj.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+      const target = obj.position.clone().add(new THREE.Vector3(0, m.vehicle ? 1.25 : 1.0, 0));
       const to = target.clone().sub(from);
       const along = to.dot(dir);
       if (along < 0 || along > maxRange) continue;
@@ -193,7 +222,7 @@ export class BallisticSystem {
       const ballisticPoint = from.clone().addScaledVector(dir, along);
       ballisticPoint.y -= drop;
       const miss = ballisticPoint.distanceTo(target);
-      const hitRadius = m.archetype === 'brute' ? 0.95 : 0.72;
+      const hitRadius = m.vehicle ? 1.65 : m.archetype === 'brute' ? 0.95 : 0.72;
       if (miss < hitRadius && along < bestD) {
         best = obj;
         bestD = along;
@@ -203,19 +232,25 @@ export class BallisticSystem {
 
     this.tracers.push(makeTracer(this.scene, from, bestPoint, weapon.ammoType === 'phaseCell' ? 0x8a78ff : 0xffd28a));
     if (best) {
-      const dmg = Math.round(weapon.damage * damageScale * (weapon.pellets ? 0.7 : 1));
+      const targetScale = isVehicleTarget(best) ? vehicleDamageScale(weapon, best) : 1;
+      if (isVehicleTarget(best) && targetScale <= 0) {
+        if (best.userData.conditionalHostile) best.userData.provoked = true;
+        this.sparks.push(...makeImpact(this.scene, bestPoint, 0xc8c0a8, 12, 1.25));
+        return { hit: true, target: best, damage: 0, point: bestPoint, armorBlocked: true, heavy: false };
+      }
+      const dmg = Math.round(weapon.damage * damageScale * (weapon.pellets ? 0.7 : 1) * targetScale);
       if (best.userData.conditionalHostile) best.userData.provoked = true;
       best.userData.hp -= dmg;
       let broken = false;
       if (best.userData.hp <= 0) {
         markDead(best);
-        if (isHeavyKinetic(weapon) && weaponBlastRadius(weapon) <= 0) {
+        if ((isHeavyKinetic(weapon) && weaponBlastRadius(weapon) <= 0) || isVehicleTarget(best)) {
           broken = true;
-          this.sparks.push(...stylizedBreakup(this.scene, best, bestPoint, 1.0 + Math.min(0.9, weapon.recoil || 0.5), 0xd2b070));
+          this.sparks.push(...stylizedBreakup(this.scene, best, bestPoint, 1.0 + Math.min(0.9, weapon.recoil || 0.5), isVehicleTarget(best) ? 0xa08a70 : 0xd2b070));
         }
       }
       this.sparks.push(...makeImpact(this.scene, bestPoint, weapon.ammoType === 'phaseCell' ? 0x8a78ff : isHeavyKinetic(weapon) ? 0xffb05f : 0xffd28a, isHeavyKinetic(weapon) ? 18 : 8, isHeavyKinetic(weapon) ? 1.55 : 1));
-      return { hit: true, target: best, damage: dmg, point: bestPoint, broken, heavy: isHeavyKinetic(weapon) };
+      return { hit: true, target: best, damage: dmg, point: bestPoint, broken, heavy: isHeavyKinetic(weapon), vehicleHit: isVehicleTarget(best) };
     }
     return { hit: false, point: bestPoint, heavy: isHeavyKinetic(weapon) };
   }
