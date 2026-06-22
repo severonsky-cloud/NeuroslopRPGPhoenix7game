@@ -33,6 +33,8 @@ export class ImpactSystem {
       axe: 0xff9f55,
       glassCut: 0x8fd8d2,
       phase: 0x8a78ff,
+      vehicle: 0xc8c0a8,
+      explosive: 0xffa34f,
     };
     const color = colorMap[impact] || 0xffd28a;
     for (let i = 0; i < 7; i++) {
@@ -50,8 +52,8 @@ export class ImpactSystem {
 
   applyStagger(target, amount = 0.3) {
     if (!target?.userData) return;
-    target.userData.staggerT = Math.max(target.userData.staggerT || 0, amount);
-    target.rotation.z = (Math.random() - 0.5) * 0.24;
+    target.userData.staggerT = Math.max(target.userData.staggerT || 0, target.userData.vehicle ? amount * 0.35 : amount);
+    target.rotation.z = (Math.random() - 0.5) * (target.userData.vehicle ? 0.08 : 0.24);
     setTimeout(() => { if (target.rotation) target.rotation.z = 0; }, 150);
   }
 
@@ -66,9 +68,10 @@ export class ImpactSystem {
     if (!m || m.looted) return [];
     m.looted = true;
     let table = 'road';
-    if (m.id?.includes('zhuzher') || m.name?.includes('Жужжер')) table = 'raider';
-    if (m.archetype === 'black' || m.archetype === 'glass' || m.archetype === 'phase') table = 'elemental';
-    if (m.archetype === 'brute') table = Math.random() < 0.5 ? 'road' : 'bandit';
+    if (m.vehicle) table = 'ww2';
+    else if (m.id?.includes('zhuzher') || m.name?.includes('Жужжер')) table = 'raider';
+    else if (m.archetype === 'black' || m.archetype === 'glass' || m.archetype === 'phase') table = 'elemental';
+    else if (m.archetype === 'brute') table = Math.random() < 0.5 ? 'road' : 'bandit';
     return this.inventory?.lootAmmoBundle(table) || [];
   }
 
