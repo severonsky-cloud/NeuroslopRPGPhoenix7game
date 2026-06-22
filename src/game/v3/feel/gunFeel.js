@@ -100,7 +100,6 @@ export class GunFeelSystem {
   shot(weaponId, result) {
     const f = FEEL[weaponId] || FEEL.caravanCarbine;
     const control = this.engine.player.characterRuntime?.firearmSpread || 1;
-    // Clamp accumulation so holding full-auto can't pile recoil past sane limits.
     this.recoilX = Math.min(0.5, this.recoilX + f.kick * control * (0.82 + Math.random() * 0.36));
     this.recoilY = THREE.MathUtils.clamp(this.recoilY + (Math.random() - 0.5) * f.side * control, -0.3, 0.3);
     this.weaponBack = Math.max(this.weaponBack, f.weaponBack);
@@ -109,6 +108,15 @@ export class GunFeelSystem {
     this.flashT = Math.max(this.flashT, f.flash);
     this.screenFlash.style.opacity = String(Math.min(0.45, f.flash * 1.5));
     this.bumpCrosshair(f.cross);
+    if (result?.explosion) {
+      this.recoilX = Math.min(0.65, this.recoilX + 0.09);
+      this.recoilY = THREE.MathUtils.clamp(this.recoilY + (Math.random() - 0.5) * 0.08, -0.36, 0.36);
+      this.weaponBack = Math.max(this.weaponBack, 0.36);
+      this.screenFlash.style.background = 'radial-gradient(circle at 50% 50%, rgba(255,155,68,.34), transparent 52%)';
+      this.screenFlash.style.opacity = '0.55';
+      this.bumpCrosshair(2.7);
+      this.engine.combatAudio?.explosion?.(result.explosion.radius > 3.5 ? 'blast' : 'small');
+    }
     if (result?.results?.some(r => r.hit)) this.hit(true);
     this.engine.combatAudio?.fire?.(f.audio || 'rifle');
   }
@@ -185,9 +193,6 @@ export class GunFeelSystem {
 
   update(dt) {
     const cam = this.engine.camera;
-    // Camera orientation is authored here every frame. Bound the pitch and force
-    // roll to exactly 0 so sustained auto-fire (Bren) or any stray transform can
-    // never leave the view tilted or stuck looking over the top.
     cam.rotation.x = THREE.MathUtils.clamp(this.engine.pitch - this.recoilX, -1.45, 1.45);
     cam.rotation.y = THREE.MathUtils.clamp(this.recoilY, -0.35, 0.35);
     cam.rotation.z = 0;
