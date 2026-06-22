@@ -76,12 +76,30 @@ export const NPCS = [
 ];
 
 export const MONSTERS = [
-  { id: 'roadBrute', name: 'Рогатый дорожный мутант', archetype: 'brute', biome: 'redroad', x: 24, z: 82, hp: 60, color: 0xb84634 },
-  { id: 'swampLurker', name: 'Болотная тварь', archetype: 'lurker', biome: 'mangrove', x: -58, z: 154, hp: 58, color: 0x4d6a39 },
-  { id: 'boneGhoul', name: 'Сухая костяная падаль', archetype: 'ghoul', biome: 'savanna', x: 250, z: 268, hp: 68, color: 0x7f633b },
-  { id: 'glassPredator', name: 'Стеклянный хищник', archetype: 'glass', biome: 'glass', x: 298, z: 124, hp: 76, color: 0x67a8a6 },
-  { id: 'blackElemental', name: 'Чёрный элементаль стекла', archetype: 'black', biome: 'glass', x: 288, z: 142, hp: 100, color: 0x0a0612 },
-  { id: 'iceCarrion', name: 'Ледяной падальщик', archetype: 'ice', biome: 'ice', x: 220, z: -168, hp: 70, color: 0x9fc7d9 },
-  { id: 'phaseEcho', name: 'Фазовое эхо', archetype: 'phase', biome: 'fort', x: 118, z: 145, hp: 66, color: 0x8a78ff },
-  { id: 'zhuzherRaider', name: 'Жужжер-налётчик', archetype: 'brute', biome: 'savanna', x: 210, z: 226, hp: 72, color: 0x6b6f35 },
+  { id: 'roadBrute', name: 'Рогатый дорожный мутант', archetype: 'brute', biome: 'redroad', faction: 'wild', x: 24, z: 82, hp: 60, color: 0xb84634 },
+  { id: 'swampLurker', name: 'Болотная тварь', archetype: 'lurker', biome: 'mangrove', faction: 'wild', x: -58, z: 154, hp: 58, color: 0x4d6a39 },
+  { id: 'boneGhoul', name: 'Сухая костяная падаль', archetype: 'ghoul', biome: 'savanna', faction: 'wild', x: 250, z: 268, hp: 68, color: 0x7f633b },
+  { id: 'glassPredator', name: 'Стеклянный хищник', archetype: 'glass', biome: 'glass', faction: 'blackElementals', x: 298, z: 124, hp: 76, color: 0x67a8a6 },
+  { id: 'blackElemental', name: 'Чёрный элементаль стекла', archetype: 'black', biome: 'glass', faction: 'blackElementals', x: 288, z: 142, hp: 100, color: 0x0a0612 },
+  { id: 'iceCarrion', name: 'Ледяной падальщик', archetype: 'ice', biome: 'ice', faction: 'wild', x: 220, z: -168, hp: 70, color: 0x9fc7d9 },
+  { id: 'phaseEcho', name: 'Фазовое эхо', archetype: 'phase', biome: 'fort', faction: 'blackElementals', x: 118, z: 145, hp: 66, color: 0x8a78ff },
+  { id: 'zhuzherRaider', name: 'Жужжер-налётчик', archetype: 'brute', biome: 'savanna', faction: 'zhuzher', x: 210, z: 226, hp: 72, color: 0x6b6f35 },
+
+  { id: 'banditRiflemanRedRoad', name: 'Бандит с винтовкой', archetype: 'ghoul', biome: 'redroad', faction: 'bandits', x: 58, z: 112, hp: 46, color: 0x8b5a35, autoHostile: true, speed: 0.95 },
+  { id: 'banditShotgunRedRoad', name: 'Бандит с дробовиком', archetype: 'brute', biome: 'redroad', faction: 'bandits', x: 72, z: 126, hp: 64, color: 0x9a6134, autoHostile: true, speed: 0.9 },
+  { id: 'banditKnifeScout', name: 'Бандит-разведчик', archetype: 'lurker', biome: 'redroad', faction: 'bandits', x: 38, z: 96, hp: 38, color: 0x6f4a2d, autoHostile: true, speed: 1.35 },
+  { id: 'redNodeSmugglerGuard', name: 'Охранник Красного Узла', archetype: 'brute', biome: 'rednode', faction: 'bandits', x: 22, z: -48, hp: 58, color: 0x7d3e2f, autoHostile: true, speed: 0.95 },
+  { id: 'redNodePistolGang', name: 'Пистолетчик Красного Узла', archetype: 'ghoul', biome: 'rednode', faction: 'bandits', x: 62, z: -56, hp: 44, color: 0x744331, autoHostile: true, speed: 1.05 },
+
+  { id: 'zhuzherPpshPatrol', name: 'Жужжер с ППШ', archetype: 'brute', biome: 'savanna', faction: 'zhuzher', x: 226, z: 238, hp: 76, color: 0x72763b, autoHostile: true, speed: 0.95 },
+  { id: 'zhuzherMgCarrier', name: 'Жужжер-пулемётчик', archetype: 'brute', biome: 'savanna', faction: 'zhuzher', x: 238, z: 246, hp: 90, color: 0x595c32, autoHostile: true, speed: 0.72 },
+  { id: 'zhuzherFlanker', name: 'Жужжер-фланкер', archetype: 'lurker', biome: 'savanna', faction: 'zhuzher', x: 204, z: 258, hp: 52, color: 0x6c713a, autoHostile: true, speed: 1.3 },
+  { id: 'tsarborHostileRoot', name: 'Враждебный царборский корень', archetype: 'lurker', biome: 'tsarbor', faction: 'bandits', x: 154, z: 282, hp: 62, color: 0x38522d, autoHostile: true, speed: 0.82 },
+  { id: 'glassRifleEcho', name: 'Стеклянный стрелок', archetype: 'glass', biome: 'glass', faction: 'blackElementals', x: 318, z: 102, hp: 84, color: 0x7fc7c0, conditionalHostile: true, autoHostile: true, speed: 0.72 },
+  { id: 'iceShelfRaider', name: 'Рейдер ледяного шельфа', archetype: 'ghoul', biome: 'ice', faction: 'bandits', x: 184, z: -154, hp: 54, color: 0x8fb0b8, autoHostile: true, speed: 1.0 },
+
+  { id: 'banditBuggy', name: 'Бандитская тачанка', archetype: 'lightVehicle', biome: 'redroad', faction: 'bandits', x: 86, z: 118, hp: 150, armor: 6, vehicle: true, vehicleArmor: 6, autoHostile: true, speed: 0.42, color: 0x5a4630 },
+  { id: 'zhuzherHalftrack', name: 'Жужжерский полугусеничный броневик', archetype: 'armoredVehicle', biome: 'savanna', faction: 'zhuzher', x: 246, z: 232, hp: 280, armor: 13, vehicle: true, vehicleArmor: 13, autoHostile: true, speed: 0.28, color: 0x4b4f2c },
+  { id: 'redNodeFuelTruck', name: 'Топливный грузовик Красного Узла', archetype: 'softVehicle', biome: 'rednode', faction: 'bandits', x: 70, z: -28, hp: 130, armor: 3, vehicle: true, vehicleArmor: 3, explosiveDeath: true, autoHostile: true, speed: 0.18, color: 0x6c3c2c },
+  { id: 'blackGlassCrawler', name: 'Стеклянный боевой ходок', archetype: 'walkerVehicle', biome: 'glass', faction: 'blackElementals', x: 306, z: 138, hp: 240, armor: 10, vehicle: true, vehicleArmor: 10, conditionalHostile: true, autoHostile: true, speed: 0.24, color: 0x25343a },
 ];
