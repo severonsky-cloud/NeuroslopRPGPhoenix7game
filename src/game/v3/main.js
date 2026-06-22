@@ -1,16 +1,16 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30m2a_n2_living_ecosystem_1';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n2_living_ecosystem_1';
-import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n2_living_ecosystem_1';
+import { PhoenixV3Engine } from './core/engine.js?v=30m2a_n2_living_ecosystem_2';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n2_living_ecosystem_2';
+import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n2_living_ecosystem_2';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -41,6 +41,20 @@ if (engine.livingWorld) {
   };
 }
 
+function nearestCaravan() {
+  const lw = engine.livingWorld;
+  if (!lw?.agents?.length) return null;
+  let best = null;
+  let bestD = Infinity;
+  for (const agent of lw.agents) {
+    const u = agent.userData;
+    if (u.role !== 'caravan') continue;
+    const d = Math.hypot(u.x - engine.rig.position.x, u.z - engine.rig.position.z);
+    if (d < bestD) { best = u; bestD = d; }
+  }
+  return best ? { caravan: best, distance: bestD } : null;
+}
+
 engine.getLivingWorldDiagnostics = () => engine.livingWorld?.diagnostics?.() || null;
 engine.forceCaravanAmbush = (caravanId = 'red_clay_caravan', faction = 'bandits') => {
   const lw = engine.livingWorld;
@@ -49,6 +63,17 @@ engine.forceCaravanAmbush = (caravanId = 'red_clay_caravan', faction = 'bandits'
   lw.spawnCaravanAmbush(caravan, faction, 'ручной debug-тест засады');
   return { ok: true, caravanId, faction };
 };
+engine.forceNearestCaravanAmbush = (faction = 'bandits') => {
+  const lw = engine.livingWorld;
+  const nearest = nearestCaravan();
+  if (!lw || !nearest?.caravan) return { ok: false, reason: 'no_caravans' };
+  lw.spawnCaravanAmbush(nearest.caravan, faction, 'ручной debug-тест ближайшей засады');
+  return { ok: true, caravanId: nearest.caravan.id, caravanName: nearest.caravan.name, faction, distance: Math.round(nearest.distance) };
+};
+engine.listCaravans = () => (engine.livingWorld?.agents || [])
+  .map(a => a.userData)
+  .filter(u => u.role === 'caravan')
+  .map(u => ({ id: u.id, name: u.name, x: Math.round(u.x), z: Math.round(u.z), state: u.state, tradeState: u.tradeState, cargo: u.cargo }));
 
 window.PHX_V3_ENGINE = engine;
 window.__PHX_V3_READY = true;
