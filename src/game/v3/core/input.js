@@ -27,11 +27,12 @@ export class InputSystem {
       if (!this.pointerLocked) this.keys.delete('MouseLeft');
     });
     canvas.addEventListener('pointerdown', (e) => {
-      if (e.button === 0) this.keys.add('MouseLeft');
+      if (e.button !== 0) return;
+      this.keys.add('MouseLeft');
+      if (document.pointerLockElement === canvas && this.onAction) this.onAction('MouseLeft', e);
     });
     canvas.addEventListener('click', () => {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
-      else if (this.onAction) this.onAction('MouseLeft', new Event('mouseleft'));
     });
     canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
