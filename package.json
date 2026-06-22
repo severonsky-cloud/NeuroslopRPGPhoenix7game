@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:ww2": "vite --host 0.0.0.0 --open /ww2.html",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test:v3m2a": "node tools/v3m2a_smoke.mjs",
