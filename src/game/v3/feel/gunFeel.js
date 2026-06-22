@@ -2,11 +2,33 @@ import * as THREE from '../vendor/three.module.js';
 import { ARSENAL } from '../combat/arsenal.js';
 
 const FEEL = {
-  colt: { kick: 0.055, side: 0.018, weaponBack: 0.10, flash: 0.12, shake: 0.018, cross: 1.2 },
-  m1: { kick: 0.075, side: 0.010, weaponBack: 0.16, flash: 0.16, shake: 0.024, cross: 1.4 },
-  bren: { kick: 0.038, side: 0.034, weaponBack: 0.13, flash: 0.14, shake: 0.030, cross: 1.8 },
-  trenchShotgun: { kick: 0.115, side: 0.022, weaponBack: 0.24, flash: 0.22, shake: 0.042, cross: 2.0 },
-  caravanCarbine: { kick: 0.056, side: 0.012, weaponBack: 0.13, flash: 0.13, shake: 0.020, cross: 1.3 },
+  colt: { kick: 0.055, side: 0.018, weaponBack: 0.10, flash: 0.12, shake: 0.018, cross: 1.2, audio: 'revolver' },
+  m1: { kick: 0.075, side: 0.010, weaponBack: 0.16, flash: 0.16, shake: 0.024, cross: 1.4, audio: 'rifle' },
+  bren: { kick: 0.038, side: 0.034, weaponBack: 0.13, flash: 0.14, shake: 0.030, cross: 1.8, audio: 'lmg' },
+  trenchShotgun: { kick: 0.115, side: 0.022, weaponBack: 0.24, flash: 0.22, shake: 0.042, cross: 2.0, audio: 'shotgun' },
+  caravanCarbine: { kick: 0.056, side: 0.012, weaponBack: 0.13, flash: 0.13, shake: 0.020, cross: 1.3, audio: 'rifle' },
+
+  m1911a1: { kick: 0.064, side: 0.020, weaponBack: 0.12, flash: 0.13, shake: 0.020, cross: 1.25, audio: 'pistol' },
+  lugerP08: { kick: 0.048, side: 0.014, weaponBack: 0.09, flash: 0.11, shake: 0.016, cross: 1.1, audio: 'pistol' },
+  tt33: { kick: 0.052, side: 0.016, weaponBack: 0.10, flash: 0.11, shake: 0.017, cross: 1.15, audio: 'pistol' },
+  webleyMkVI: { kick: 0.058, side: 0.018, weaponBack: 0.11, flash: 0.13, shake: 0.019, cross: 1.2, audio: 'revolver' },
+  k98k: { kick: 0.082, side: 0.012, weaponBack: 0.18, flash: 0.16, shake: 0.026, cross: 1.45, audio: 'rifle' },
+  mosin9130: { kick: 0.088, side: 0.014, weaponBack: 0.19, flash: 0.16, shake: 0.028, cross: 1.5, audio: 'rifle' },
+  leeEnfieldNo4: { kick: 0.072, side: 0.011, weaponBack: 0.16, flash: 0.15, shake: 0.023, cross: 1.35, audio: 'rifle' },
+  m1GarandWw2: { kick: 0.074, side: 0.012, weaponBack: 0.16, flash: 0.16, shake: 0.024, cross: 1.4, audio: 'rifle' },
+  mp40: { kick: 0.020, side: 0.030, weaponBack: 0.075, flash: 0.085, shake: 0.016, cross: 1.35, audio: 'smg' },
+  ppsh41: { kick: 0.016, side: 0.040, weaponBack: 0.072, flash: 0.078, shake: 0.017, cross: 1.55, audio: 'smg' },
+  thompsonM1928: { kick: 0.028, side: 0.035, weaponBack: 0.09, flash: 0.10, shake: 0.020, cross: 1.5, audio: 'smg' },
+  winchester1897: { kick: 0.12, side: 0.024, weaponBack: 0.25, flash: 0.22, shake: 0.043, cross: 2.0, audio: 'shotgun' },
+  browningAuto5: { kick: 0.105, side: 0.022, weaponBack: 0.21, flash: 0.2, shake: 0.038, cross: 1.85, audio: 'shotgun' },
+  doubleBarrelSawedOff: { kick: 0.135, side: 0.035, weaponBack: 0.28, flash: 0.24, shake: 0.05, cross: 2.2, audio: 'shotgun' },
+  mg42: { kick: 0.030, side: 0.052, weaponBack: 0.12, flash: 0.12, shake: 0.034, cross: 2.0, audio: 'lmg' },
+  dp28: { kick: 0.034, side: 0.036, weaponBack: 0.12, flash: 0.12, shake: 0.028, cross: 1.75, audio: 'lmg' },
+  brenMk1Ww2: { kick: 0.036, side: 0.032, weaponBack: 0.13, flash: 0.13, shake: 0.029, cross: 1.75, audio: 'lmg' },
+  bazookaM1: { kick: 0.13, side: 0.018, weaponBack: 0.30, flash: 0.28, shake: 0.052, cross: 2.25, audio: 'rocket' },
+  panzerfaust30: { kick: 0.15, side: 0.024, weaponBack: 0.34, flash: 0.30, shake: 0.06, cross: 2.4, audio: 'rocket' },
+  ptrd41: { kick: 0.16, side: 0.018, weaponBack: 0.33, flash: 0.22, shake: 0.052, cross: 2.2, audio: 'rifle' },
+  boysAT: { kick: 0.14, side: 0.018, weaponBack: 0.29, flash: 0.20, shake: 0.047, cross: 2.05, audio: 'rifle' },
 };
 
 function el(id, css) {
@@ -88,7 +110,7 @@ export class GunFeelSystem {
     this.screenFlash.style.opacity = String(Math.min(0.45, f.flash * 1.5));
     this.bumpCrosshair(f.cross);
     if (result?.results?.some(r => r.hit)) this.hit(true);
-    this.engine.combatAudio?.fire?.(weaponId === 'bren' ? 'lmg' : weaponId === 'colt' ? 'revolver' : 'rifle');
+    this.engine.combatAudio?.fire?.(f.audio || 'rifle');
   }
 
   jam() {
@@ -152,11 +174,13 @@ export class GunFeelSystem {
     const w = ARSENAL[weaponId];
     const fs = this.engine.firearms?.state?.(weaponId);
     if (!w?.ammoType || !fs) return `<b>${w?.name || weaponId}</b>`;
-    const reserve = this.engine.player.inventoryState?.ammo?.[w.ammoType] || 0;
+    const reserve = this.engine.player.inventoryState?.ammo[w.ammoType] || 0;
     const cond = Math.round((fs.condition || 0) * 100);
     const reload = fs.reloadT > 0;
     const jam = fs.jammed;
-    return `<b>${w.name}</b><br><span style="font-size:24px;color:${jam ? '#ff8a5f' : '#ffd28a'}">${jam ? 'JAM' : `${fs.loaded}/${w.clipSize}`}</span> <span style="opacity:.75">reserve ${reserve}</span><br><span style="opacity:.8">condition ${cond}% ${reload ? ' · RELOADING' : ''}</span>`;
+    const mode = this.engine.currentFireMode?.(weaponId) || 'semi';
+    const modeText = mode === 'auto' ? 'AUTO' : mode === 'burst' ? 'BURST×3' : 'SEMI';
+    return `<b>${w.name}</b> <span style="opacity:.75">${modeText}</span><br><span style="font-size:24px;color:${jam ? '#ff8a5f' : '#ffd28a'}">${jam ? 'JAM' : `${fs.loaded}/${w.clipSize}`}</span> <span style="opacity:.75">reserve ${reserve}</span><br><span style="opacity:.8">condition ${cond}% ${reload ? ' · RELOADING' : ''}</span>`;
   }
 
   update(dt) {
@@ -193,7 +217,6 @@ export class GunFeelSystem {
     this.ammoHud.innerHTML = this.weaponStatus();
     const weaponId = this.engine.player.weapon;
     const fs = this.engine.firearms?.state?.(weaponId);
-    const total = fs?.reloadT ? Math.max(0.001, fs.reloadT) : 0;
     if (fs?.reloadT > 0) {
       const pulse = 0.5 + Math.sin(performance.now() * 0.012) * 0.5;
       this.reloadFill.style.width = `${Math.round((1 - Math.min(1, fs.reloadT / 2.5)) * 100)}%`;
