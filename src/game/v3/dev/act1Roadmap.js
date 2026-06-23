@@ -1,6 +1,6 @@
 export const ACT1_ROADMAP = {
   updatedAt: '2026-06-23',
-  iteration: 'v3P2 Act 1 playable slice — route, ambush, vehicle, loot return',
+  iteration: 'v3P2 Act 1 playable slice — Ashgrave RPG HUD overhaul',
   build: {
     title: 'The elder neuroslops chapter one: Ashgrave',
     subtitle: 'Act 1 Gameplay Layer Launcher',
@@ -10,32 +10,33 @@ export const ACT1_ROADMAP = {
     mergePolicy: 'No blind merge: use this launcher for smoke, then merge only after conflicts/tests are clean.',
   },
   launchTargets: [
-    { id: 'act1-live', title: 'Act 1 gameplay live build', href: '/v3p2_ww2_live.html?ww2=1&act1=1', primary: true, note: 'Playable slice: староста → дорога → засада → бронецель → лут → возврат.', checks: ['Start auto-opens Act 1 route', 'E at camp', 'fight ambush', 'kill vehicle', 'collect crates', 'return'] },
+    { id: 'act1-live', title: 'Act 1 gameplay live build', href: '/v3p2_ww2_live.html?ww2=1&act1=1', primary: true, note: 'Playable slice with new Ashgrave RPG HUD: староста → дорога → встреча → бронецель → лут → возврат.', checks: ['Start opens Act 1 route', 'new HUD visible', 'E at camp', 'road encounter', 'vehicle target', 'collect crates', 'return'] },
     { id: 'vehicle-lab', title: 'Ashgrave modular vehicle lab', href: '/vehicle_lab.html', note: 'GLM V8 vehicle sandbox converted into local Phoenix7 modules: 10 vehicles, hitboxes, structural damage, rockets, loot.', checks: ['1–0 spawn vehicles', 'R/P rockets', 'T PT-rifle', 'Y MG burst', 'B hitboxes', 'L labels', 'C clear'] },
-    { id: 'ww2-live-clean', title: 'WW2 live weapon test', href: '/v3p2_ww2_live.html?ww2=1', note: 'Same live build without act1 marker. Useful for weapon-only checks.', checks: ['T targets', '9 Bazooka', 'U Panzerfaust/PTRD/Boys AT', 'R reload', 'V aim'] },
+    { id: 'ww2-live-clean', title: 'WW2 live weapon test', href: '/v3p2_ww2_live.html?ww2=1', note: 'Same live build without act1 marker. Useful for weapon-only checks; press F2 to start route manually.', checks: ['F2 starts route', 'T targets', '9 Bazooka', 'U arsenal', 'R reload', 'V aim'] },
     { id: 'ww2-micro', title: 'WW2 arsenal micro data check', href: '/tools/v3p2_ww2_micro_build.html', note: 'Fast browser page for data sanity, not the full RPG layer.', checks: ['23 weapons', '12 ammo types', 'icons', 'roles'] },
   ],
   statusColumns: [
     { title: 'Playable now', items: [
-      'First passable Act 1 loop: settlement quest giver table, road marker, ambush, vehicle target, loot crates, return reward',
+      'New visible Ashgrave RPG HUD: quest block, location/coords, clock, vitals, weapon card, ammo card, hotbar',
+      'First passable Act 1 loop: settlement quest giver table, road marker, road encounter, vehicle target, loot crates, return reward',
       'Morrowind-style inventory: item icons, character doll, visible slots, drag/drop equip and double-click equip',
       '23 WW2 weapons, fire modes, visible rockets, physical dropped weapons, class weapon progression',
       'NPC weapon offers tuned rarer and gated to truly valuable / prestige weapons',
       'Modular GLM V8 vehicle lab with 10 procedural vehicles, hitboxes, structural damage and loot',
     ] },
     { title: 'Needs smoke before merge', items: [
-      'Act1 route smoke: Start → E at camp → road ambush → kill raiders → destroy vehicle → collect 3 crates → return to camp',
+      'UI smoke: new HUD visible after Start, old top/bottom HUD hidden, prompt still visible, I/J/U panels usable',
+      'Act1 route smoke: Start → E at camp → road encounter → clear enemies → stop vehicle → collect 3 crates → return to camp',
       'Inventory smoke: drag weapon to left/right hand, armor to body slot, phase hand to spellHand, double-click equip',
       'Check vehicle target stability and that Bazooka/Panzerfaust/PTRD/Boys AT all work during the route',
-      'Check J journal during each route stage and F3 debug teleport',
       'Run npm run test:v3p2ww2 and npm run build locally',
     ] },
     { title: 'Do not merge blind', items: ['PR is intentionally draft while Act 1 gameplay layer is still moving fast', 'Current GitHub mergeable status must be rechecked after every commit', 'Resolve main conflicts and stale cache keys before merge', 'Update this roadmap after every meaningful iteration'] },
   ],
   roadmap: [
     { phase: '1. Weapon pack foundation', status: 'done', points: ['WW2 arsenal data', 'ammo types', 'inventory grant kit', 'live launcher controls'] },
-    { phase: '2. RPG interface slice', status: 'in-progress', points: ['Morrowind-style inventory installed', 'drag/drop paper doll slots', 'icons and category filters', 'next: trader screen in same visual language'] },
-    { phase: '3. Act 1 playable slice', status: 'in-progress', points: ['route loop installed', 'quest journal override', 'ambush encounter', 'vehicle encounter', 'loot crates and turn-in reward', 'next: real dialogue/trader pass'] },
+    { phase: '2. RPG interface slice', status: 'in-progress', points: ['Ashgrave RPG HUD overhaul installed', 'Morrowind-style inventory installed', 'drag/drop paper doll slots', 'icons and category filters', 'next: trader screen in same visual language'] },
+    { phase: '3. Act 1 playable slice', status: 'in-progress', points: ['route loop installed', 'quest journal override', 'road encounter', 'vehicle encounter', 'loot crates and turn-in reward', 'next: real dialogue/trader pass'] },
     { phase: '4. Vehicles and anti-vehicle layer', status: 'in-progress', points: ['GLM V8 lab modularized', '10 vehicle silhouettes', 'hitbox/raycast damage', 'next: bridge lab vehicles into Y/T Act 1 spawns'] },
     { phase: '5. Physical weapon world', status: 'in-progress', points: ['drop/pickup', 'combat disarm', 'world value', 'rare NPC offers', 'next: NPC crowd behavior around campaigns'] },
   ],
