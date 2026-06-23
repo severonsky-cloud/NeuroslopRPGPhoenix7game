@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "dev:act1": "vite --host 0.0.0.0 --open /act1.html",
+    "dev:vehiclelab": "vite --host 0.0.0.0 --open /vehicle_lab.html",
     "dev:ww2": "vite --host 0.0.0.0 --open /v3p2_ww2_live.html?ww2=1",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
