@@ -30,7 +30,7 @@
     <div class="card">
       <h1>Phoenix7 v3N3</h1>
       <p><b>Текущий билд:</b> character creation + оружие + день/ночь + живой тракт + улучшенные procedural NPC models.</p>
-      <p><b>Новый тест:</b> Start → F1 до Красной дороги/Форта Заря → смотри караваны, патрули, рыцарей, Жужжер и фазовых магов.</p>
+      <p><b>Новый тест:</b> Start → F1 до Красной дороги/Форта Заря → смотри караваны, патрули, рыцарей, Жужжер, фазовых магов и сюжетных NPC.</p>
       <p><b>Если после обновления видно старую версию:</b> нажми Ctrl+F5.</p>
       <button id="startBtn">Создать персонажа / Start</button>
       <button id="newGameBtn" hidden>Новая игра</button>
@@ -53,7 +53,7 @@
   <div id="error"></div>
   <script type="module">
     const error = document.getElementById('error');
-    import('./src/game/v3/main.js?v=30m2a_n3_npc_visuals_1').catch(err => {
+    import('./src/game/v3/main.js?v=30m2a_n3_npc_visuals_2').catch(err => {
       error.style.display = 'block';
       error.textContent = `Module failed:\n${err?.stack || err?.message || err}`;
     });
