@@ -28,11 +28,11 @@
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <span class="badge">CURRENT BUILD: Act 1 playable slice · Ashgrave UI</span>
+      <span class="badge">CURRENT BUILD: Act 1 playable slice · Ashgrave UI · trader</span>
       <h1>The elder neuroslops chapter one: Ashgrave</h1>
-      <p>Это основной игровой билд с новым RPG-HUD. Если URL содержит <b>act1=1</b>, маршрут первого акта запускается сразу после Start.</p>
-      <div class="route"><b>Где начинается квест:</b> после Start ты появишься у лагеря. Подойди к маркеру <b>“Староста маршрута”</b>, найди стол и нажми <b>E</b>. В игре появится новый золотой квест-блок слева сверху.</div>
-      <div class="steps"><div><b>1</b>Стол старосты → E</div><div><b>2</b>Дорожный маркер</div><div><b>3</b>Дорожная встреча</div><div><b>4</b>Бронецель</div><div><b>5</b>Зелёные ящики → E</div><div><b>6</b>Возврат к старосте</div></div>
+      <p>Это основной игровой билд с новым RPG-HUD и диалогом старосты. Если URL содержит <b>act1=1</b>, маршрут первого акта запускается сразу после Start.</p>
+      <div class="route"><b>Где начинается квест:</b> после Start ты появишься у лагеря. Подойди к маркеру <b>“Староста маршрута”</b>, найди стол и нажми <b>E</b>. Откроется панель старосты: заказ, торговля, ремонт, слухи.</div>
+      <div class="steps"><div><b>1</b>Стол старосты → E → Взять заказ</div><div><b>2</b>Дорожный маркер</div><div><b>3</b>Дорожная встреча</div><div><b>4</b>Бронецель</div><div><b>5</b>Зелёные ящики → E</div><div><b>6</b>Возврат → E → Сдать</div></div>
       <div class="keys"><b>Тест-клавиши:</b> F2 — начать/перезапустить срез · F3 — телепорт к текущей цели · J — журнал · I — инвентарь · U — арсенал · 1–0 — оружие · N — бросить оружие · E — действие.</div>
       <p class="muted">Если открыл WW2 live без act1=1, просто нажми F2 внутри игры. Если видишь старую страницу — Ctrl+F5.</p>
       <button id="startBtn">Start Act 1 playable slice</button>
@@ -48,7 +48,7 @@
   </script>
   <script type="module">
     const error=document.getElementById('error');
-    import('./src/game/v3/main.js?v=v3p2_ash_ui_boot_1').catch(err=>{ error.style.display='block'; error.textContent=`Module failed:\n${err?.stack||err?.message||err}`; });
+    import('./src/game/v3/main.js?v=v3p2_route_trader_boot_1').catch(err=>{ error.style.display='block'; error.textContent=`Module failed:\n${err?.stack||err?.message||err}`; });
   </script>
 </body>
 </html>
