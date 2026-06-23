@@ -1,18 +1,19 @@
-import { PhoenixV3Engine } from './core/engine.js?v=30m2a_n3_npc_visuals_2';
-import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n3_npc_visuals_2';
-import { upgradeLivingWorldVisuals } from './world/lifeVisuals.js?v=30m2a_n3_npc_visuals_2';
-import { upgradeStoryNpcVisuals } from './world/storyNpcVisuals.js?v=30m2a_n3_npc_visuals_2';
+import { PhoenixV3Engine } from './core/engine.js?v=30m2a_n3_integrated_1';
+import { installArsenalExtensions } from './core/engineArsenalExtensions.js?v=30m2a_n3_integrated_1';
+import { installSettlementExtensions } from './core/engineSettlementExtensions.js?v=30m2a_n3_integrated_1';
+import { installArmedWorldExtensions } from './core/engineArmedWorldExtensions.js?v=30m2a_n3_integrated_1';
+import { installAIFeelExtensions } from './core/engineAIFeelExtensions.js?v=30m2a_n3_integrated_1';
+import { installActorVisualExtensions } from './core/engineActorVisualExtensions.js?v=30m2a_n3_integrated_1';
+import { installFortEncounterExtensions } from './core/engineFortEncounterExtensions.js?v=30m2a_n3_integrated_1';
+import { installFeelExtensions } from './core/engineFeelExtensions.js?v=30m2a_n3_integrated_1';
+import { installPlayerHandsExtensions } from './core/enginePlayerHandsExtensions.js?v=30m2a_n3_integrated_1';
+import { installPlayerBodyExtensions } from './core/enginePlayerBodyExtensions.js?v=30m2a_n3_integrated_1';
+import { installAtmosphereExtensions } from './core/engineAtmosphereExtensions.js?v=30m2a_n3_integrated_1';
+import { installCharacterExtensions } from './core/engineCharacterExtensions.js?v=30m2a_n3_integrated_1';
+import { installDayNightExtensions } from './core/engineDayNightExtensions.js?v=30m2a_n3_integrated_1';
+import { PHOENIX_BUILD_INFO } from './buildInfo.js?v=30m2a_n3_integrated_1';
+import { upgradeLivingWorldVisuals } from './world/lifeVisuals.js?v=30m2a_n3_integrated_1';
+import { upgradeStoryNpcVisuals } from './world/storyNpcVisuals.js?v=30m2a_n3_integrated_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -29,6 +30,7 @@ installDayNightExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
+engine.buildInfo = PHOENIX_BUILD_INFO;
 engine.boot();
 
 // v3N2 hardening: make LivingWorldSystem use direct engine references instead of
@@ -59,6 +61,7 @@ function nearestCaravan() {
   return best ? { caravan: best, distance: bestD } : null;
 }
 
+engine.getBuildInfo = () => engine.buildInfo;
 engine.getLivingWorldDiagnostics = () => engine.livingWorld?.diagnostics?.() || null;
 engine.rebuildLifeVisuals = () => upgradeLivingWorldVisuals(engine.livingWorld);
 engine.rebuildStoryNpcVisuals = () => {
@@ -91,6 +94,7 @@ engine.listStoryNpcVisuals = () => (engine.npcs || [])
   .map(u => ({ id: u.id, name: u.name, faction: u.faction, role: u.role, visualTier: u.visualTier || 'base' }));
 
 window.PHX_V3_ENGINE = engine;
+window.PHX_V3_BUILD = PHOENIX_BUILD_INFO;
 window.__PHX_V3_READY = true;
 
 const startBtn = document.getElementById('startBtn');
@@ -100,4 +104,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3M2A + v3N3: character creation, settlements, day-night, living ecosystem and procedural NPC visuals ready');
+console.log(`${PHOENIX_BUILD_INFO.title} ready`, PHOENIX_BUILD_INFO);
