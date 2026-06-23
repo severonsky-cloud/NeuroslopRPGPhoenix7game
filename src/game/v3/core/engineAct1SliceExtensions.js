@@ -72,23 +72,54 @@ function alive(list) {
 
 function stageTitle(stage) {
   return [
-    'Забери заказ у старосты маршрута',
-    'Иди по дороге к засаде',
-    'Разбей засаду на дороге',
-    'Уничтожь бронецель и забери ящики',
-    'Вернись к старосте маршрута',
-    'Маршрут пройден',
-  ][stage] || 'Маршрут первого акта';
+    '1/6 — взять заказ у старосты',
+    '2/6 — дойти до дорожного знака',
+    '3/6 — пройти дорожную встречу',
+    '4/6 — остановить бронецель и взять ящики',
+    '5/6 — вернуться к старосте',
+    '6/6 — маршрут закрыт',
+  ][stage] || 'Act 1 route';
 }
 
 function stageText(state) {
   if (!state?.active) return 'F2 — начать готовый срез первого акта.';
-  if (state.stage === 0) return 'Подойди к столу старосты и нажми E, чтобы взять заказ на дорожный проход.';
-  if (state.stage === 1) return 'Иди к дорожному маркеру. По пути проверь оружие, инвентарь I и журнал J.';
-  if (state.stage === 2) return `Засада: осталось ${alive(state.raiders).length} врагов.`;
-  if (state.stage === 3) return `Бронецель: ${state.vehicle?.userData?.alive === false ? 'уничтожена' : 'жива'} · ящики ${state.cratesCollected}/${state.cratesNeeded}.`;
-  if (state.stage === 4) return `Вернись к столу старосты. Ящики: ${state.cratesCollected}/${state.cratesNeeded}.`;
-  return 'Готово: первый проход можно закрывать или переиграть через F2.';
+  if (state.stage === 0) return 'Подойди к столу под большим маркером “Староста маршрута”. Нажми E. Если не сработало, стой ближе к столу и удержи E полсекунды.';
+  if (state.stage === 1) return 'Заказ взят. Иди по дороге к маркеру “Дорожный знак”.';
+  if (state.stage === 2) return `Дорожная встреча активна. Осталось противников: ${alive(state.raiders).length}.`;
+  if (state.stage === 3) return `Бронецель: ${state.vehicle?.userData?.alive === false ? 'остановлена' : 'активна'} · ящики ${state.cratesCollected}/${state.cratesNeeded}.`;
+  if (state.stage === 4) return `Все ящики взяты. Вернись к столу старосты. Ящики: ${state.cratesCollected}/${state.cratesNeeded}.`;
+  return 'Готово. Маршрут можно переиграть через F2.';
+}
+
+function ensureQuestTracker(engine) {
+  let el = document.getElementById('act1QuestTracker');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'act1QuestTracker';
+    el.style.cssText = 'position:fixed;left:16px;top:118px;width:min(470px,calc(100vw - 32px));z-index:16;pointer-events:none;background:rgba(17,10,6,.76);border-left:4px solid #d8a64d;color:#f3dca8;padding:10px 12px;font:700 14px system-ui;text-shadow:0 2px 8px #000;box-shadow:0 12px 35px rgba(0,0,0,.36)';
+    document.body.appendChild(el);
+  }
+  engine.act1Slice.trackerEl = el;
+  return el;
+}
+
+function updateQuestTracker(engine) {
+  const s = engine.act1SliceEnsure();
+  if (!s.active) return;
+  const el = ensureQuestTracker(engine);
+  el.innerHTML = `<div style="color:#ffd28a;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${stageTitle(s.stage)}</div><div>${stageText(s)}</div><div style="margin-top:6px;color:#c9b58c;font-size:12px">F2 restart · F3 objective teleport · J journal · I inventory · E interact</div>`;
+}
+
+function ePressed(engine, cooldownMs = 550) {
+  const now = performance.now();
+  if (!engine.input?.keys?.has('KeyE')) return false;
+  if (now - (engine.act1Slice?.lastEPressT || 0) < cooldownMs) return false;
+  engine.act1Slice.lastEPressT = now;
+  return true;
+}
+
+function showQuestPrompt(engine, text) {
+  engine.hud?.showPrompt?.(text);
 }
 
 export function installAct1SliceExtensions(PhoenixV3Engine) {
@@ -111,6 +142,7 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
         spawnedRaiders: false,
         spawnedVehicle: false,
         lastHintT: 0,
+        lastEPressT: 0,
       };
     }
     return this.act1Slice;
@@ -129,6 +161,7 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
       this.scene.remove(s.vehicle);
       this.monsters = this.monsters.filter((m) => m !== s.vehicle);
     }
+    document.getElementById('act1QuestTracker')?.remove();
     this.act1Slice = null;
   };
 
@@ -152,7 +185,7 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     const points = [
       ['Староста маршрута', s.camp, 0xd7a94c],
       ['Дорожный знак', s.road, 0xbca17a],
-      ['Засада', s.ambush, 0xb34c36],
+      ['Дорожная встреча', s.ambush, 0xb34c36],
       ['Бронецель', s.vehiclePoint, 0x78a6b8],
     ];
     for (const [name, pos, color] of points) {
@@ -162,8 +195,9 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
       this.labels.push(label);
     }
     s.markers.push(makeCampTable(this.scene, s.camp));
-    this.log.unshift('Act 1 Slice: маршрут открыт — староста, дорога, засада, бронецель, возврат с лутом.');
-    this.hud.setObjective('Act 1 Slice открыт: иди к столу старосты и нажми E.');
+    this.log.unshift('Act 1 Slice: маршрут открыт — староста, дорога, дорожная встреча, бронецель, возврат с лутом.');
+    this.hud.setObjective(stageText(s));
+    updateQuestTracker(this);
   };
 
   PhoenixV3Engine.prototype.act1SpawnRaiders = function act1SpawnRaiders() {
@@ -184,7 +218,6 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
       this.labels.push(label);
     }
     this.armedWorld?.build?.();
-    this.hud.setObjective('Засада! Разбей бандитов и проверь лут/патроны.');
   };
 
   PhoenixV3Engine.prototype.act1SpawnVehicleEncounter = function act1SpawnVehicleEncounter() {
@@ -205,7 +238,6 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     s.labels.push(label);
     this.labels.push(label);
     this.armedWorld?.build?.();
-    this.hud.setObjective('Бронецель впереди. Используй Bazooka/Panzerfaust/PTRD/Boys AT, затем собери ящики.');
   };
 
   PhoenixV3Engine.prototype.act1SpawnCrates = function act1SpawnCrates() {
@@ -213,23 +245,23 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     if (s.crates.length) return;
     const p = s.vehicle?.position || s.vehiclePoint;
     for (let i = 0; i < s.cratesNeeded; i += 1) s.crates.push(makeLootCrate(this.scene, p, i));
-    this.hud.setObjective('Бронецель уничтожена. Подбери зелёные ящики клавишей E.');
   };
 
   PhoenixV3Engine.prototype.act1TryInteract = function act1TryInteract() {
     const s = this.act1SliceEnsure();
     if (!s.active) return false;
     const pos = this.rig.position;
-    if (s.stage === 0 && near2D(pos, s.camp, 5.4)) {
+    if (s.stage === 0 && near2D(pos, s.camp, 7.5)) {
       s.stage = 1;
       this.inventory.addAmmo('rocketAT', 2);
       this.inventory.addAmmo('rifle145', 5);
-      this.hud.setObjective('Заказ взят: проверь I, затем иди к дорожному знаку. Выдали rocketAT ×2 и ПТ-патроны.');
+      this.hud.setObjective('Заказ взят. Иди к дорожному знаку. Выдали rocketAT ×2 и ПТ-патроны.');
       this.log.unshift('Староста маршрута: расчисти дорогу, забери ящики с бронецели и вернись.');
+      updateQuestTracker(this);
       return true;
     }
     if (s.stage === 3) {
-      const crate = s.crates.find((c) => !c.userData.collected && near2D(pos, c.position, 3.0));
+      const crate = s.crates.find((c) => !c.userData.collected && near2D(pos, c.position, 4.0));
       if (crate) {
         crate.userData.collected = true;
         crate.visible = false;
@@ -237,20 +269,22 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
         this.player.credits += 20;
         this.inventory.addAmmo('rifle792', 6);
         this.inventory.addAmmo('pistol9', 8);
-        this.hud.setObjective(`Ящик взят: ${s.cratesCollected}/${s.cratesNeeded}. +20 кредитов, патроны.`);
         if (s.cratesCollected >= s.cratesNeeded) s.stage = 4;
+        this.hud.setObjective(`Ящик взят: ${s.cratesCollected}/${s.cratesNeeded}. +20 кредитов, патроны.`);
+        updateQuestTracker(this);
         return true;
       }
     }
-    if (s.stage === 4 && near2D(pos, s.camp, 5.4)) {
+    if (s.stage === 4 && near2D(pos, s.camp, 7.5)) {
       s.stage = 5;
       s.completed = true;
       this.player.credits += 180;
       this.inventory.addAmmo('rocketAT', 1);
       this.inventory.addAmmo('scatter', 8);
       this.rpg?.useSkill?.('speech', 2.2);
-      this.log.unshift('Act 1 Slice завершён: дорога очищена, бронецель уничтожена, ящики сданы.');
+      this.log.unshift('Act 1 Slice завершён: дорога очищена, бронецель остановлена, ящики сданы.');
       this.hud.setObjective('Маршрут пройден. Награда: 180 кредитов, ракета, дробь, опыт речи. Можно переиграть F2.');
+      updateQuestTracker(this);
       return true;
     }
     return false;
@@ -260,6 +294,17 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     const s = this.act1SliceEnsure();
     if (!s.active || this.mode === 'boot') return;
     const pos = this.rig.position;
+    let prompt = '';
+
+    if (s.stage === 0 && near2D(pos, s.camp, 7.5)) prompt = '[E] Взять заказ у старосты маршрута';
+    if (s.stage === 3) {
+      const crate = s.crates.find((c) => !c.userData.collected && near2D(pos, c.position, 4.0));
+      if (crate) prompt = `[E] Забрать зелёный ящик ${s.cratesCollected + 1}/${s.cratesNeeded}`;
+    }
+    if (s.stage === 4 && near2D(pos, s.camp, 7.5)) prompt = '[E] Сдать маршрут старосте';
+    if (prompt) showQuestPrompt(this, prompt);
+
+    if (prompt && ePressed(this)) this.act1TryInteract();
     if (s.stage === 1 && near2D(pos, s.road, 7.0)) {
       s.stage = 2;
       this.act1SpawnRaiders();
@@ -269,10 +314,9 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
       this.act1SpawnVehicleEncounter();
     }
     if (s.stage === 3 && s.vehicle && (s.vehicle.userData.alive === false || (s.vehicle.userData.hp || 0) <= 0)) this.act1SpawnCrates();
-    if (performance.now() - (s.lastHintT || 0) > 4500) {
-      s.lastHintT = performance.now();
-      this.hud.setObjective(stageText(s));
-    }
+
+    this.hud.setObjective(stageText(s));
+    updateQuestTracker(this);
     for (const marker of s.markers) {
       if (marker.name?.includes('route_camp_table')) continue;
       marker.rotation.y += dt * 0.45;
@@ -284,7 +328,7 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     return `<h2>Act 1: дорожный срез</h2>
       <p><b>${stageTitle(s.stage)}</b></p>
       <p>${stageText(s)}</p>
-      <div class="line"><b>Цикл:</b> поселение → дорога → бой → бронецель → лут → возврат.</div>
+      <div class="line"><b>Цикл:</b> поселение → дорога → встреча → бронецель → лут → возврат.</div>
       <div class="line"><b>Ящики:</b> ${s.cratesCollected}/${s.cratesNeeded}</div>
       <div class="line"><b>F2</b> — начать/перезапустить срез. <b>F3</b> — телепорт к текущей цели для теста.</div>`;
   };
@@ -295,13 +339,14 @@ export function installAct1SliceExtensions(PhoenixV3Engine) {
     const target = s.stage <= 0 ? s.camp : s.stage === 1 ? s.road : s.stage === 2 ? s.ambush : s.stage === 3 ? s.vehiclePoint : s.camp;
     this.rig.position.set(target.x + 2, heightAt(target.x + 2, target.z + 2), target.z + 2);
     this.hud.setObjective('Телепорт к текущей цели среза.');
+    updateQuestTracker(this);
   };
 
   const originalStart = PhoenixV3Engine.prototype.start;
   PhoenixV3Engine.prototype.start = function startAct1SliceReady() {
     originalStart.call(this);
     if (new URLSearchParams(window.location.search).has('act1')) this.act1SliceStart({ teleport: true });
-    else this.hud.setObjective('F2 — готовый Act 1 срез: поселение → дорога → бой → техника → лут → возврат.');
+    else this.hud.setObjective('F2 — готовый Act 1 срез: поселение → дорога → встреча → техника → лут → возврат.');
   };
 
   const originalOnAction = PhoenixV3Engine.prototype.onAction;
