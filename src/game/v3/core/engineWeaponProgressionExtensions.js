@@ -5,33 +5,47 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function weaponFamily(weaponId = '') {
+const WEAPON_CLASS_IDS = {
+  pistols: ['m1911a1', 'lugerP08', 'tt33', 'webleyMkVI', 'colt'],
+  smgs: ['mp40', 'ppsh41', 'thompsonM1928'],
+  rifles: ['k98k', 'mosin9130', 'leeEnfieldNo4', 'm1GarandWw2', 'garand', 'm1'],
+  shotguns: ['winchester1897', 'browningAuto5', 'doubleBarrelSawedOff', 'shotgun'],
+  machineGuns: ['mg42', 'dp28', 'brenMk1Ww2', 'brenMk', 'bren'],
+  launchers: ['bazookaM1', 'bazooka', 'panzerfaust30', 'panzerfaust'],
+  antiVehicleRifles: ['ptrd41', 'ptrd', 'boysAT', 'boysAt', 'lahtiL39', 'solothurn'],
+  throwables: ['mk2GrenadeProto', 'grenadeMk2', 'molotovProto', 'molotov'],
+};
+
+function weaponClass(weaponId = '') {
   const w = ARSENAL[weaponId] || {};
+  for (const [classKey, ids] of Object.entries(WEAPON_CLASS_IDS)) {
+    if (ids.includes(weaponId)) return classKey;
+  }
   if (w.archetype === 'atLauncher') return 'launchers';
   if (w.archetype === 'atRifle') return 'antiVehicleRifles';
   if (w.archetype === 'lmgBelt' || w.archetype === 'lmgMag') return 'machineGuns';
   if (w.pellets) return 'shotguns';
-  if (w.automatic) return 'automaticFirearms';
-  if ((w.range || 0) >= 45) return 'rifles';
-  if (w.ammoType) return 'sidearms';
   if (w.archetype === 'thrownExplosive' || w.archetype === 'thrownFire') return 'throwables';
+  if (w.automatic) return 'smgs';
+  if ((w.range || 0) >= 45) return 'rifles';
+  if (w.ammoType) return 'pistols';
   return 'melee';
 }
 
-const FAMILY_LABELS = {
-  sidearms: 'Короткий огнестрел',
+const CLASS_LABELS = {
+  pistols: 'Пистолеты',
+  smgs: 'Пистолеты-пулемёты',
   rifles: 'Винтовки',
-  automaticFirearms: 'Автоматический огонь',
   shotguns: 'Дробовики',
   machineGuns: 'Пулемёты',
   launchers: 'Гранатомёты',
   antiVehicleRifles: 'ПТ-ружья',
-  throwables: 'Бросковое',
+  throwables: 'Бросковое оружие',
   melee: 'Ближний бой',
 };
 
 function masteryNeed(level) {
-  return Math.round(22 + level * 7 + Math.pow(level, 1.35) * 2.2);
+  return Math.round(24 + level * 8 + Math.pow(level, 1.32) * 2.5);
 }
 
 function ensureBucket(map, key, label, startLevel = 1) {
@@ -41,13 +55,14 @@ function ensureBucket(map, key, label, startLevel = 1) {
 
 function ensureProgression(player) {
   if (!player.rpg) player.rpg = {};
-  if (!player.rpg.weaponProgression) {
+  if (!player.rpg.weaponProgression || player.rpg.weaponProgression.version < 2) {
+    const old = player.rpg.weaponProgression || {};
     player.rpg.weaponProgression = {
-      version: 1,
-      weapons: {},
-      families: {},
+      version: 2,
+      classes: old.classes || old.families || {},
     };
   }
+  if (!player.rpg.weaponProgression.classes) player.rpg.weaponProgression.classes = {};
   return player.rpg.weaponProgression;
 }
 
@@ -88,59 +103,50 @@ function summarizeShotResult(result) {
   return summary;
 }
 
+function classBucketFor(player, weaponId) {
+  const progression = ensureProgression(player);
+  const classKey = weaponClass(weaponId);
+  return ensureBucket(progression.classes, classKey, CLASS_LABELS[classKey] || classKey);
+}
+
 function recordPlayerWeaponUse(engine, weaponId, result) {
   const weapon = ARSENAL[weaponId];
   if (!weapon) return null;
-  const progression = ensureProgression(engine.player);
-  const familyKey = weaponFamily(weaponId);
-  const weaponBucket = ensureBucket(progression.weapons, weaponId, weapon.name || weaponId);
-  const familyBucket = ensureBucket(progression.families, familyKey, FAMILY_LABELS[familyKey] || familyKey);
+  const bucket = classBucketFor(engine.player, weaponId);
   const s = summarizeShotResult(result);
 
-  weaponBucket.shots += 1;
-  familyBucket.shots += 1;
-  if (s.hit) { weaponBucket.hits += 1; familyBucket.hits += 1; }
-  if (s.kill) { weaponBucket.kills += 1; familyBucket.kills += 1; }
-  if (s.directHits) { weaponBucket.directHits += s.directHits; familyBucket.directHits += s.directHits; }
-  if (s.splashHits) { weaponBucket.splashHits += s.splashHits; familyBucket.splashHits += s.splashHits; }
-  if (s.armorBlocked) { weaponBucket.armorBlocks += 1; familyBucket.armorBlocks += 1; }
+  bucket.shots += 1;
+  if (s.hit) bucket.hits += 1;
+  if (s.kill) bucket.kills += 1;
+  if (s.directHits) bucket.directHits += s.directHits;
+  if (s.splashHits) bucket.splashHits += s.splashHits;
+  if (s.armorBlocked) bucket.armorBlocks += 1;
 
   let xp = 0.75;
-  if (weapon.archetype === 'atLauncher') xp += 0.65;
-  if (weapon.archetype === 'atRifle') xp += 0.45;
-  if (weapon.automatic) xp += 0.18;
-  if (s.hit) xp += 1.0 + Math.min(1.7, s.damage / 90);
-  if (s.vehicleHit) xp += 1.0;
+  if (weapon.archetype === 'atLauncher') xp += 0.75;
+  if (weapon.archetype === 'atRifle') xp += 0.5;
+  if (weapon.automatic) xp += 0.2;
+  if (s.hit) xp += 1.1 + Math.min(1.9, s.damage / 85);
+  if (s.vehicleHit) xp += 1.1;
   if (s.armorBlocked) xp += 0.25;
-  if (s.splashHits) xp += Math.min(1.2, s.splashHits * 0.35);
-  if (s.kill) xp += 2.2;
+  if (s.splashHits) xp += Math.min(1.35, s.splashHits * 0.38);
+  if (s.kill) xp += 2.4;
 
-  const leveledWeapon = gain(weaponBucket, xp);
-  const leveledFamily = gain(familyBucket, xp * 0.55);
+  const leveled = gain(bucket, xp);
   if (s.hit) engine.rpg?.useSkill?.('firearms', 0.25 + Math.min(0.8, s.damage / 130));
   else engine.rpg?.useSkill?.('firearms', 0.08);
 
-  if (leveledWeapon || leveledFamily) {
-    engine.hud?.setObjective?.(`${weapon.name || weaponId}: мастерство ${weaponBucket.level} · ${familyBucket.label} ${familyBucket.level}`);
-  }
-  return { weaponBucket, familyBucket, shot: s, xp };
-}
-
-function masteryForPlayerShot(engine, weaponId) {
-  const progression = ensureProgression(engine.player);
-  const familyKey = weaponFamily(weaponId);
-  const weaponBucket = ensureBucket(progression.weapons, weaponId, ARSENAL[weaponId]?.name || weaponId);
-  const familyBucket = ensureBucket(progression.families, familyKey, FAMILY_LABELS[familyKey] || familyKey);
-  return { weaponBucket, familyBucket };
+  if (leveled) engine.hud?.setObjective?.(`${bucket.label}: мастерство ${bucket.level}`);
+  return { classBucket: bucket, shot: s, xp };
 }
 
 function applyMasteryToShotArgs(engine, args) {
-  const { weaponBucket, familyBucket } = masteryForPlayerShot(engine, args.weaponId);
-  const accuracy = clamp(1 - (weaponBucket.level - 1) * 0.012 - (familyBucket.level - 1) * 0.007, 0.68, 1.04);
-  const damage = 1 + (weaponBucket.level - 1) * 0.006 + (familyBucket.level - 1) * 0.0035;
+  const bucket = classBucketFor(engine.player, args.weaponId);
+  const accuracy = clamp(1 - (bucket.level - 1) * 0.016, 0.66, 1.04);
+  const damage = 1 + (bucket.level - 1) * 0.008;
   return {
     ...args,
-    skillLevel: (args.skillLevel || 0) + weaponBucket.level * 1.6 + familyBucket.level * 0.9,
+    skillLevel: (args.skillLevel || 0) + bucket.level * 2.1,
     spreadMul: (args.spreadMul || 1) * accuracy,
     damageScale: (args.damageScale || 1) * damage,
   };
@@ -148,16 +154,11 @@ function applyMasteryToShotArgs(engine, args) {
 
 function weaponProgressionHtml(player) {
   const progression = ensureProgression(player);
-  const weaponRows = Object.values(progression.weapons)
+  const classRows = Object.values(progression.classes)
     .sort((a, b) => (b.level - a.level) || (b.xp - a.xp))
-    .slice(0, 12)
-    .map((m) => `<div class="line"><b>${m.label}</b>: ${m.level} <small>xp ${m.xp.toFixed(1)}/${masteryNeed(m.level)} · shots ${m.shots} · hits ${m.hits}</small></div>`)
-    .join('') || '<p>Ещё нет опыта по конкретным стволам.</p>';
-  const familyRows = Object.values(progression.families)
-    .sort((a, b) => (b.level - a.level) || (b.xp - a.xp))
-    .map((m) => `<div class="line"><b>${m.label}</b>: ${m.level} <small>xp ${m.xp.toFixed(1)}/${masteryNeed(m.level)} · hits ${m.hits}</small></div>`)
-    .join('') || '<p>Ещё нет опыта по веткам оружия.</p>';
-  return `<h3>Оружейные ветки</h3>${familyRows}<h3>Мастерство конкретного оружия</h3>${weaponRows}`;
+    .map((m) => `<div class="line"><b>${m.label}</b>: ${m.level} <small>xp ${m.xp.toFixed(1)}/${masteryNeed(m.level)} · shots ${m.shots} · hits ${m.hits} · kills ${m.kills}</small></div>`)
+    .join('') || '<p>Ещё нет опыта по оружейным классам.</p>';
+  return `<h3>Оружейные классы</h3>${classRows}<p><small>Опыт идёт в класс оружия, а не в конкретный образец. Например MP40 и PPSh качают «Пистолеты-пулемёты», Bazooka и Panzerfaust качают «Гранатомёты».</small></p>`;
 }
 
 function ensureNpcWeaponSkill(obj, profile) {
