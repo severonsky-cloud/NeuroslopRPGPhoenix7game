@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>Ashgrave Act 1 — Playable Slice</title>
+  <title>Ashgrave Act 1 — Integrated Playable Slice</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080604;color:#f3dca8;font-family:system-ui}
     #game{position:fixed;inset:0;width:100%;height:100%;display:block}
     #boot{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 60% 18%,rgba(80,45,20,.55),rgba(5,4,3,.94) 48%),rgba(5,4,3,.96);z-index:20}
-    .card{width:min(860px,calc(100vw - 32px));border:1px solid #a97d3c;background:#120d08;padding:24px;box-shadow:0 25px 90px #000;border-radius:14px}
+    .card{width:min(900px,calc(100vw - 32px));border:1px solid #a97d3c;background:#120d08;padding:24px;box-shadow:0 25px 90px #000;border-radius:14px}
     button,a.btn{display:inline-block;background:#d8a64d;color:#130e08;border:0;padding:10px 14px;font-weight:800;margin-right:8px;margin-bottom:8px;border-radius:8px;cursor:pointer;text-decoration:none}
     a.btn.alt,button.alt{background:#2b2118;color:#f3dca8;border:1px solid #765625}
     #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
@@ -21,34 +21,35 @@
     #panel{box-sizing:border-box;position:fixed;right:18px;top:18px;width:min(650px,calc(100vw - 36px));max-height:calc(100vh - 36px);overflow:auto;background:#090705;border:1px solid #8b6a32;padding:14px;z-index:30;display:none;pointer-events:auto}
     .line{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}.itemIcon{display:inline-grid;place-items:center;width:26px;height:26px;border:1px solid #8b6a32;margin-right:6px}
     #error{position:fixed;left:14px;right:14px;bottom:14px;background:#3a0907;color:#ffd8c6;padding:12px;z-index:50;display:none;white-space:pre-wrap}
-    .hidden{display:none!important}.muted{color:#c9b58c}.keys,.route{border:1px solid #765625;padding:10px;margin-top:12px;background:#0b0805}.route{border-color:#d8a64d}.badge{display:inline-block;padding:4px 8px;border:1px solid #d8a64d;border-radius:999px;color:#ffd997;background:#21160d;font-weight:800;font-size:12px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.steps div{background:#1b130d;border:1px solid #5d4322;padding:8px;border-radius:8px}.steps b{color:#ffd997;display:block}@media(max-width:760px){.steps{grid-template-columns:1fr}}
+    .hidden{display:none!important}.muted{color:#c9b58c}.keys,.route,.integrated{border:1px solid #765625;padding:10px;margin-top:12px;background:#0b0805}.route{border-color:#d8a64d}.integrated{border-color:#77aa68}.badge{display:inline-block;padding:4px 8px;border:1px solid #d8a64d;border-radius:999px;color:#ffd997;background:#21160d;font-weight:800;font-size:12px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.steps div{background:#1b130d;border:1px solid #5d4322;padding:8px;border-radius:8px}.steps b{color:#ffd997;display:block}@media(max-width:760px){.steps{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
   <div id="boot">
     <div class="card">
-      <span class="badge">CURRENT BUILD: Act 1 playable slice · Ashgrave UI · trader</span>
+      <span class="badge">CURRENT BUILD: Act 1 integrated slice · Ashgrave UI · trader · GLM vehicle bridge</span>
       <h1>The elder neuroslops chapter one: Ashgrave</h1>
-      <p>Это основной игровой билд с новым RPG-HUD и диалогом старосты. Если URL содержит <b>act1=1</b>, маршрут первого акта запускается сразу после Start.</p>
+      <p>Это основной цельный билд с новым RPG-HUD, draggable/resizable окнами, диалогом старосты, дорожными событиями, debug labels и GLM Puma вместо старой толстой бронецели.</p>
       <div class="route"><b>Где начинается квест:</b> после Start ты появишься у лагеря. Подойди к маркеру <b>“Староста маршрута”</b>, найди стол и нажми <b>E</b>. Откроется панель старосты: заказ, торговля, ремонт, слухи.</div>
-      <div class="steps"><div><b>1</b>Стол старосты → E → Взять заказ</div><div><b>2</b>Дорожный маркер</div><div><b>3</b>Дорожная встреча</div><div><b>4</b>Бронецель</div><div><b>5</b>Зелёные ящики → E</div><div><b>6</b>Возврат → E → Сдать</div></div>
-      <div class="keys"><b>Тест-клавиши:</b> F2 — начать/перезапустить срез · F3 — телепорт к текущей цели · J — журнал · I — инвентарь · U — арсенал · 1–0 — оружие · N — бросить оружие · E — действие.</div>
-      <p class="muted">Если открыл WW2 live без act1=1, просто нажми F2 внутри игры. Если видишь старую страницу — Ctrl+F5.</p>
-      <button id="startBtn">Start Act 1 playable slice</button>
+      <div class="steps"><div><b>1</b>Стол старосты → E → Взять заказ</div><div><b>2</b>Дорожный маркер + мелкие road events</div><div><b>3</b>Дорожная встреча</div><div><b>4</b>GLM Puma с hitboxes</div><div><b>5</b>Зелёные ящики → E</div><div><b>6</b>Возврат → награда + экран завершения</div></div>
+      <div class="integrated"><b>Что нового в цельном билде:</b> окна можно таскать/растягивать, F8 показывает id/hp/faction/source над врагами, F2 жёстко чистит старые route-spawns, уничтоженная техника остаётся wreck-объектом, после сдачи появляются визуальные изменения лагеря.</div>
+      <div class="keys"><b>Тест-клавиши:</b> F2 — начать/перезапустить срез · F3 — телепорт к текущей цели · F8 — debug labels · J — журнал · I — инвентарь · U — арсенал · 1–0 — оружие · N — бросить оружие · E — действие.</div>
+      <p class="muted">Если открыл WW2 live без act1=1, просто нажми F2 внутри игры. Если видишь старую страницу — Ctrl+F5. Cache key: <b>v3p2_act1_integrated_1</b>.</p>
+      <button id="startBtn">Start Act 1 integrated slice</button>
       <button id="newGameBtn" hidden>Новая игра</button>
       <button id="mapBtn" class="alt">Карта</button>
       <a class="btn alt" href="/act1.html">Вернуться в лаунчер</a>
     </div>
   </div>
-  <div id="hud"><div id="topLeft"><div id="objective">booting Act 1 slice...</div><div id="bars"><div class="bar"><div id="hpFill" class="fill"></div></div><div class="bar"><div id="stFill" class="fill"></div></div><div class="bar"><div id="phFill" class="fill"></div></div></div></div><div id="prompt"></div><div id="bottom">ACT 1 SLICE · F2 route · F3 objective teleport · J journal · I inventory · E interact · U arsenal · 1–0 weapons</div></div>
+  <div id="hud"><div id="topLeft"><div id="objective">booting Act 1 integrated slice...</div><div id="bars"><div class="bar"><div id="hpFill" class="fill"></div></div><div class="bar"><div id="stFill" class="fill"></div></div><div class="bar"><div id="phFill" class="fill"></div></div></div></div><div id="prompt"></div><div id="bottom">ACT 1 INTEGRATED · F2 route · F3 objective teleport · F8 debug · J journal · I inventory · E interact · U arsenal · 1–0 weapons</div></div>
   <div id="panel"></div><div id="error"></div>
   <script>
     try { const key='phoenix7_v3_character_profile'; if(!localStorage.getItem(key)){ localStorage.setItem(key, JSON.stringify({version:1,name:'Act 1 road exile',race:'human',gender:'male',background:'deserter',primaryColor:'#b9865b',accentColor:'#d8a64d',heightOffset:0,biographyFlags:['phoenix7_exile','background:deserter','act1_slice']})); } } catch {}
   </script>
   <script type="module">
     const error=document.getElementById('error');
-    import('./src/game/v3/main.js?v=v3p2_route_trader_boot_1').catch(err=>{ error.style.display='block'; error.textContent=`Module failed:\n${err?.stack||err?.message||err}`; });
+    import('./src/game/v3/main.js?v=v3p2_act1_integrated_1').catch(err=>{ error.style.display='block'; error.textContent=`Module failed:\n${err?.stack||err?.message||err}`; });
   </script>
 </body>
 </html>
