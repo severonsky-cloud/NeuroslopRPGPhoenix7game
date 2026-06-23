@@ -23,6 +23,7 @@ import { installMorrowindInventoryExtensions } from './core/engineMorrowindInven
 import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=v3p2_route_trader_1';
 import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=v3p2_route_trader_1';
 import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=v3p2_route_trader_1';
+import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=v3p2_act1_integrated_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -48,6 +49,7 @@ installMorrowindInventoryExtensions(PhoenixV3Engine);
 installAct1SliceExtensions(PhoenixV3Engine);
 installAct1TraderExtensions(PhoenixV3Engine);
 installAshgraveInterfaceExtensions(PhoenixV3Engine);
+installAct1IntegratedExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
@@ -63,4 +65,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log('Phoenix7 v3M2A + v3N1 + v3P2 WW2 live arsenal ready');
+console.log('Phoenix7 v3M2A + v3N1 + v3P2 Act 1 integrated slice ready');
