@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:act1": "vite --host 0.0.0.0 --open /act1.html",
+    "dev:vehiclelab": "vite --host 0.0.0.0 --open /vehicle_lab.html",
+    "dev:ww2": "vite --host 0.0.0.0 --open /v3p2_ww2_live.html?ww2=1",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test:v3m2a": "node tools/v3m2a_smoke.mjs",
+    "test:v3p2ww2": "node tools/v3p2_ww2_arsenal_smoke.mjs",
     "test:v3n3": "node tools/v3n3_integration_smoke.mjs"
   },
   "dependencies": {},

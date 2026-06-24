@@ -1,9 +1,12 @@
+import { WW2_AMMO_TYPES, WW2_ARSENAL, WW2_WEAPON_ARCHETYPES } from './ww2ArsenalData.js';
+
 export const AMMO_TYPES = {
   revolver: { name: '.45 revolver', icon: '◉', price: 2, color: 0xd8b56e },
   rifle: { name: 'rifle clips', icon: '▣', price: 3, color: 0xc8b27a },
   lmg: { name: 'Bren magazines', icon: '▤', price: 5, color: 0xb99a5a },
   scatter: { name: 'shot shells', icon: '⬤', price: 4, color: 0xb45a3c },
   phaseCell: { name: 'phase cells', icon: '✦', price: 8, color: 0x8a78ff },
+  ...WW2_AMMO_TYPES,
 };
 
 export const WEAPON_ARCHETYPES = {
@@ -18,6 +21,7 @@ export const WEAPON_ARCHETYPES = {
   lmg: { class: 'firearm', icon: '▰', model: 'lmg' },
   shotgun: { class: 'firearm', icon: '≡', model: 'shotgun' },
   carbine: { class: 'firearm', icon: '–', model: 'carbine' },
+  ...WW2_WEAPON_ARCHETYPES,
 };
 
 export const ARSENAL = {
@@ -81,6 +85,7 @@ export const ARSENAL = {
     ammoType: 'rifle', clipSize: 5, muzzleVelocity: 88, gravity: 0.035, spread: 0.014, recoil: 0.2, sight: true,
     attacks: { butt: { name: 'удар ложей', type: 'butt', damageMul: 0.5, range: 1.65, arc: 0.9, impact: 'blunt' } },
   },
+  ...WW2_ARSENAL,
 };
 
 export function isFirearm(id) { return ARSENAL[id]?.ammoType; }

@@ -4,7 +4,7 @@ import { ARSENAL, AMMO_TYPES, attackProfile } from '../combat/arsenal.js';
 import { EnchantmentSystem } from '../combat/enchantments.js';
 import { FirearmStateSystem } from '../combat/firearmState.js';
 import { ImpactSystem } from '../combat/impact.js';
-import { createWeaponViewModel } from '../items/weaponModels.js';
+import { createWeaponViewModel, triggerWeaponViewModelAction } from '../items/weaponModels.js';
 import { findMeleeTarget, damageMonster } from '../combat/combat.js';
 
 function weaponClass(weaponId) {
@@ -19,6 +19,35 @@ function bindClose(engine) {
   document.getElementById('closeMapBtn')?.addEventListener('click', () => engine.closePausePanel());
 }
 
+function fireModesFor(weapon) {
+  if (!weapon?.ammoType) return [];
+  if (weapon.automatic) return ['auto', 'burst', 'semi'];
+  return ['semi'];
+}
+
+function fireModeLabel(mode) {
+  return mode === 'auto' ? 'AUTO' : mode === 'burst' ? 'BURST×3' : 'SEMI';
+}
+
+function firearmStaminaCost(weapon, mode = 'semi') {
+  if (!weapon?.ammoType) return weapon?.stamina || 0;
+  if (weapon.fireStamina !== undefined) return weapon.fireStamina;
+  const recoil = weapon.recoil || 0.2;
+  let cost = weapon.automatic ? 0.42 : 0.75;
+  if (weapon.pellets) cost = 1.05;
+  if (weapon.archetype === 'atLauncher') cost = 1.85;
+  if (weapon.archetype === 'atRifle') cost = 1.65;
+  if (recoil > 0.6) cost += 0.25;
+  if (mode === 'auto') cost *= 0.62;
+  if (mode === 'burst') cost *= 0.75;
+  return Math.max(0.18, Math.min(2.3, cost));
+}
+
+function canAutoContinue(engine) {
+  if (!engine.input?.pointerLocked && !engine.input?.keys?.has('Space')) return false;
+  return engine.input?.keys?.has('MouseLeft') || engine.input?.keys?.has('Space');
+}
+
 export function installArsenalExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__arsenalExtensionInstalled) return;
   PhoenixV3Engine.__arsenalExtensionInstalled = true;
@@ -28,6 +57,8 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     this.enchantments = new EnchantmentSystem(this.player, this.inventory);
     this.firearms = new FirearmStateSystem(this.player, this.inventory);
     this.impact = new ImpactSystem(this.scene, this.inventory);
+    this.fireModeState = this.fireModeState || {};
+    this.burstFireState = this.burstFireState || { weaponId: null, remaining: 0 };
     return originalBoot.call(this);
   };
 
@@ -37,10 +68,54 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     this.camera.add(this.hands);
   };
 
+  PhoenixV3Engine.prototype.currentFireMode = function currentFireMode(weaponId = this.player.weapon) {
+    const weapon = ARSENAL[weaponId];
+    const modes = fireModesFor(weapon);
+    if (!modes.length) return null;
+    const stored = this.fireModeState?.[weaponId];
+    if (stored && modes.includes(stored)) return stored;
+    return modes[0];
+  };
+
+  PhoenixV3Engine.prototype.cycleFireMode = function cycleFireMode() {
+    const weaponId = this.player.weapon;
+    const weapon = ARSENAL[weaponId];
+    const modes = fireModesFor(weapon);
+    if (modes.length <= 1) {
+      this.hud.setObjective(`${weapon?.name || weaponId}: только ${fireModeLabel(modes[0] || 'semi')}`);
+      return modes[0] || 'semi';
+    }
+    const current = this.currentFireMode(weaponId);
+    const next = modes[(modes.indexOf(current) + 1) % modes.length];
+    this.fireModeState[weaponId] = next;
+    this.burstFireState = { weaponId: null, remaining: 0 };
+    this.hud.setObjective(`${weapon.name}: режим огня ${fireModeLabel(next)}`);
+    return next;
+  };
+
+  PhoenixV3Engine.prototype.startBurstFire = function startBurstFire() {
+    const weaponId = this.player.weapon;
+    const weapon = ARSENAL[weaponId];
+    if (!weapon?.ammoType) return false;
+    const state = this.firearms?.state?.(weaponId);
+    const loaded = state?.loaded ?? weapon.clipSize ?? 1;
+    this.burstFireState = {
+      weaponId,
+      remaining: Math.max(1, Math.min(3, loaded)),
+    };
+    return true;
+  };
+
   const originalOnAction = PhoenixV3Engine.prototype.onAction;
   PhoenixV3Engine.prototype.onAction = function onActionArsenal(code, event) {
     if (code === 'KeyR') { this.reloadWeapon(); return; }
     if (code === 'KeyY') { this.openEnchanting(); return; }
+    if (code === 'KeyH') { event?.preventDefault?.(); this.cycleFireMode(); return; }
+    if ((code === 'MouseLeft' || code === 'Space') && this.currentFireMode?.() === 'burst') {
+      event?.preventDefault?.();
+      this.startBurstFire();
+      return;
+    }
     return originalOnAction.call(this, code, event);
   };
 
@@ -53,6 +128,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
       this.hud.setObjective(msg);
       return;
     }
+    this.burstFireState = { weaponId: null, remaining: 0 };
     this.hud.setObjective(res.clearing ? 'Устраняешь осечку...' : `Перезарядка: ${w.name}`);
   };
 
@@ -73,7 +149,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     originalOpenContext.call(this);
     const panel = document.getElementById('panel');
     if (panel && !panel.innerHTML.includes('Зачарование')) {
-      panel.innerHTML = panel.innerHTML.replace('<p><button id="closeMapBtn">Вернуться</button></p>', '<div class="line"><b>Y</b> — Зачарование активного оружия</div><div class="line"><b>R</b> — Перезарядка / устранить осечку</div><p><button id="closeMapBtn">Вернуться</button></p>');
+      panel.innerHTML = panel.innerHTML.replace('<p><button id="closeMapBtn">Вернуться</button></p>', '<div class="line"><b>Y</b> — Зачарование активного оружия</div><div class="line"><b>R</b> — Перезарядка / устранить осечку</div><div class="line"><b>H</b> — Режим огня: semi / burst / auto</div><p><button id="closeMapBtn">Вернуться</button></p>');
       bindClose(this);
     }
   };
@@ -85,6 +161,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
       const ok = this.inventory.equip(btn.dataset.equipLeft, 'leftHand');
       if (ok) this.hud.setObjective('Экипировано в левый набор.');
       this.player.weapon = this.inventory.activeWeaponId();
+      this.burstFireState = { weaponId: null, remaining: 0 };
       this.buildViewModel();
       this.openInventory();
     }));
@@ -92,6 +169,7 @@ export function installArsenalExtensions(PhoenixV3Engine) {
       const ok = this.inventory.equip(btn.dataset.equipRight, 'rightHand');
       if (ok) this.hud.setObjective('Экипировано в правый набор.');
       this.player.weapon = this.inventory.activeWeaponId();
+      this.burstFireState = { weaponId: null, remaining: 0 };
       this.buildViewModel();
       this.openInventory();
     }));
@@ -131,19 +209,21 @@ export function installArsenalExtensions(PhoenixV3Engine) {
   };
 
   PhoenixV3Engine.prototype.attack = function attackExtended() {
-    if (this.paused || this.mode === 'boot') return;
+    if (this.paused || this.mode === 'boot') return false;
     const w = WEAPONS[this.player.weapon];
-    if (this.cooldown > 0) return;
-    if (this.player.st < (w.stamina || 0)) { this.hud.setObjective('Нет выносливости.'); return; }
-    this.player.st -= w.stamina || 0;
-    this.cooldown = w.cooldown;
+    if (!w || this.cooldown > 0) return false;
+    const mode = this.currentFireMode?.(this.player.weapon) || 'semi';
+    const staminaCost = w.kind === 'gun' ? firearmStaminaCost(w, mode) : (w.stamina || 0);
+    if (this.player.st < staminaCost) { this.hud.setObjective('Нет выносливости.'); return false; }
 
     if (w.kind === 'phase') {
+      this.player.st -= staminaCost;
+      this.cooldown = w.cooldown;
       const cast = this.phaseMagic.castEquipped();
-      if (!cast.ok) { this.hud.setObjective(cast.reason === 'no_phase' ? 'Не хватает фазы.' : 'Фазовое заклинание не выбрано.'); return; }
+      if (!cast.ok) { this.hud.setObjective(cast.reason === 'no_phase' ? 'Не хватает фазы.' : 'Фазовое заклинание не выбрано.'); return false; }
       const profile = attackProfile('phase', 'primary');
       this.meleeAttackWithProfile(profile, w, 'phase');
-      return;
+      return true;
     }
 
     if (w.kind === 'gun') {
@@ -152,8 +232,11 @@ export function installArsenalExtensions(PhoenixV3Engine) {
       if (!fired.ok) {
         const msg = fired.reason === 'empty' ? 'Пусто. R — перезарядка.' : fired.reason === 'jammed' || fired.reason === 'jammed_now' ? 'Осечка! R — устранить.' : fired.reason === 'reloading' ? 'Перезаряжается...' : 'Оружие не выстрелило.';
         this.hud.setObjective(msg);
-        return;
+        this.burstFireState = { weaponId: null, remaining: 0 };
+        return false;
       }
+      this.player.st -= staminaCost;
+      this.cooldown = w.cooldown;
       const scale = (1 + this.player.rpg.skills.firearms.level / 140) * (shotMods.damageScale || 1);
       const result = this.ballistics.fire({
         weaponId: this.player.weapon,
@@ -164,23 +247,27 @@ export function installArsenalExtensions(PhoenixV3Engine) {
         damageScale: scale,
         spreadMul: (shotMods.spreadMul || 1) * (this.player.characterRuntime?.firearmSpread || 1),
       });
-      this.rpg.useSkill('firearms', 1.4);
+      triggerWeaponViewModelAction(this.hands, 'primary', { duration: Math.max(0.07, Math.min(0.18, w.cooldown || 0.14)) });
+      this.rpg.useSkill('firearms', 1.15);
       const hit = result.results?.find(r => r.hit);
+      const modeText = fireModeLabel(mode);
       if (hit) {
         this.impact?.applyStagger(hit.target, 0.18 + (w.recoil || 0));
         let loot = [];
         if (!hit.target.userData.alive) loot = this.impact?.grantLootForKill(hit.target) || [];
         this.hud.hitMarker(`-${hit.damage}`);
-        this.hud.setObjective(`${hit.target.userData.name}: попадание · ${this.firearms.statusText(this.player.weapon)}${loot.length ? ' · лут: ' + loot.join(', ') : ''}`);
+        this.hud.setObjective(`${hit.target.userData.name}: попадание · ${modeText} · ${this.firearms.statusText(this.player.weapon)}${loot.length ? ' · лут: ' + loot.join(', ') : ''}`);
       } else {
-        this.hud.setObjective(`${w.name}: промах · ${this.firearms.statusText(this.player.weapon)}`);
+        this.hud.setObjective(`${w.name}: промах · ${modeText} · ${this.firearms.statusText(this.player.weapon)}`);
       }
-      return;
+      return true;
     }
 
+    this.player.st -= staminaCost;
+    this.cooldown = w.cooldown;
     const profile = attackProfile(this.player.weapon, 'primary') || { name: 'удар', range: w.range, arc: w.arc, damageMul: 1 };
     const skill = w.kind === 'blade' ? 'blade' : 'blunt';
-    this.meleeAttackWithProfile(profile, w, skill);
+    return this.meleeAttackWithProfile(profile, w, skill);
   };
 
   const originalUpdate = PhoenixV3Engine.prototype.update;
@@ -189,11 +276,23 @@ export function installArsenalExtensions(PhoenixV3Engine) {
     if (this.mode !== 'boot' && !this.paused) {
       this.firearms?.update(dt);
       this.impact?.update(dt);
-      const w = WEAPONS[this.player.weapon];
+      const weaponId = this.player.weapon;
+      const w = WEAPONS[weaponId];
+      const mode = this.currentFireMode?.(weaponId) || 'semi';
+
+      if (w?.kind === 'gun' && this.cooldown <= 0) {
+        const burst = this.burstFireState;
+        if (burst?.weaponId === weaponId && burst.remaining > 0) {
+          if (this.attack()) burst.remaining -= 1;
+        } else if (w.automatic && mode === 'auto' && canAutoContinue(this)) {
+          this.attack();
+        }
+      }
+
       if (w?.ammo) {
         const status = this.firearms.statusText(this.player.weapon);
         const bottom = document.getElementById('bottom');
-        if (bottom) bottom.textContent = `R reload/clear jam · B alt · V aim · ${ARSENAL[this.player.weapon]?.name}: ${status} · Y enchant`;
+        if (bottom) bottom.textContent = `R reload · H ${fireModeLabel(mode)} · B alt · V aim · ${ARSENAL[this.player.weapon]?.name}: ${status} · Y enchant`;
       }
     }
   };

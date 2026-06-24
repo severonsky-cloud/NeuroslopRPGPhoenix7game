@@ -18,7 +18,14 @@ function addWeaponMesh(agentObj, profile) {
   const metal = makeMat(profile.color || 0xc8c0a8, { roughness: 0.42, metalness: 0.15 });
   const wood = makeMat(0x4a2d18);
 
-  if (profile.kind === 'firearm') {
+  if (profile.vehicleGun || profile.model === 'cannon') {
+    const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 0.2, 10), metal);
+    mount.position.set(0.1, 1.95, 0);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(profile.model === 'cannon' ? 0.055 : 0.035, profile.model === 'cannon' ? 0.065 : 0.035, profile.model === 'cannon' ? 1.35 : 1.05, 8), metal);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0.1, 1.95, -0.72);
+    g.add(mount, barrel);
+  } else if (profile.kind === 'firearm') {
     const len = profile.model === 'smg' ? 0.62 : profile.model === 'nagant' ? 0.32 : profile.model === 'shotgun' ? 0.75 : 0.88;
     const body = new THREE.Mesh(new THREE.BoxGeometry(len, 0.09, 0.09), metal);
     body.position.set(0.38, 1.25, 0.08);
@@ -84,6 +91,13 @@ function makeSwing(scene, attacker, target, color) {
   return line;
 }
 
+function vehicleProfileFor(u) {
+  if (!u?.vehicle) return null;
+  if (u.archetype === 'walkerVehicle') return NPC_WEAPON_PROFILES.glass_vehicle_beam;
+  if (u.archetype === 'armoredVehicle') return NPC_WEAPON_PROFILES.vehicle_cannon;
+  return NPC_WEAPON_PROFILES.vehicle_lmg;
+}
+
 export class ArmedWorldSystem {
   constructor(engine, audio) {
     this.engine = engine;
@@ -112,11 +126,13 @@ export class ArmedWorldSystem {
     }
     for (const obj of this.engine.monsters || []) {
       const u = obj.userData;
-      let profile = null;
-      if (u.id?.includes('zhuzher')) profile = NPC_WEAPON_PROFILES.smg_zhuzher;
-      if (u.archetype === 'black') profile = NPC_WEAPON_PROFILES.black_rifle;
-      if (u.archetype === 'glass' || u.archetype === 'phase') profile = NPC_WEAPON_PROFILES.elemental_gun;
-      if (!profile && u.archetype === 'brute') profile = NPC_WEAPON_PROFILES.tsarbor_club;
+      let profile = vehicleProfileFor(u);
+      if (!profile && u.id?.includes('zhuzher')) profile = u.id?.includes('Mg') ? NPC_WEAPON_PROFILES.imperial_lmg : NPC_WEAPON_PROFILES.smg_zhuzher;
+      if (!profile && u.id?.includes('Rifle')) profile = NPC_WEAPON_PROFILES.bandit_rifle;
+      if (!profile && u.archetype === 'black') profile = NPC_WEAPON_PROFILES.black_rifle;
+      if (!profile && (u.archetype === 'glass' || u.archetype === 'phase')) profile = NPC_WEAPON_PROFILES.elemental_gun;
+      if (!profile && u.archetype === 'brute') profile = u.faction === 'bandits' ? NPC_WEAPON_PROFILES.bandit_shotgun : NPC_WEAPON_PROFILES.tsarbor_club;
+      if (!profile && u.faction === 'bandits') profile = Math.random() < 0.5 ? NPC_WEAPON_PROFILES.bandit_rifle : NPC_WEAPON_PROFILES.bandit_shotgun;
       if (profile) {
         u.weaponProfile = profile;
         u.weaponProfileId = Object.keys(NPC_WEAPON_PROFILES).find(k => NPC_WEAPON_PROFILES[k] === profile);
@@ -161,7 +177,7 @@ export class ArmedWorldSystem {
       const targetPos = target === 'player' ? playerPos : target.position;
       obj.lookAt(targetPos.x, heightAt(targetPos.x, targetPos.z) + 1, targetPos.z);
       const d = obj.position.distanceTo(targetPos);
-      if (d > (profile.kind === 'firearm' ? profile.range * 0.72 : profile.range * 0.85)) {
+      if (!u.vehicle && d > (profile.kind === 'firearm' ? profile.range * 0.72 : profile.range * 0.85)) {
         this.moveToward(obj, targetPos, dt, profile.kind === 'firearm' ? 0.8 : 1.25);
       }
       if (u.combatCooldown <= 0 && d < profile.range) {
@@ -185,7 +201,7 @@ export class ArmedWorldSystem {
     const profile = u.weaponProfile;
     const dp = obj.position.distanceTo(playerPos);
     const veiled = Boolean(this.engine.player.characterRuntime?.nullVeil);
-    if (hostileToPlayer(u) && dp < Math.min(profile.range, veiled ? 5 : 28)) return 'player';
+    if (hostileToPlayer(u) && dp < Math.min(profile.range, veiled ? 5 : 34)) return 'player';
 
     let best = null;
     let bestD = Infinity;
@@ -220,7 +236,7 @@ export class ArmedWorldSystem {
 
   targetPosition(target) {
     if (target === 'player') return this.engine.rig.position.clone().add(new THREE.Vector3(0, 1.1, 0));
-    return target.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+    return target.position.clone().add(new THREE.Vector3(0, target.userData?.vehicle ? 1.35 : 1.0, 0));
   }
 
   dealDamage(target, dmg, kind) {
@@ -236,6 +252,11 @@ export class ArmedWorldSystem {
       return;
     }
     const u = target.userData;
+    if (u.vehicle) {
+      u.staggerT = Math.max(u.staggerT || 0, 0.12);
+      this.audio?.hit?.('armor');
+      return;
+    }
     u.hp = (u.hp ?? 40) - dmg;
     u.staggerT = Math.max(u.staggerT || 0, 0.2);
     if (u.hp <= 0) {
@@ -245,7 +266,7 @@ export class ArmedWorldSystem {
   }
 
   fire(obj, target, profile) {
-    const from = obj.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+    const from = obj.position.clone().add(new THREE.Vector3(0, obj.userData?.vehicle ? 1.85 : 1.35, 0));
     const to = this.targetPosition(target);
     const d = from.distanceTo(to);
     const spread = 0.35 + d * 0.018;

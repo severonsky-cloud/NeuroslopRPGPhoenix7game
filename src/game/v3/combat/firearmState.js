@@ -12,17 +12,54 @@ export function makeFirearmState() {
   };
 }
 
+function jamBaseFor(weapon) {
+  if (Number.isFinite(weapon?.jamBase)) return weapon.jamBase;
+  const archetype = weapon?.archetype;
+  if (archetype === 'lmg' || archetype === 'lmgBelt') return 0.052;
+  if (archetype === 'lmgMag') return 0.04;
+  if (archetype === 'shotgun' || archetype === 'shotgunPump') return 0.035;
+  if (archetype === 'shotgunBreak' || archetype === 'pistolRevolver' || archetype === 'revolver') return 0.018;
+  if (archetype === 'shotgunSemi' || archetype === 'smg') return 0.042;
+  if (archetype === 'rifleBolt' || archetype === 'atLauncher') return 0.02;
+  if (archetype === 'atRifle') return 0.028;
+  if (archetype === 'thrownExplosive') return 0;
+  return 0.032;
+}
+
+function reloadSecondsFor(weapon) {
+  if (Number.isFinite(weapon?.reloadSeconds)) return weapon.reloadSeconds;
+  const archetype = weapon?.archetype;
+  if (archetype === 'revolver' || archetype === 'pistolRevolver') return 1.5;
+  if (archetype === 'pistolAuto') return 1.3;
+  if (archetype === 'smg') return 1.75;
+  if (archetype === 'lmg' || archetype === 'lmgMag') return 2.4;
+  if (archetype === 'lmgBelt') return 3.0;
+  if (archetype === 'shotgun' || archetype === 'shotgunPump' || archetype === 'shotgunSemi') return 1.9;
+  if (archetype === 'shotgunBreak') return 1.45;
+  if (archetype === 'atLauncher' || archetype === 'atRifle') return 2.6;
+  if (archetype === 'thrownExplosive') return 1.0;
+  return 1.65;
+}
+
 export class FirearmStateSystem {
   constructor(player, inventory) {
     this.player = player;
     this.inventory = inventory;
     if (!player.firearmState) player.firearmState = makeFirearmState();
+    if (!player.inventoryState) player.inventoryState = { ammo: {} };
+    if (!player.inventoryState.ammo) player.inventoryState.ammo = {};
   }
 
   state(weaponId) {
     if (!this.player.firearmState.weapons[weaponId]) {
       const w = ARSENAL[weaponId];
-      this.player.firearmState.weapons[weaponId] = { loaded: w?.clipSize || 1, chambered: true, condition: 0.66, jammed: false, reloadT: 0 };
+      this.player.firearmState.weapons[weaponId] = {
+        loaded: w?.clipSize || 1,
+        chambered: true,
+        condition: Number.isFinite(w?.startCondition) ? w.startCondition : 0.66,
+        jammed: false,
+        reloadT: 0,
+      };
     }
     return this.player.firearmState.weapons[weaponId];
   }
@@ -43,10 +80,10 @@ export class FirearmStateSystem {
     const can = this.canFire(weaponId);
     if (!can.ok) return can;
     s.loaded -= 1;
-    const baseJam = w.archetype === 'lmg' ? 0.052 : w.archetype === 'shotgun' ? 0.035 : w.archetype === 'revolver' ? 0.028 : 0.032;
     const conditionPenalty = (1 - s.condition) * 0.12;
-    const jamChance = (baseJam + conditionPenalty) * jamMul;
-    s.condition = Math.max(0.12, s.condition - (0.0035 * conditionWearMul));
+    const jamChance = (jamBaseFor(w) + conditionPenalty) * jamMul;
+    const wear = Number.isFinite(w?.conditionWear) ? w.conditionWear : 0.0035;
+    s.condition = Math.max(0.12, s.condition - (wear * conditionWearMul));
     if (Math.random() < jamChance) {
       s.jammed = true;
       return { ok: false, reason: 'jammed_now', jamChance };
@@ -65,8 +102,7 @@ export class FirearmStateSystem {
     }
     if (s.loaded >= w.clipSize) return { ok: false, reason: 'full' };
     if ((this.player.inventoryState.ammo[w.ammoType] || 0) <= 0) return { ok: false, reason: 'no_ammo' };
-    const baseDuration = w.archetype === 'revolver' ? 1.5 : w.archetype === 'lmg' ? 2.4 : w.archetype === 'shotgun' ? 1.9 : 1.65;
-    s.reloadT = baseDuration * (this.player.characterRuntime?.reloadDuration || 1);
+    s.reloadT = reloadSecondsFor(w) * (this.player.characterRuntime?.reloadDuration || 1);
     return { ok: true, reloading: true, duration: s.reloadT };
   }
 

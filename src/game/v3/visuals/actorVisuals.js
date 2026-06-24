@@ -129,6 +129,31 @@ function roleFor(u) {
   return 'civilian';
 }
 
+function isVehicleActor(u = {}) {
+  return Boolean(u.vehicle || u.ww2BigVehicle || u.vehicleArmor || String(u.archetype || '').includes('Vehicle'));
+}
+
+function preserveVehicleVisual(obj) {
+  const u = obj.userData || {};
+  const oldRig = obj.getObjectByName('actor_visual_rig');
+  if (oldRig) {
+    obj.remove(oldRig);
+    oldRig.traverse?.((node) => {
+      node.geometry?.dispose?.();
+      if (Array.isArray(node.material)) node.material.forEach((m) => m?.dispose?.());
+      else node.material?.dispose?.();
+    });
+  }
+  obj.traverse?.((node) => {
+    if (node.isMesh) {
+      node.visible = true;
+      node.userData.keepVisible = true;
+    }
+  });
+  u.visualRig = null;
+  u.actorVisualVehiclePreserved = true;
+}
+
 export class ActorVisualSystem {
   constructor(engine) {
     this.engine = engine;
@@ -149,6 +174,13 @@ export class ActorVisualSystem {
 
   enhance(obj) {
     const u = obj.userData || {};
+    if (isVehicleActor(u)) {
+      preserveVehicleVisual(obj);
+      u.actorVisualEnhanced = true;
+      this.prev.set(obj, obj.position.clone());
+      if (!this.actors.includes(obj)) this.actors.push(obj);
+      return;
+    }
     if (u.actorVisualEnhanced) return;
     u.actorVisualEnhanced = true;
 
@@ -178,12 +210,14 @@ export class ActorVisualSystem {
     for (const obj of this.collectActors()) {
       this.enhance(obj);
       if (obj.userData.settlementCulled || !obj.visible) continue;
+      if (isVehicleActor(obj.userData)) continue;
       this.animateActor(obj, dt);
     }
   }
 
   animateActor(obj, dt) {
     const u = obj.userData || {};
+    if (isVehicleActor(u)) return;
     const rig = u.visualRig;
     if (!rig) return;
     const prev = this.prev.get(obj) || obj.position.clone();

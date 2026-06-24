@@ -12,6 +12,10 @@ export class InputSystem {
       if (this.onAction) this.onAction(e.code, e);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('pointerup', (e) => {
+      if (e.button === 0) this.keys.delete('MouseLeft');
+    });
+    window.addEventListener('blur', () => this.keys.delete('MouseLeft'));
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === this.canvas) {
         this.mouseDX += e.movementX;
@@ -20,10 +24,15 @@ export class InputSystem {
     });
     document.addEventListener('pointerlockchange', () => {
       this.pointerLocked = document.pointerLockElement === this.canvas;
+      if (!this.pointerLocked) this.keys.delete('MouseLeft');
+    });
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      this.keys.add('MouseLeft');
+      if (document.pointerLockElement === canvas && this.onAction) this.onAction('MouseLeft', e);
     });
     canvas.addEventListener('click', () => {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
-      else if (this.onAction) this.onAction('MouseLeft', new Event('mouseleft'));
     });
     canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();

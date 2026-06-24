@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ashgrave Vehicle Lab</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #17130f; color: #ead9bd; font-family: "Courier New", monospace; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #ui { position: fixed; top: 10px; left: 10px; width: 340px; max-height: 90vh; overflow-y: auto; background: rgba(0,0,0,.9); border: 1px solid rgba(220,170,90,.35); border-radius: 8px; padding: 12px; box-shadow: 0 20px 70px rgba(0,0,0,.55); }
+    .title { font-weight: 900; color: #ffd58a; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .faction { color: #ff7558; border-bottom: 1px solid #4a3830; margin: 10px 0 5px; padding-bottom: 3px; font-weight: 900; }
+    .faction.allies { color: #79aaff; }
+    .faction.neutral { color: #a4df9b; }
+    button { width: 48%; margin: 2px 1%; padding: 7px 5px; cursor: pointer; border: 1px solid #5d5143; border-radius: 5px; background: #36312b; color: #ead9bd; font-weight: 800; font-size: 11px; }
+    button:hover { background: #514537; color: #fff; }
+    button.wide { width: 98%; background: #5d332d; color: #fff; }
+    button.soft { background: #2c3331; }
+    #hud { position: fixed; bottom: 10px; left: 10px; min-width: 380px; background: rgba(0,0,0,.88); border: 1px solid rgba(220,170,90,.35); border-radius: 8px; padding: 12px; line-height: 1.55; }
+    .val { color: #ffbd4a; font-weight: 900; }
+    .loot { color: #62ff7d; font-weight: 900; }
+    .small { color: #a99170; font-size: 12px; line-height: 1.35; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <canvas id="vehicleLabCanvas"></canvas>
+  <div id="ui">
+    <div class="title">Ashgrave Vehicle Lab · V8 Modular</div>
+    <div class="faction">ОСЬ / ЖУЖЖЕР</div>
+    <button data-spawn="technical">1 Техничанка</button><button data-spawn="panzer4">2 Panzer IV</button>
+    <button data-spawn="puma">5 Puma</button><button data-spawn="flakpanzer">6 Wirbelwind</button>
+    <div class="faction allies">ИМПЕРИЯ / СОЮЗНИКИ</div>
+    <button data-spawn="sherman">7 M4 Sherman</button><button data-spawn="jeep">8 Willys Jeep</button>
+    <button data-spawn="achilles">9 Achilles</button><button data-spawn="m16aa">0 M16 AA</button>
+    <div class="faction neutral">НЕЙТРАЛ / ФАНТАСТИКА</div>
+    <button data-spawn="fuelTruck">3 Fuel Truck</button><button data-spawn="glassWalker">4 Glass Walker</button>
+    <div class="faction">ТЕСТ ОРУЖИЯ</div>
+    <button data-weapon="bazookaRocket">R Bazooka</button><button data-weapon="panzerfaustRocket">P Panzerfaust</button>
+    <button data-weapon="atRifle">T PT-Rifle</button><button data-weapon="mgBullet">Y MG Burst</button>
+    <button id="spawnAllBtn" class="wide">ВОЙНА ВСЕХ ПРОТИВ ВСЕХ</button>
+    <button id="collidersBtn" class="soft">B Hitboxes</button><button id="labelsBtn" class="soft">L Labels</button>
+    <button id="clearBtn" class="wide" style="background:#242424;color:#aaa;">C Очистить</button>
+    <div class="small">Мышь — вращать камеру, колесо — дистанция. Это уже модульная версия GLM V8 для переноса в Phoenix7.</div>
+  </div>
+  <div id="hud">
+    Pen: <span class="val" id="hPen">0</span> · Cook-off: <span class="val" id="hCook">0</span> · Blocked: <span class="val" id="hBlock">0</span> · Destroyed: <span class="val" id="hDestroyed">0</span><br>
+    <span class="loot">TROPHIES: <span id="hLoot">0</span></span><br>
+    <span id="hEvent">ready</span>
+  </div>
+  <script type="module">
+    import { bootVehicleLab } from './src/game/v3/vehicles/vehicleLabApp.js?v=v8_modular_1';
+    bootVehicleLab();
+  </script>
+</body>
+</html>

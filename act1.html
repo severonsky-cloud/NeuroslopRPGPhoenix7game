@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ashgrave Act 1 Integrated Launcher</title>
+  <style>
+    :root{color-scheme:dark;--panel:rgba(38,29,21,.88);--panel2:rgba(24,20,17,.92);--line:rgba(214,172,98,.28);--text:#f1dfc1;--muted:#b79d78;--gold:#d7a94c;--red:#b34c36;--green:#77aa68;--blue:#78a6b8}*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(circle at 20% 0%,rgba(129,68,35,.35),transparent 34rem),radial-gradient(circle at 80% 12%,rgba(65,87,73,.26),transparent 30rem),linear-gradient(135deg,#0f0b09,#1b120d 52%,#0b0a0a);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:1240px;margin:0 auto;padding:32px 20px 56px}header{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;align-items:stretch;margin-bottom:18px}.hero,.card{background:var(--panel);border:1px solid var(--line);box-shadow:0 20px 80px rgba(0,0,0,.35);border-radius:18px;padding:22px;backdrop-filter:blur(8px)}h1{margin:0 0 8px;font-size:clamp(30px,5vw,56px);line-height:.96;letter-spacing:-.04em}h2{margin:0 0 12px;font-size:22px}h3{margin:0 0 8px;font-size:16px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}p{color:var(--muted);line-height:1.5;margin:0 0 12px}.kicker{color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.09em;font-size:12px}.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}a.button,button.button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 14px;color:#120d08;background:var(--gold);border:1px solid rgba(255,255,255,.12);border-radius:12px;font-weight:800;text-decoration:none;cursor:pointer}a.button.secondary,button.button.secondary{color:var(--text);background:rgba(255,255,255,.06)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0}.launches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}.launch{position:relative;overflow:hidden;background:var(--panel2)}.launch.primary{border-color:rgba(215,169,76,.65)}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;padding:5px 9px;margin:3px 4px 3px 0;background:rgba(0,0,0,.16)}.status{display:inline-block;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:800;text-transform:uppercase}.done{background:rgba(102,170,89,.18);color:#b4e0a6}.in-progress{background:rgba(215,169,76,.18);color:#f2d08a}.next{background:rgba(120,166,184,.18);color:#add6e5}ul{margin:8px 0 0 0;padding-left:18px;color:var(--muted);line-height:1.5}li::marker{color:var(--gold)}table{width:100%;border-collapse:collapse;color:var(--muted)}td{border-top:1px solid rgba(214,172,98,.16);padding:8px 4px;vertical-align:top}td:first-child{color:var(--text);font-weight:800;width:120px}.roadmap{display:grid;gap:12px}.phase{border-left:3px solid var(--gold);padding-left:14px}.small{font-size:12px;color:#9d8462}.mergeWarning{border-color:rgba(179,76,54,.55);background:rgba(86,31,22,.46)}.currentBuild{border-color:rgba(119,170,104,.58);background:linear-gradient(135deg,rgba(51,81,44,.44),rgba(17,13,9,.78))}.questSteps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:12px}.questStep{padding:10px;border:1px solid rgba(214,172,98,.22);background:rgba(0,0,0,.18);border-radius:12px}.questStep b{display:block;color:var(--gold);font-size:13px;margin-bottom:4px}.questStep span{font-size:12px;color:var(--muted);line-height:1.35}.bigHint{font-size:18px;color:#ffe2a7;font-weight:900;margin:4px 0 12px}.warningLine{border-left:3px solid var(--red);padding:10px 12px;background:rgba(179,76,54,.12);color:#e9c0ae;border-radius:10px;margin-top:10px}.integratedLine{border-left:3px solid var(--green);padding:10px 12px;background:rgba(119,170,104,.12);color:#d4efc8;border-radius:10px;margin-top:10px}@media(max-width:860px){header,.grid,.launches,.questSteps{grid-template-columns:1fr}.wrap{padding:18px 12px 40px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <section class="hero currentBuild">
+        <div class="kicker" id="iteration">Act 1 Integrated Gameplay Layer</div>
+        <h1 id="title">Ashgrave Launcher</h1>
+        <p id="subtitle">Меню запуска и дорожная карта текущего билда.</p>
+        <div class="bigHint">Текущий основной билд: Act 1 integrated playable slice. Квест начинается после Start.</div>
+        <p>Жми <b>Играть Act 1 квест</b>. Внутри тебя телепортирует к лагерю. Подойди к столу старосты и нажми <b>E</b>.</p>
+        <div class="buttons" id="heroButtons"></div>
+      </section>
+      <aside class="card mergeWarning">
+        <h2>Где начинать квест</h2>
+        <p><b>1.</b> Открыть Act 1 integrated build. <b>2.</b> Нажать Start. <b>3.</b> Идти к маркеру “Староста маршрута”. <b>4.</b> Нажать E у стола.</p>
+        <p class="small">F2 — перезапуск среза и чистка старых route-spawns. F3 — телепорт к цели. F8 — debug labels. J — журнал. I — инвентарь с куклой.</p>
+      </aside>
+    </header>
+
+    <section class="card currentBuild">
+      <h2>Цельный проходной срез сейчас</h2>
+      <div class="questSteps">
+        <div class="questStep"><b>1. Староста</b><span>E у стола, взять заказ и стартовый набор.</span></div>
+        <div class="questStep"><b>2. Дорога</b><span>Дорожные события: ящик, записка, караванщик.</span></div>
+        <div class="questStep"><b>3. Встреча</b><span>Разобраться с дорожной проблемой.</span></div>
+        <div class="questStep"><b>4. GLM Puma</b><span>Бронецель с hitboxes/parts/wreck.</span></div>
+        <div class="questStep"><b>5. Ящики</b><span>E на трёх зелёных ящиках.</span></div>
+        <div class="questStep"><b>6. Возврат</b><span>Сдать, получить награду и completion screen.</span></div>
+      </div>
+      <div class="integratedLine">Интегрировано: draggable/resizable окна, completion impact, F8 debug/cleanup, GLM vehicle bridge, road events, обновлённый roadmap/checkpoint.</div>
+      <div class="warningLine">Если не видишь квест — ты открыл не тот билд или старый кэш. Нужен URL: <b>/v3p2_ww2_live.html?ww2=1&act1=1</b>, потом Ctrl+F5.</div>
+    </section>
+
+    <section class="card"><h2>Запуск билда</h2><div class="launches" id="launches"></div></section>
+    <section class="grid" id="statusColumns"></section>
+    <section class="card"><h2>Дорожная карта Act 1</h2><div class="roadmap" id="roadmap"></div></section>
+    <section class="grid"><div class="card"><h2>Контроли</h2><table id="controls"></table></div><div class="card"><h2>Следующая итерация</h2><ul id="nextIteration"></ul></div><div class="card"><h2>Рабочий статус</h2><p><b>Branch:</b> <span id="branch"></span></p><p><b>PR:</b> <span id="pr"></span></p><p><b>Updated:</b> <span id="updated"></span></p></div></section>
+  </main>
+
+  <script type="module">
+    import { ACT1_ROADMAP } from './src/game/v3/dev/act1Roadmap.js?v=act1_roadmap_integrated_1';
+    const $=(id)=>document.getElementById(id); const a=(href,text,cls='button')=>`<a class="${cls}" href="${href}">${text}</a>`; const li=(items)=>items.map((item)=>`<li>${item}</li>`).join(''); const pill=(text)=>`<span class="pill">${text}</span>`;
+    $('iteration').textContent=ACT1_ROADMAP.iteration; $('title').textContent=ACT1_ROADMAP.build.title; $('subtitle').textContent=ACT1_ROADMAP.build.subtitle; $('branch').textContent=ACT1_ROADMAP.build.branch; $('pr').textContent=ACT1_ROADMAP.build.pr; $('updated').textContent=ACT1_ROADMAP.updatedAt;
+    $('heroButtons').innerHTML=[a(ACT1_ROADMAP.build.recommended,'Играть Act 1 квест','button'),a('/v3p2_ww2_live.html?ww2=1','Открыть без автоквеста','button secondary'),a('/vehicle_lab.html','Vehicle Lab','button secondary')].join('');
+    $('launches').innerHTML=ACT1_ROADMAP.launchTargets.map((target)=>`<article class="card launch ${target.primary?'primary':''}"><h3>${target.title}</h3><p>${target.note}</p><div>${target.checks.map(pill).join('')}</div><div class="buttons">${a(target.href,target.primary?'Запустить основной квест':'Открыть',target.primary?'button':'button secondary')}</div></article>`).join('');
+    $('statusColumns').innerHTML=ACT1_ROADMAP.statusColumns.map((column)=>`<section class="card"><h2>${column.title}</h2><ul>${li(column.items)}</ul></section>`).join('');
+    $('roadmap').innerHTML=ACT1_ROADMAP.roadmap.map((phase)=>`<article class="phase"><h3>${phase.phase} <span class="status ${phase.status}">${phase.status}</span></h3><ul>${li(phase.points)}</ul></article>`).join('');
+    $('controls').innerHTML=ACT1_ROADMAP.controls.map(([key,desc])=>`<tr><td>${key}</td><td>${desc}</td></tr>`).join(''); $('nextIteration').innerHTML=li(ACT1_ROADMAP.nextIteration);
+  </script>
+</body>
+</html>
