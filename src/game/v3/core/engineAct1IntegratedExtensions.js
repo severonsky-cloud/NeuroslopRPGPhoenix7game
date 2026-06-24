@@ -1,8 +1,9 @@
-import { installAshgraveWindowExtensions } from './engineAshgraveWindowExtensions.js?v=v3p2_act1_integrated_1';
-import { installAct1CompletionExtensions } from './engineAct1CompletionExtensions.js?v=v3p2_act1_integrated_1';
-import { installEntityDebugExtensions } from './engineEntityDebugExtensions.js?v=v3p2_act1_integrated_1';
-import { installAct1VehicleBridgeExtensions } from './engineAct1VehicleBridgeExtensions.js?v=v3p2_act1_integrated_1';
-import { installAct1RoadEventsExtensions } from './engineAct1RoadEventsExtensions.js?v=v3p2_act1_integrated_1';
+import { installAshgraveWindowExtensions } from './engineAshgraveWindowExtensions.js?v=v3p2_act1_repair_1';
+import { installAct1CompletionExtensions } from './engineAct1CompletionExtensions.js?v=v3p2_act1_repair_1';
+import { installEntityDebugExtensions } from './engineEntityDebugExtensions.js?v=v3p2_act1_repair_1';
+import { installAct1VehicleBridgeExtensions } from './engineAct1VehicleBridgeExtensions.js?v=v3p2_act1_repair_1';
+import { installAct1RoadEventsExtensions } from './engineAct1RoadEventsExtensions.js?v=v3p2_act1_repair_1';
+import { installAct1RuntimeRepairExtensions } from './engineAct1RuntimeRepairExtensions.js?v=v3p2_act1_repair_1';
 
 export function installAct1IntegratedExtensions(PhoenixV3Engine) {
   installAshgraveWindowExtensions(PhoenixV3Engine);
@@ -10,4 +11,5 @@ export function installAct1IntegratedExtensions(PhoenixV3Engine) {
   installEntityDebugExtensions(PhoenixV3Engine);
   installAct1VehicleBridgeExtensions(PhoenixV3Engine);
   installAct1RoadEventsExtensions(PhoenixV3Engine);
+  installAct1RuntimeRepairExtensions(PhoenixV3Engine);
 }
