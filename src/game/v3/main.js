@@ -15,19 +15,20 @@ import { PHOENIX_BUILD_INFO } from './buildInfo.js?v=30m2a_n3_integrated_1';
 import { upgradeLivingWorldVisuals } from './world/lifeVisuals.js?v=30m2a_n3_integrated_1';
 import { upgradeStoryNpcVisuals } from './world/storyNpcVisuals.js?v=30m2a_n3_integrated_1';
 
-import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=v3p2_act1_repair_1';
-import { installWw2VehicleExtensions } from './core/engineWw2VehicleExtensions.js?v=v3p2_act1_repair_1';
-import { installWw2VehicleStabilityExtensions } from './core/engineWw2VehicleStabilityExtensions.js?v=v3p2_act1_repair_1';
-import { installBallisticEventExtensions } from './core/engineBallisticEventExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponWorldExtensions } from './core/engineWeaponWorldExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponSocialTuningExtensions } from './core/engineWeaponSocialTuningExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponModelPolishExtensions } from './core/engineWeaponModelPolishExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponProgressionExtensions } from './core/engineWeaponProgressionExtensions.js?v=v3p2_act1_repair_1';
-import { installMorrowindInventoryExtensions } from './core/engineMorrowindInventoryExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=v3p2_act1_repair_1';
-import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=v3p2_act1_repair_1';
+import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=act1_opening_1';
+import { installWw2VehicleExtensions } from './core/engineWw2VehicleExtensions.js?v=act1_opening_1';
+import { installWw2VehicleStabilityExtensions } from './core/engineWw2VehicleStabilityExtensions.js?v=act1_opening_1';
+import { installBallisticEventExtensions } from './core/engineBallisticEventExtensions.js?v=act1_opening_1';
+import { installWeaponWorldExtensions } from './core/engineWeaponWorldExtensions.js?v=act1_opening_1';
+import { installWeaponSocialTuningExtensions } from './core/engineWeaponSocialTuningExtensions.js?v=act1_opening_1';
+import { installWeaponModelPolishExtensions } from './core/engineWeaponModelPolishExtensions.js?v=act1_opening_1';
+import { installWeaponProgressionExtensions } from './core/engineWeaponProgressionExtensions.js?v=act1_opening_1';
+import { installMorrowindInventoryExtensions } from './core/engineMorrowindInventoryExtensions.js?v=act1_opening_1';
+import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=act1_opening_1';
+import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=act1_opening_1';
+import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=act1_opening_1';
+import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=act1_opening_1';
+import { installAct1OpeningExtensions } from './core/engineAct1OpeningExtensions.js?v=act1_opening_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -55,15 +56,13 @@ installAct1SliceExtensions(PhoenixV3Engine);
 installAct1TraderExtensions(PhoenixV3Engine);
 installAshgraveInterfaceExtensions(PhoenixV3Engine);
 installAct1IntegratedExtensions(PhoenixV3Engine);
+installAct1OpeningExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
 engine.buildInfo = PHOENIX_BUILD_INFO;
 engine.boot();
 
-// v3N2 hardening: make LivingWorldSystem use direct engine references instead of
-// relying only on global lookup. This keeps caravan ambush rewards, spawned
-// hostiles and HUD messages stable even if debug commands run very early.
 if (engine.livingWorld) {
   engine.livingWorld.systems = {
     player: engine.player,
@@ -132,4 +131,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log(`${PHOENIX_BUILD_INFO.title} + v3P2 Act 1 runtime repair ready`, PHOENIX_BUILD_INFO);
+console.log(`${PHOENIX_BUILD_INFO.title} + Act 1 RPG opening slice ready`, PHOENIX_BUILD_INFO);
