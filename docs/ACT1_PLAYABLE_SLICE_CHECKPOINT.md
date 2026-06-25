@@ -1,8 +1,8 @@
-# Ashgrave Act 1 Playable Slice — Integrated Checkpoint
+# Ashgrave Act 1 Playable Slice — Vehicle Combat Actor Checkpoint
 
-Updated: 2026-06-24
-Branch: `feat/v3p2-ww2-arsenal-microbuild`
-PR: `#12 draft`
+Updated: 2026-06-25
+Branch: `feat/vehicle-combat-actor-pass`
+Base: `main`
 
 ## Current canonical launch
 
@@ -20,197 +20,117 @@ Direct gameplay URL:
 /v3p2_ww2_live.html?ww2=1&act1=1
 ```
 
-Cache key for this integrated iteration:
+Cache key for this vehicle pass:
 
 ```text
-v3p2_act1_integrated_1
+vehicle_combat_actor_1
 ```
 
 ## Locked gameplay loop
 
-The current playable slice is:
+The current playable slice must remain:
 
 1. Start near the route elder camp.
 2. Walk to **Староста маршрута**.
 3. Press **E** at the table.
 4. Use the elder dialogue panel to accept the route job.
 5. Follow the road marker.
-6. Inspect optional road events: abandoned crate, note sign, injured caravan man, burned wagon.
+6. Inspect optional road events.
 7. Clear the road encounter.
-8. Stop the GLM modular **Puma** vehicle target.
-9. Pick up three green crates with **E**.
-10. Return to the elder.
-11. Press **E** and turn in the route.
-12. See completion impact: reward, route reputation, camp changes, journal status.
+8. Fight **Puma VehicleCombatActor**.
+9. Destroy vehicle, leave wreck, spawn green crates outside hull.
+10. Pick up three green crates with **E**.
+11. Return to the elder.
+12. Press **E** and turn in the route.
+13. See completion impact.
 
-## Integrated modules added on 2026-06-24
+## Vehicle Combat Actor pass
 
-### 1. Universal Ashgrave window shell
-
-File:
+New files:
 
 ```text
-src/game/v3/core/engineAshgraveWindowExtensions.js
+src/game/v3/vehicles/vehicleCombatActor.js
+src/game/v3/vehicles/vehicleCombatSystem.js
+src/game/v3/core/engineVehicleCombatExtensions.js
 ```
 
 Purpose:
 
-- draggable panel header;
-- resize handle in the lower-right corner;
-- saved window size/position in `localStorage`;
-- double-click header resets layout;
-- viewport clamp;
-- scrollbars only inside the window body as fallback.
+- stop treating Act 1 Puma as only monster/userData/repair target;
+- use GLM `createVehicle(type)` only as visual backend;
+- keep combat state in `VehicleCombatActor`;
+- register vehicles in `VehicleCombatSystem`;
+- bridge player weapon shots into vehicle raycast/part damage;
+- emit vehicle events: hit, armor blocked, immobilized, burning, destroyed;
+- let Act 1 route listen to vehicle destruction and spawn crates around wreck;
+- keep old repair layers as fallback only.
 
-Applies through `hud.openPanel`, so inventory, journal, trader, elder and system panels use the same shell.
+## Vehicle actor state
 
-### 2. Stronger quest completion
-
-File:
-
-```text
-src/game/v3/core/engineAct1CompletionExtensions.js
-```
-
-Purpose:
-
-- completion screen after route turn-in;
-- route reputation +1;
-- trader unlock tier flag;
-- extra completion bonus;
-- camp visual changes: flag, salvage rack, guard post;
-- journal status: route closed.
-
-### 3. Enemy debug and cleanup
-
-File:
+`VehicleCombatActor` owns:
 
 ```text
-src/game/v3/core/engineEntityDebugExtensions.js
+id, type, root/model, hp/hpMax, armor, baseMobility, mobility,
+faction, state, parts, lastHitPart, lastDamageReason, questTags, wreck
 ```
 
-Purpose:
-
-- **F8** toggles debug labels;
-- labels show id, hp, alive/dead, faction/source;
-- F2 restart hard-clears stale route spawns;
-- invalid/dead route enemies are cleaned up;
-- route stage should count only route-owned entities.
-
-### 4. GLM vehicle bridge into Act 1
-
-File:
+States:
 
 ```text
-src/game/v3/core/engineAct1VehicleBridgeExtensions.js
+active → immobilized → burning → destroyed
 ```
 
-Purpose:
+Wreck is represented as a prop/object created from the actor root. The actor state remains `destroyed`, not immediately overwritten to `wreck`.
 
-- route vehicle is now a GLM modular `createVehicle('puma')` instance;
-- vehicle has hitboxes/parts from `ashgraveVehicleLabCore.js`;
-- player shots bridge into `getVehicleHit` and `applyVehicleDamage`;
-- small arms mostly block on armor;
-- Bazooka/Panzerfaust/PTRD become meaningful;
-- destroyed vehicle remains as a wreck;
-- crates become available after destruction.
-
-### 5. Road events
-
-File:
+## Weapon behavior target
 
 ```text
-src/game/v3/core/engineAct1RoadEventsExtensions.js
+M1911 / SMG / rifle → armor ping or very small chip
+MG / BAR / Bren / MG42 → wheel/soft-target chip
+PTRD / Boys → part damage, engine/wheels, immobilize chance
+Bazooka / Panzerfaust → heavy hull damage, burning/destroyed
+Q during Act 1 vehicle stage → debug emergency hit
 ```
 
-Events:
-
-- abandoned crate;
-- road note sign;
-- injured caravan man;
-- burned wagon.
-
-These are small route beats between the elder camp and the vehicle target. They add ammo, clues, logs or trophy parts.
-
-### 6. Aggregator
-
-File:
-
-```text
-src/game/v3/core/engineAct1IntegratedExtensions.js
-```
-
-This installs the five integrated extension layers from `main.js` so the build behaves as one slice.
-
-## Locked UI layer
-
-The current UI target is the **Ashgrave RPG HUD**:
-
-- upper-left quest block;
-- top center location/coordinates;
-- top-right clock;
-- lower-left HP/ST/PH bars;
-- lower-right weapon/ammo card;
-- bottom hotbar with item icons;
-- old top/bottom HUD hidden;
-- Morrowind-style inventory with character doll and drag/drop equip;
-- draggable/resizable panel windows.
-
-## Hub services
-
-The route elder panel includes:
-
-- route job accept/turn-in;
-- ammo trading;
-- active firearm repair;
-- road rumors;
-- sale of trophy parts from green crates and road salvage.
-
-## Smoke checklist
+## Smoke checklist for vehicle pass
 
 ```text
 Ctrl+F5
-Start
-new Ashgrave HUD visible
-E at elder table opens dialogue panel
-Window header can be dragged
-Window lower-right corner can resize
-Double-click window header resets layout
-Accept route job
-I opens character doll inventory
-road events can be inspected with E
-road marker advances stage
-road encounter spawns and clears
-F8 toggles debug labels over enemies/entities
-vehicle target spawns as GLM Puma
-small arms mostly block on armor
-Bazooka/PTRD/Panzerfaust damage vehicle hitboxes
-vehicle destruction leaves wreck
-three green crates can be collected with E
-return to elder opens turn-in panel
-completion screen appears
-camp flag/salvage/guard changes appear
-trade/repair buttons work
-J journal includes route + road events + completion status
-F2 restarts route and clears old spawns
-F3 teleports to objective
+F2 start Act 1
+E at elder table, accept route
+clear road encounter
+Puma appears with prompt: VehicleCombatActor puma: HP/state/last part
+F8 shows vehicle labels/source
+M1911 or SMG gives PING / armor blocked
+PTRD or Boys changes lastHitPart and HP
+Bazooka or Panzerfaust does heavy damage
+vehicleDestroyed event fires
+Puma remains as wreck/prop
+three crates spawn around wreck, not inside hull
+E collects crates
+return to elder
+completion screen still works
+F2 restart clears old Act 1 vehicle actor from VehicleCombatSystem registry
+console: PHX_V3_ENGINE.getVehicleCombatDiagnostics()
+console: PHX_V3_ENGINE.damageAct1VehicleDebug('bazooka')
 ```
 
 ## Do not merge blind
 
-This is still a draft gameplay layer. Before merge:
+Before merge:
 
-- recheck PR mergeability;
 - run browser smoke;
 - run `npm run test:v3p2ww2`;
 - run `npm run build`;
-- resolve branch conflicts if GitHub reports `mergeable: false`;
-- only then consider merging.
+- verify Act 1 can still be completed;
+- verify old repair layers are fallback, not primary vehicle combat path;
+- verify F2 restart does not leave stale vehicle actors.
 
-## Next plan
+## Next plan after this pass
 
-1. Run local browser smoke and fix console/runtime errors.
-2. Replace counter-only trophy parts with real inventory/economy items.
-3. Expand trader tier after completion with named goods and prices.
-4. Add save/load for route stage, dropped weapons, trader state, and community campaigns.
-5. Polish NPC yaw-only facing and role-based enemy movement so they stop walking backwards.
+1. Move non-Puma vehicles into `VehicleCombatActor` too.
+2. Add real explosion bridge for rockets and grenades.
+3. Add visible hit feedback: sparks, armor ping, smoke, burning.
+4. Add vehicle UI card or debug mini-panel.
+5. Isolate legacy vehicles into sandbox/debug only.
+6. Replace repair layers after VehicleCombatActor proves stable.
