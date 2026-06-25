@@ -27,8 +27,8 @@ import { installMorrowindInventoryExtensions } from './core/engineMorrowindInven
 import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=vehicle_combat_actor_1';
 import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=vehicle_combat_actor_1';
 import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=vehicle_combat_actor_1';
-import { installVehicleCombatExtensions } from './core/engineVehicleCombatExtensions.js?v=vehicle_combat_actor_1';
 import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=vehicle_combat_actor_1';
+import { installVehicleCombatExtensions } from './core/engineVehicleCombatExtensions.js?v=vehicle_combat_actor_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -55,8 +55,8 @@ installMorrowindInventoryExtensions(PhoenixV3Engine);
 installAct1SliceExtensions(PhoenixV3Engine);
 installAct1TraderExtensions(PhoenixV3Engine);
 installAshgraveInterfaceExtensions(PhoenixV3Engine);
-installVehicleCombatExtensions(PhoenixV3Engine);
 installAct1IntegratedExtensions(PhoenixV3Engine);
+installVehicleCombatExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
 const engine = new PhoenixV3Engine(canvas);
