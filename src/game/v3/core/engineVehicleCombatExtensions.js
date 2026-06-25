@@ -79,7 +79,16 @@ function syncActorToLegacyAct1Vehicle(engine, actor) {
   engine.act1Slice.vehicleCombatActor = actor;
 }
 
+function unregisterAct1VehicleActors(engine) {
+  for (const actor of [...VehicleCombatSystem.actors.values()]) {
+    if (actor.questTags?.includes('act1') || actor.questTags?.includes('act1_puma') || actor.id === 'act1_vehicle_puma') {
+      VehicleCombatSystem.unregister(actor);
+    }
+  }
+}
+
 function createAct1VehicleCombatActor(engine, type = 'puma', options = {}) {
+  unregisterAct1VehicleActors(engine);
   const position = options.position || new THREE.Vector3(0, heightAt(0, -72), -72);
   const root = createVehicle(type, {
     x: position.x,
@@ -164,6 +173,16 @@ function patchAct1SpawnVehicle(PhoenixV3Engine) {
   };
 }
 
+function patchAct1Clear(PhoenixV3Engine) {
+  if (PhoenixV3Engine.__vehicleCombatAct1ClearPatched) return;
+  PhoenixV3Engine.__vehicleCombatAct1ClearPatched = true;
+  const originalClear = PhoenixV3Engine.prototype.act1SliceClear;
+  PhoenixV3Engine.prototype.act1SliceClear = function act1SliceClearVehicleCombat(...args) {
+    unregisterAct1VehicleActors(this);
+    return originalClear.call(this, ...args);
+  };
+}
+
 function patchDebugDiagnostics(engine) {
   engine.getVehicleCombatDiagnostics = () => VehicleCombatSystem.diagnostics();
   engine.damageAct1VehicleDebug = (weaponId = 'bazooka') => {
@@ -179,6 +198,7 @@ export function installVehicleCombatExtensions(PhoenixV3Engine) {
   if (PhoenixV3Engine.__vehicleCombatInstalled) return;
   PhoenixV3Engine.__vehicleCombatInstalled = true;
   patchAct1SpawnVehicle(PhoenixV3Engine);
+  patchAct1Clear(PhoenixV3Engine);
 
   const originalBoot = PhoenixV3Engine.prototype.boot;
   PhoenixV3Engine.prototype.boot = function bootVehicleCombat(...args) {
