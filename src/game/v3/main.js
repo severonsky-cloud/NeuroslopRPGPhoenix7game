@@ -15,19 +15,20 @@ import { PHOENIX_BUILD_INFO } from './buildInfo.js?v=30m2a_n3_integrated_1';
 import { upgradeLivingWorldVisuals } from './world/lifeVisuals.js?v=30m2a_n3_integrated_1';
 import { upgradeStoryNpcVisuals } from './world/storyNpcVisuals.js?v=30m2a_n3_integrated_1';
 
-import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=v3p2_act1_repair_1';
-import { installWw2VehicleExtensions } from './core/engineWw2VehicleExtensions.js?v=v3p2_act1_repair_1';
-import { installWw2VehicleStabilityExtensions } from './core/engineWw2VehicleStabilityExtensions.js?v=v3p2_act1_repair_1';
-import { installBallisticEventExtensions } from './core/engineBallisticEventExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponWorldExtensions } from './core/engineWeaponWorldExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponSocialTuningExtensions } from './core/engineWeaponSocialTuningExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponModelPolishExtensions } from './core/engineWeaponModelPolishExtensions.js?v=v3p2_act1_repair_1';
-import { installWeaponProgressionExtensions } from './core/engineWeaponProgressionExtensions.js?v=v3p2_act1_repair_1';
-import { installMorrowindInventoryExtensions } from './core/engineMorrowindInventoryExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=v3p2_act1_repair_1';
-import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=v3p2_act1_repair_1';
-import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=v3p2_act1_repair_1';
+import { installWw2ArsenalExtensions } from './core/engineWw2ArsenalExtensions.js?v=vehicle_combat_actor_1';
+import { installWw2VehicleExtensions } from './core/engineWw2VehicleExtensions.js?v=vehicle_combat_actor_1';
+import { installWw2VehicleStabilityExtensions } from './core/engineWw2VehicleStabilityExtensions.js?v=vehicle_combat_actor_1';
+import { installBallisticEventExtensions } from './core/engineBallisticEventExtensions.js?v=vehicle_combat_actor_1';
+import { installWeaponWorldExtensions } from './core/engineWeaponWorldExtensions.js?v=vehicle_combat_actor_1';
+import { installWeaponSocialTuningExtensions } from './core/engineWeaponSocialTuningExtensions.js?v=vehicle_combat_actor_1';
+import { installWeaponModelPolishExtensions } from './core/engineWeaponModelPolishExtensions.js?v=vehicle_combat_actor_1';
+import { installWeaponProgressionExtensions } from './core/engineWeaponProgressionExtensions.js?v=vehicle_combat_actor_1';
+import { installMorrowindInventoryExtensions } from './core/engineMorrowindInventoryExtensions.js?v=vehicle_combat_actor_1';
+import { installAct1SliceExtensions } from './core/engineAct1SliceExtensions.js?v=vehicle_combat_actor_1';
+import { installAct1TraderExtensions } from './core/engineAct1TraderExtensions.js?v=vehicle_combat_actor_1';
+import { installAshgraveInterfaceExtensions } from './core/engineAshgraveInterfaceExtensions.js?v=vehicle_combat_actor_1';
+import { installVehicleCombatExtensions } from './core/engineVehicleCombatExtensions.js?v=vehicle_combat_actor_1';
+import { installAct1IntegratedExtensions } from './core/engineAct1IntegratedExtensions.js?v=vehicle_combat_actor_1';
 
 installArsenalExtensions(PhoenixV3Engine);
 installSettlementExtensions(PhoenixV3Engine);
@@ -54,6 +55,7 @@ installMorrowindInventoryExtensions(PhoenixV3Engine);
 installAct1SliceExtensions(PhoenixV3Engine);
 installAct1TraderExtensions(PhoenixV3Engine);
 installAshgraveInterfaceExtensions(PhoenixV3Engine);
+installVehicleCombatExtensions(PhoenixV3Engine);
 installAct1IntegratedExtensions(PhoenixV3Engine);
 
 const canvas = document.getElementById('game');
@@ -132,4 +134,4 @@ startBtn?.addEventListener('click', () => engine.requestGameStart());
 newGameBtn?.addEventListener('click', () => engine.requestGameStart({ newGame: true }));
 mapBtn?.addEventListener('click', () => engine.openMap());
 
-console.log(`${PHOENIX_BUILD_INFO.title} + v3P2 Act 1 runtime repair ready`, PHOENIX_BUILD_INFO);
+console.log(`${PHOENIX_BUILD_INFO.title} + VehicleCombatActor pass ready`, PHOENIX_BUILD_INFO);
